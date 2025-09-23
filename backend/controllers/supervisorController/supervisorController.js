@@ -202,12 +202,15 @@ const loginSupervisor = async (req, res) => {
     }
 
     const user = await Supervisor.findOne({ email }).select('+password');
-    console.log(user);
-    console.log(password);
-    console.log(user.password);
-    const match_pass = await user.matchPassword(password);
-    console.log(match_pass);
-    if (!user || !match_pass) {
+    if (!user) {
+      return res.status(401).json({
+        status: 'fail',
+        message: 'Incorrect email or password.',
+      });
+    }
+    
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    if (!isPasswordCorrect) {
       return res.status(401).json({
         status: 'fail',
         message: 'Incorrect email or password.',
