@@ -44,7 +44,7 @@ export const SIPProvider = ({ children }) => {
     };
     fetchSipPassword();
   }, [SIP_USER]);
-  const SIP_SERVER = process.env.REACT_APP_SERVER_IP || "172.20.47.12";
+  const SIP_SERVER = process.env.REACT_APP_SERVER_IP || "192.168.1.7";
   const SIP_PORT = process.env.REACT_APP_SIP_SERVER_PORT || 8088;
   // Use ws:// for secure WebSocket connection (required for HTTPS pages)
   const SIP_WS_SERVER = `ws://${SIP_SERVER}:${SIP_PORT}/ws`;
@@ -57,15 +57,20 @@ export const SIPProvider = ({ children }) => {
     env_server_ip: process.env.REACT_APP_SERVER_IP,
     env_sip_port: process.env.REACT_APP_SIP_SERVER_PORT
   });
-  const PC_CONFIG = {
-    // iceServers: [
-    //   { urls: 'stun:stun.l.google.com:19302' },
-    //   { urls: 'stun:stun1.l.google.com:19302' }
-    // ],
-    rtcpMuxPolicy: "require",
-    bundlePolicy: "max-bundle",
-    iceCandidatePoolSize: 10
-  };
+ const PC_CONFIG = {
+  iceServers: [
+    { urls: 'stun:192.168.1.7:3478' },
+    {
+      urls: 'turn:192.168.1.7:3478?transport=tcp',
+      username: 'testuser',
+      credential: '1234'
+    }
+  ],
+  rtcpMuxPolicy: "require",
+  bundlePolicy: "max-bundle",
+  iceCandidatePoolSize: 10
+};
+
 
   const [status, setStatus] = useState("Disconnected");
   const [registered, setRegistered] = useState(false);
