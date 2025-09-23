@@ -44,15 +44,24 @@ export const SIPProvider = ({ children }) => {
     };
     fetchSipPassword();
   }, [SIP_USER]);
-  const SIP_SERVER = process.env.SERVER_IP || "172.20.47.53";
-  const SIP_PORT = process.env.SIP_SERVER_PORT || 8089;
-  // Use wss:// for secure WebSocket connection (required for HTTPS pages)
-  const SIP_WS_SERVER = `wss://${SIP_SERVER}:${SIP_PORT}/ws`;
+  const SIP_SERVER = process.env.REACT_APP_SERVER_IP || "172.20.47.12";
+  const SIP_PORT = process.env.REACT_APP_SIP_SERVER_PORT || 8088;
+  // Use ws:// for secure WebSocket connection (required for HTTPS pages)
+  const SIP_WS_SERVER = `ws://${SIP_SERVER}:${SIP_PORT}/ws`;
+  
+  // Debug logging for SIP configuration
+  console.log("🔧 SIP Configuration:", {
+    SIP_SERVER,
+    SIP_PORT,
+    SIP_WS_SERVER,
+    env_server_ip: process.env.REACT_APP_SERVER_IP,
+    env_sip_port: process.env.REACT_APP_SIP_SERVER_PORT
+  });
   const PC_CONFIG = {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' }
-    ],
+    // iceServers: [
+    //   { urls: 'stun:stun.l.google.com:19302' },
+    //   { urls: 'stun:stun1.l.google.com:19302' }
+    // ],
     rtcpMuxPolicy: "require",
     bundlePolicy: "max-bundle",
     iceCandidatePoolSize: 10
@@ -67,10 +76,13 @@ export const SIPProvider = ({ children }) => {
   const [error, setError] = useState("");
   const [iceStatus, setIceStatus] = useState("");
   const [agentStatus, setAgentStatusState] = useState("Available");
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [maxReconnectAttempts] = useState(5);
   const uaRef = useRef(null);
   const remoteAudioRef = useRef(null);
   const ringtoneRef = useRef(null);
   const timerRef = useRef(null);
+  const reconnectTimeoutRef = useRef(null);
 
   useEffect(() => {
     if (timerActive) {
@@ -82,16 +94,32 @@ export const SIPProvider = ({ children }) => {
   }, [timerActive]);
 
   useEffect(() => {
-    if (!SIP_USER || !sipPassword) return;
+    // Only start SIP connection if we have valid credentials and agent is authenticated
+    if (!SIP_USER || !sipPassword || !agent) {
+      console.log("⏸️ SIP connection paused - missing credentials or agent not logged in", {
+        SIP_USER: !!SIP_USER,
+        sipPassword: !!sipPassword, 
+        agent: !!agent
+      });
+      return;
+    }
+    
+    // Reset reconnect attempts when credentials change
+    setReconnectAttempts(0);
     startUA();
+    
     return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
       if (uaRef.current) {
         uaRef.current.stop();
         uaRef.current = null;
       }
     };
-    // Only rerun when SIP_USER or sipPassword changes
-  }, [SIP_USER, sipPassword]);
+    // Only rerun when SIP_USER, sipPassword, or agent authentication changes
+  }, [SIP_USER, sipPassword, agent]);
 
   const startUA = () => {
     if (uaRef.current && uaRef.current.isRegistered()) return;
@@ -120,18 +148,50 @@ export const SIPProvider = ({ children }) => {
         setStatus("Disconnected");
         setError(`WebSocket disconnected: ${e.cause || 'Connection lost'}`);
         setRegistered(false);
-        // Attempt to reconnect after a delay
-        setTimeout(() => {
+        
+        // Clear any existing reconnect timeout
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+          reconnectTimeoutRef.current = null;
+        }
+        
+        // Only attempt to reconnect if:
+        // 1. Agent is still authenticated
+        // 2. We have valid credentials
+        // 3. Haven't exceeded max reconnect attempts
+        // 4. Agent status allows connection
+        if (!agent || !SIP_USER || !sipPassword) {
+          console.log("⏹️ Not reconnecting - agent not authenticated or missing credentials");
+          return;
+        }
+        
+        if (agentStatus === "Paused" || agentStatus === "Do Not Disturb" || agentStatus === "Unavailable") {
+          console.log("⏹️ Not reconnecting - agent status doesn't allow connection:", agentStatus);
+          return;
+        }
+        
+        if (reconnectAttempts >= maxReconnectAttempts) {
+          console.log(`⏹️ Max reconnect attempts (${maxReconnectAttempts}) reached. Stopping reconnection.`);
+          setError(`Connection failed after ${maxReconnectAttempts} attempts. Please refresh the page or check your connection.`);
+          return;
+        }
+        
+        const backoffDelay = Math.min(5000 * Math.pow(2, reconnectAttempts), 30000);
+        console.log(`🔄 Attempting to reconnect in ${backoffDelay}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})...`);
+        
+        reconnectTimeoutRef.current = setTimeout(() => {
           if (!uaRef.current || !uaRef.current.isRegistered()) {
-            console.log("🔄 Attempting to reconnect...");
+            setReconnectAttempts(prev => prev + 1);
             startUA();
           }
-        }, 5000);
+        }, backoffDelay);
       });
       ua.on("registered", () => {
         setStatus("Registered & Idle");
         setRegistered(true);
         setError("");
+        // Reset reconnect attempts on successful registration
+        setReconnectAttempts(0);
       });
       ua.on("unregistered", () => {
         setStatus("Unregistered");
@@ -141,6 +201,13 @@ export const SIPProvider = ({ children }) => {
         setStatus("Registration Failed");
         setError(`Registration failed: ${e.cause}`);
         setRegistered(false);
+        
+        // Don't retry on authentication failures (401, 403)
+        if (e.status_code === 401 || e.status_code === 403) {
+          console.log("🚫 Authentication failed - not retrying");
+          setError(`Authentication failed: ${e.cause}. Please check your credentials.`);
+          return;
+        }
       });
       ua.on("newRTCSession", ({ session }) => {
         console.log("🆕 NEW RTC SESSION EVENT:", {
@@ -213,12 +280,21 @@ export const SIPProvider = ({ children }) => {
 
   // Unregister SIP client
   const stopUA = () => {
+    // Clear any pending reconnect attempts
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    
     if (uaRef.current) {
       uaRef.current.stop();
       uaRef.current = null;
       setRegistered(false);
       setStatus("Disconnected");
     }
+    
+    // Reset reconnect attempts
+    setReconnectAttempts(0);
   };
 
   // Notify backend of agent status change

@@ -36,10 +36,18 @@ interface CallMonitorModalProps {
   errorMessage: string | null;
 }
 
-const SIP_DOMAIN = "172.20.47.53";
-const WS_SERVER = "wss://172.20.47.53:8089/ws";
+const SIP_DOMAIN = import.meta.env.VITE_DEV_ASTERISK_URL || "172.20.47.12";
+const WS_SERVER = `ws://${SIP_DOMAIN}:8088/ws`;
 const ADMIN_EXTENSION = "9001";
 const SIP_PASSWORD = "eyJhbGciOiJIUzI1"; // Replace with actual password
+
+// Debug logging for SIP configuration
+console.log("🔧 Client SIP Configuration:", {
+  SIP_DOMAIN,
+  WS_SERVER,
+  ADMIN_EXTENSION,
+  env_asterisk_url: import.meta.env.VITE_DEV_ASTERISK_URL
+});
 
 const CallMonitorModal: React.FC<CallMonitorModalProps> = ({
   isOpen,
@@ -138,8 +146,19 @@ const CallStatus: React.FC<CallStatusProps> = ({ activeCalls }) => {
         sockets: [socket],
         uri: `sip:${adminExtension}@${SIP_DOMAIN}`,
         password: sipPassword,
+        session_timers: false,
         register: true,
+        register_expires: 600,
+        no_answer_timeout: 30,
+        session_timers_expires: 90,
+        connection_recovery_min_interval: 2,
+        connection_recovery_max_interval: 30,
         trace_sip: true,
+        pcConfig: {
+          rtcpMuxPolicy: "require",
+          bundlePolicy: "max-bundle",
+          iceCandidatePoolSize: 10
+        }
       };
 
       const ua = new JsSIP.UA(configuration);

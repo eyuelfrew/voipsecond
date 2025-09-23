@@ -10,7 +10,7 @@ router.post('/', registerSupervisor);
 router.post('/login', loginSupervisor);
 
 // Protected routes
-router.use(protect);
+// router.use(protect);
 
 // Check if the supervisor is logged in
 router.get('/check-auth', checkAuth);

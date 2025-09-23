@@ -43,7 +43,7 @@ let sslOptions = null;
 
 // --- Server & Socket.IO Setup ---
 const server = sslOptions ? https.createServer(sslOptions, app) : require('http').createServer(app);
-
+console.log(NODE_ENV)
 // CORS configuration based on environment
 const corsOrigins = NODE_ENV === 'production' 
   ? ['https://172.20.47.53', 'https://172.20.47.53:443', 'https://172.20.47.53:5173', 'https://172.20.47.53:3000', 'https://172.20.47.53:4000', 'http://172.20.47.53', 'http://172.20.47.53:5173', 'http://172.20.47.53:3000', 'http://172.20.47.53:4000']

@@ -10,7 +10,7 @@ interface SipConfigModalProps {
 
 // Replace with your actual SIP server config
 const SIP_DOMAIN = "172.20.47.53"; // Example: "pbx.example.com"
-const WS_SERVER = "wss://172.20.47.53:8089/ws"; // Ensure the `/ws` path is correct for Asterisk
+const WS_SERVER = "ws://172.20.47.53:8089/ws"; // Ensure the `/ws` path is correct for Asterisk
 
 const SipConfigModal: React.FC<SipConfigModalProps> = ({
   isOpen,
