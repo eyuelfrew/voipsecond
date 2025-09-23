@@ -1,0 +1,44 @@
+# Configuration to fix WebSocket transport for extensions 1001 and 1002
+# Add this to /etc/asterisk/pjsip.endpoint_custom.conf
+
+[1001]
+type=endpoint
+aors=1001
+auth=1001-auth
+tos_audio=ef
+tos_video=af41
+cos_audio=5
+cos_video=4
+allow=ulaw,alaw,gsm,g726,g722
+context=from-internal
+callerid="Eyuel" <1001>
+dtmf_mode=rfc4733
+direct_media=yes
+transport=0.0.0.0-ws
+aggregate_mwi=yes
+use_avpf=no
+rtcp_mux=no
+max_audio_streams=1
+max_video_streams=1
+bundle=no
+ice_support=no
+media_use_received_transport=no
+trust_id_inbound=yes
+user_eq_phone=no
+send_connected_line=yes
+media_encryption=no
+
+[1002]
+type=endpoint
+aors=1002
+auth=1002-auth
+tos_audio=ef
+tos_video=af41
+cos_audio=5
+cos_video=4
+allow=ulaw,alaw,gsm,g726,g722
+context=from-internal
+callerid=Agent Two <1002>
+dtmf_mode=rfc4733
+direct_media=yes
+transport=0.0.0.0-ws
