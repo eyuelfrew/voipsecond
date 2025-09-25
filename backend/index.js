@@ -20,11 +20,12 @@ const PORT = process.env.PORT || 4000;
 const AMI_USERNAME = process.env.AMI_USERNAME || "admin";
 const AMI_PASSWORD = process.env.AMI_PASSWORD || "admin@123";
 const NODE_ENV = process.env.NODE_ENV || 'development';
-
+console.log('Environment:', AMI_PASSWORD,AMI_USERNAME,NODE_ENV);
 // Dynamic IP configuration based on NODE_ENV
 const AMI_HOST = NODE_ENV === 'production' 
   ? (process.env.PROD_AMI_HOST || '172.20.47.18')
   : (process.env.DEV_AMI_HOST || '127.0.0.1');
+  console.log('AMI Host:', AMI_HOST);
 const AMI_PORT = parseInt(process.env.AMI_PORT || 5038, 10);
 
 // --- SSL Certificate Configuration ---

@@ -24,8 +24,8 @@ function Sidebar({ activeTab, setActiveTab, tabs }) {
                         key={tab.key}
                         className={`flex items-center gap-3 w-full text-base font-semibold px-4 py-3 rounded-lg transition-all duration-150
                             ${activeTab === tab.key
-                                ? "bg-indigo-50 text-indigo-700 shadow border border-indigo-200"
-                                : "text-gray-700 hover:bg-indigo-600 hover:text-white"
+                                ? "bg-primary-50 text-primary-700 shadow border border-primary-200"
+                                : "text-gray-700 hover:bg-primary-600 hover:text-white"
                             }`}
                         onClick={() => setActiveTab(tab.key)}
                     >

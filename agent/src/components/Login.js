@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import useStore from '../store/store';
 import { baseUrl } from '../baseUrl';
 
@@ -8,6 +9,7 @@ const Login = ({ onSwitch }) => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const setAuth = useStore(state => state.setAuth);
+    const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -26,6 +28,8 @@ const Login = ({ onSwitch }) => {
                 // Attach SIP credentials to agent for SIPProvider
                 const agentWithSip = { ...data.agent, sip: data.sip };
                 setAuth({ agent: agentWithSip });
+                // Navigate to dashboard after successful login
+                navigate('/dashboard');
             } else {
                 setError(data.message || 'Login failed. Please check your credentials.');
             }
@@ -54,6 +58,9 @@ const Login = ({ onSwitch }) => {
                 <div className="mb-10 mt-16 flex flex-col items-center">
                     <h2 className="text-3xl font-black text-gray-800 mb-1 tracking-tight font-serif drop-shadow-sm">INSA Call Center</h2>
                     <p className="text-gray-400 text-base italic font-light">Artistry in Service</p>
+                    <Link to="/" className="text-indigo-600 hover:text-indigo-800 text-sm mt-2 underline">
+                        ← Back to Home
+                    </Link>
                 </div>
                 <form onSubmit={handleSubmit} className="w-full flex flex-col gap-6">
                     {error && (

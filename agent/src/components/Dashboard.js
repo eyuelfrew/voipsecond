@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
 } from 'recharts';
@@ -71,7 +72,7 @@ const ShiftReportPanel = ({ loadingShifts, shiftReport, reasonEdits, handleReaso
                     {shift.ongoing || !shift.reason ? (
                       <input
                         type="text"
-                        className="w-full bg-gray-100 border-gray-300 rounded px-2 py-1 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full bg-gray-100 border-gray-300 rounded px-2 py-1 text-sm focus:ring-primary-500 focus:border-primary-500"
                         value={reasonEdits[shift._id] || shift.reason || ''}
                         onChange={e => handleReasonChange(shift._id, e.target.value)}
                         placeholder="Enter reason..."
@@ -84,7 +85,7 @@ const ShiftReportPanel = ({ loadingShifts, shiftReport, reasonEdits, handleReaso
                   <td className="p-3 text-center">
                     {(shift.ongoing || !shift.reason) && reasonEdits[shift._id] ? (
                       <button
-                        className="px-3 py-1 bg-indigo-600 text-white rounded-md text-xs hover:bg-indigo-700 transition-colors"
+                        className="px-3 py-1 bg-primary-600 text-white rounded-md text-xs hover:bg-primary-700 transition-colors"
                         onClick={() => handleReasonSubmit(shift._id)}
                         disabled={reasonLoading}
                       >
@@ -167,7 +168,7 @@ const StatsPanel = ({ statsLoading, statsError, agentStats, simulatedOnlineMinut
         <div className="bg-gray-50 rounded-xl p-4 transition-all duration-300 hover:shadow-md hover:scale-105">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-700">Calls Overview</h3>
-            <div className="text-3xl font-bold text-indigo-600">{agentStats.totalCalls || 0}</div>
+            <div className="text-3xl font-bold text-primary-600">{agentStats.totalCalls || 0}</div>
           </div>
           <ResponsiveContainer width="100%" height={150}>
             <BarChart data={[{ name: 'Calls', Handled: agentStats.callsHandled || 0, Missed: agentStats.missedCalls || 0 }]}>
@@ -251,7 +252,7 @@ const Dashboard = () => {
   };
   const agent = useStore(state => state.agent);
   const logout = useStore(state => state.logout);
-  const [redirect, setRedirect] = useState(false);
+  const navigate = useNavigate();
   const [dialNumber, setDialNumber] = useState("");
   const [search, setSearch] = useState("");
   const [agentStats, setAgentStats] = useState(null);
@@ -326,7 +327,7 @@ const Dashboard = () => {
 
   const handleLogout = async () => {
     await logout();
-    setRedirect(true);
+    navigate('/');
   };
 
   const handleSearch = (e) => {
@@ -367,11 +368,6 @@ const Dashboard = () => {
     };
   }, [isSIPReady, agentStatus, agentStats?.onlineDuration]);
 
-  if (redirect) {
-    window.location.href = '/login';
-    return null;
-  }
-
   return (
     <>
       {/* Top Bar with agent status controls */}
@@ -389,17 +385,17 @@ const Dashboard = () => {
             {/* Top action buttons for dialogs */}
             <div className="flex gap-4 justify-end mb-4">
               <button
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white font-semibold shadow hover:bg-indigo-700 transition"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-600 text-white font-semibold shadow hover:bg-primary-700 transition"
                 onClick={() => setShowKBPopup(true)}
               >
                 <BookOpen size={20} />
                 Knowledge Base
               </button>
               <button
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500 text-white font-semibold shadow hover:bg-blue-600 transition"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary-500 text-white font-semibold shadow hover:bg-secondary-600 transition"
                 onClick={() => setShowCannedPopup(true)}
               >
-                <span className="inline-block w-4 h-4 bg-blue-200 rounded-full mr-1" />
+                <span className="inline-block w-4 h-4 bg-secondary-200 rounded-full mr-1" />
                 Canned Answers
               </button>
             </div>
@@ -416,17 +412,17 @@ const Dashboard = () => {
             {activeTab === "contacts" && <ContactSection />}
             {activeTab === "analytics" && (
               <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
-                <h2 className="text-2xl font-extrabold text-indigo-800 mb-4">Analytics & Full Reporting</h2>
+                <h2 className="text-2xl font-extrabold text-primary-800 mb-4">Analytics & Full Reporting</h2>
                 <div className="text-gray-700 mb-2">View detailed reports and analytics for agent performance, shifts, calls, tickets, and more.</div>
                 {/* Example: Show all shifts, not just today */}
                 {loadingShifts ? (
-                  <div className="text-indigo-600 font-semibold">Loading...</div>
+                  <div className="text-primary-600 font-semibold">Loading...</div>
                 ) : !shiftReport || shiftReport.shifts.length === 0 ? (
                   <div className="text-gray-400">No shift records available.</div>
                 ) : (
                   <table className="w-full text-sm border">
                     <thead>
-                      <tr className="bg-indigo-50">
+                      <tr className="bg-primary-50">
                         <th className="p-2 border">Start Time</th>
                         <th className="p-2 border">End Time</th>
                         <th className="p-2 border">Duration (s)</th>
@@ -475,7 +471,7 @@ const Dashboard = () => {
         {/* Sidebar removed for cleaner layout */}
         {/* Floating Call Button with bounce animation */}
         <button
-          className={`fixed bottom-10 right-10 z-50 w-16 h-16 rounded-2xl bg-indigo-500 shadow-xl text-white text-2xl flex items-center justify-center hover:bg-indigo-600 transition ${!isSIPReady ? 'opacity-50 cursor-not-allowed' : ''} animate-bounce`}
+          className={`fixed bottom-10 right-10 z-50 w-16 h-16 rounded-2xl bg-primary-500 shadow-xl text-white text-2xl flex items-center justify-center hover:bg-primary-600 transition ${!isSIPReady ? 'opacity-50 cursor-not-allowed' : ''} animate-bounce`}
           title={isSIPReady ? 'Open Keypad / Make Call' : 'SIP Not Connected'}
           onClick={() => isSIPReady && setShowKeypad(true)}
           disabled={!isSIPReady}

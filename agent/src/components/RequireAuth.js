@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
 import useStore from '../store/store';
-import Login from './Login';
-import Register from './Register';
 
 const RequireAuth = ({ children }) => {
     const agent = useStore(state => state.agent);
@@ -14,8 +13,7 @@ const RequireAuth = ({ children }) => {
     }, [agent, fetchCurrentAgent]);
 
     if (!agent) {
-        return <Login />;
-        // return <Register />;
+        return <Navigate to="/login" replace />;
     }
     return children;
 };

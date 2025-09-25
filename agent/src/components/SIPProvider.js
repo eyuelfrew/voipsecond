@@ -58,14 +58,14 @@ export const SIPProvider = ({ children }) => {
     env_sip_port: process.env.REACT_APP_SIP_SERVER_PORT
   });
  const PC_CONFIG = {
-  iceServers: [
-    { urls: 'stun:192.168.1.7:3478' },
-    {
-      urls: 'turn:192.168.1.7:3478?transport=tcp',
-      username: 'testuser',
-      credential: '1234'
-    }
-  ],
+  // iceServers: [
+  //   { urls: 'stun:192.168.1.7:3478' },
+  //   {
+  //     urls: 'turn:192.168.1.7:3478?transport=tcp',
+  //     username: 'testuser',
+  //     credential: '1234'
+  //   }
+  // ],
   rtcpMuxPolicy: "require",
   bundlePolicy: "max-bundle",
   iceCandidatePoolSize: 10

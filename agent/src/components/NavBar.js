@@ -37,7 +37,7 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
                 {/* Agent Status Toggle */}
                 <button
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-sm border border-gray-200 ${isSIPReady && agentStatus === 'Available'
-                        ? 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                        ? 'bg-primary-50 text-primary-600 hover:bg-primary-100'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         } ${!isSIPReady ? 'opacity-60 cursor-not-allowed' : ''}`}
                     onClick={() =>
@@ -53,7 +53,7 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
                         className={
                             isSIPReady
                                 ? agentStatus === 'Available'
-                                    ? 'text-blue-600'
+                                    ? 'text-primary-600'
                                     : 'text-gray-600'
                                 : 'text-gray-400'
                         }
