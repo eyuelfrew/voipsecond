@@ -126,7 +126,7 @@ const TopNav = () => {
                 {isApplicationsOpen && (
                   <div className="absolute left-0 mt-0 w-56 rounded-xl shadow-2xl cc-glass z-10">
                     <div className="py-2">
-                      <Link to="/ivr-menu" className="block px-4 py-3 text-sm cc-text-secondary hover:cc-text-accent hover:bg-yellow-400/10 flex items-center cc-transition rounded-lg mx-2">
+                      <Link to="/ivr-menus" className="block px-4 py-3 text-sm cc-text-secondary hover:cc-text-accent hover:bg-yellow-400/10 flex items-center cc-transition rounded-lg mx-2">
                         <List className="h-4 w-4 mr-2" /> IVR
                       </Link>
                       <Link to="/misc-applications" className="block px-4 py-3 text-sm cc-text-secondary hover:cc-text-accent hover:bg-yellow-400/10 flex items-center cc-transition rounded-lg mx-2">

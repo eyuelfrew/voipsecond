@@ -3,6 +3,7 @@ export interface IVREntry {
     type: string;
     digit: string;
     value: string;
+    _id?: string; // MongoDB adds this for saved entries
 }
 
 export interface DTMFOptions {
@@ -41,4 +42,5 @@ export interface ErrorState {
     timeout?: string;
     invalidRetries?: string;
     timeoutRetries?: string;
+    form?: string;
 }

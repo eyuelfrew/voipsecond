@@ -3,10 +3,17 @@ import type { ChangeEvent, FormEvent } from 'react';
 import type { ErrorState, IVREntry, IVRState } from '../types/ivr';
 import axios from 'axios';
 import IVREntries from '../components/ivr-componetns/IVREntries';
-import { FiMessageSquare, FiSettings, FiSave } from 'react-icons/fi';
+import { FiMessageSquare, FiSettings, FiSave, FiArrowLeft } from 'react-icons/fi';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useTheme } from '../context/ThemeContext';
 
 const IVRMenuCreator = () => {
   const API = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+  const { id } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
+  const { isDarkMode } = useTheme();
+  const isEditMode = !!id;
+
   const [ivr, setIvr] = useState<IVRState>({
     name: '',
     description: '',
@@ -40,6 +47,7 @@ const IVRMenuCreator = () => {
   const [systemRecordings, setSystemRecordings] = useState<Array<{_id: string, name: string}>>([]);
   const [menus, setMenus] = useState<Array<{_id: string, name: string}>>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(isEditMode);
 
   const handleGeneralChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -98,15 +106,35 @@ const IVRMenuCreator = () => {
 
     try {
       setSubmitting(true);
-      const response = await axios.post(`${API}/api/ivr/menu`, ivr, {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (response.data) {
-        alert('IVR Menu created successfully!');
+      
+      // Clean entries: remove client-side 'id' and '_id' fields
+      const payload = {
+        ...ivr,
+        entries: ivr.entries.map(({ id, _id, ...rest }) => rest)
+      };
+      
+      if (isEditMode && id) {
+        // Update existing IVR
+        const response = await axios.put(`${API}/api/ivr/menu/${id}`, payload, {
+          headers: { 'Content-Type': 'application/json' },
+        });
+        if (response.data) {
+          alert('IVR Menu updated successfully!');
+          navigate('/ivr-menus');
+        }
+      } else {
+        // Create new IVR
+        const response = await axios.post(`${API}/api/ivr/menu`, payload, {
+          headers: { 'Content-Type': 'application/json' },
+        });
+        if (response.data) {
+          alert('IVR Menu created successfully!');
+          navigate('/ivr-menus');
+        }
       }
     } catch (error) {
-      console.error('Error creating IVR menu:', error);
-      alert('Failed to create IVR menu.');
+      console.error('Error saving IVR menu:', error);
+      alert(`Failed to ${isEditMode ? 'update' : 'create'} IVR menu.`);
     } finally {
       setSubmitting(false);
     }
@@ -132,21 +160,117 @@ const IVRMenuCreator = () => {
   };
 
   useEffect(() => {
-    fetchSystemRecordings();
-    fetchMenus();
-  }, []);
+    const loadData = async () => {
+      try {
+        // Fetch recordings and menus
+        await fetchSystemRecordings();
+        await fetchMenus();
+
+        // If in edit mode, fetch the IVR data
+        if (isEditMode && id) {
+          setLoading(true);
+          const response = await axios.get(`${API}/api/ivr/menu/${id}`);
+          const fetchedIvr = response.data;
+
+          // Map entries to include client-side id
+          const entries = (fetchedIvr.entries || []).map((entry: any) => ({
+            ...entry,
+            id: entry._id || Date.now()
+          }));
+
+          setIvr({
+            name: fetchedIvr.name || '',
+            description: fetchedIvr.description || '',
+            dtmf: {
+              announcement: fetchedIvr.dtmf?.announcement || { id: '', name: '' },
+              enableDirectDial: fetchedIvr.dtmf?.enableDirectDial || 'Disabled',
+              ignoreTrailingKey: fetchedIvr.dtmf?.ignoreTrailingKey || 'Yes',
+              forceStartDialTimeout: fetchedIvr.dtmf?.forceStartDialTimeout || 'No',
+              timeout: fetchedIvr.dtmf?.timeout ?? 10,
+              alertInfo: fetchedIvr.dtmf?.alertInfo || '',
+              ringerVolumeOverride: fetchedIvr.dtmf?.ringerVolumeOverride || 'None',
+              invalidRetries: fetchedIvr.dtmf?.invalidRetries ?? 3,
+              invalidRetryRecording: fetchedIvr.dtmf?.invalidRetryRecording || { id: '', name: '' },
+              appendAnnouncementToInvalid: fetchedIvr.dtmf?.appendAnnouncementToInvalid || 'No',
+              returnOnInvalid: fetchedIvr.dtmf?.returnOnInvalid || 'No',
+              invalidRecording: fetchedIvr.dtmf?.invalidRecording || { id: '', name: '' },
+              invalidDestination: fetchedIvr.dtmf?.invalidDestination || 'None',
+              timeoutRetries: fetchedIvr.dtmf?.timeoutRetries ?? 3,
+              timeoutRetryRecording: fetchedIvr.dtmf?.timeoutRetryRecording || { id: '', name: '' },
+              appendAnnouncementOnTimeout: fetchedIvr.dtmf?.appendAnnouncementOnTimeout || 'No',
+              returnOnTimeout: fetchedIvr.dtmf?.returnOnTimeout || 'No',
+              timeoutRecording: fetchedIvr.dtmf?.timeoutRecording || { id: '', name: '' },
+              timeoutDestination: fetchedIvr.dtmf?.timeoutDestination || 'None',
+              returnToIVRAfterVM: fetchedIvr.dtmf?.returnToIVRAfterVM || 'No',
+            },
+            entries: entries,
+          });
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+        setErrors({ form: 'Failed to load IVR data' });
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [id, isEditMode]);
+
+  if (loading) {
+    return (
+      <div className="p-6 cc-bg-surface min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="cc-text-primary text-lg">Loading IVR Menu...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 cc-bg-surface min-h-screen">
+    <div className="min-h-full cc-bg-background cc-transition relative"
+         style={{ 
+           background: isDarkMode 
+             ? 'linear-gradient(135deg, #000000 0%, #1F2937 25%, #111827 50%, #1F2937 75%, #000000 100%)'
+             : 'linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 25%, #F3F4F6 50%, #F9FAFB 75%, #FFFFFF 100%)'
+         }}>
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Floating Yellow Orbs */}
+        <div className="absolute top-20 right-20 w-24 h-24 bg-yellow-400 rounded-full opacity-10 animate-pulse"></div>
+        <div className="absolute bottom-32 left-20 w-32 h-32 bg-yellow-300 rounded-full opacity-5 animate-bounce"></div>
+
+        {/* Grid Pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,0,0.02)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
+
+        {/* Animated Lines */}
+        <div className="absolute top-0 left-1/3 w-px h-full bg-gradient-to-b from-transparent via-yellow-400/20 to-transparent animate-pulse"></div>
+        <div className="absolute top-0 right-1/4 w-px h-full bg-gradient-to-b from-transparent via-yellow-300/10 to-transparent animate-pulse"></div>
+      </div>
+      
+      {/* Content */}
+      <div className="relative z-10 p-6">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center shadow-lg cc-glow-yellow">
-            <FiMessageSquare className="h-6 w-6 text-black" />
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/ivr-menus')}
+              className="w-10 h-10 cc-glass rounded-lg flex items-center justify-center hover:bg-yellow-400/10 transition-all cc-border border"
+              title="Back to IVR List"
+            >
+              <FiArrowLeft className="h-5 w-5 cc-text-primary" />
+            </button>
+            <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center shadow-lg cc-glow-yellow">
+              <FiMessageSquare className="h-6 w-6 text-black" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold cc-text-primary">{isEditMode ? 'Edit' : 'Create'} IVR Menu</h1>
+              <p className="cc-text-secondary text-sm">Configure your interactive voice response system</p>
+            </div>
           </div>
-          <h1 className="text-3xl font-bold cc-text-primary">Create IVR Menu</h1>
         </div>
-        <p className="cc-text-secondary text-sm ml-15">Configure your interactive voice response system</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -563,10 +687,11 @@ const IVRMenuCreator = () => {
             aria-label="Save IVR"
           >
             <FiSave className="h-5 w-5" />
-            {submitting ? 'Saving...' : 'Save IVR Menu'}
+            {submitting ? 'Saving...' : `${isEditMode ? 'Update' : 'Create'} IVR Menu`}
           </button>
         </div>
       </form>
+      </div>
     </div>
   );
 };

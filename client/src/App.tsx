@@ -13,7 +13,6 @@ import IVRMenuForm from "./pages/IVRMenuForm";
 import SystemRecordingUpload from "./components/SystemRecordingUpload";
 import MiscApplicationForm from "./pages/MiscApplicationForm";
 import SystemRecordingsList from "./pages/SystemRecordingsList";
-import EditIVRMenu from "./pages/EditIVRMenu";
 import MiscApplicationList from "./components/MiscApplication/MiscApplicationList"; // This is the list component
 import QueuePage from "./pages/QueuePage";
 import AgentPage from "./pages/AgentPage";
@@ -82,10 +81,9 @@ export default function App() {
       <Route path="/" element={<MainLayout />}>
         <Route path="report" element={<Report />} />
         <Route path="dashboard" element={<LiveCalls />} />
-        <Route path="ivr-menu" element={<IVRMenus />} />
-
-        <Route path="ivr-menu/edit/:id" element={<EditIVRMenu />} />
-        <Route path="new-ivr" element={<IVRMenuForm />} />
+        <Route path="ivr-menus" element={<IVRMenus />} />
+        <Route path="ivr-menu/create" element={<IVRMenuForm />} />
+        <Route path="ivr-menu/edit/:id" element={<IVRMenuForm />} />
 
         <Route path="system-recordings" element={<SystemRecordingsList />} />
         <Route path="system-recordings-upload" element={<SystemRecordingUpload />} />

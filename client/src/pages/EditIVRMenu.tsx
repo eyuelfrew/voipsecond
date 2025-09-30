@@ -26,10 +26,25 @@ interface IVRState {
   description: string;
   dtmf: {
     announcement: { id: string; name: string };
+    enableDirectDial: string;
+    ignoreTrailingKey: string;
+    forceStartDialTimeout: string;
     timeout: number;
+    alertInfo: string;
+    ringerVolumeOverride: string;
     invalidRetries: number;
     invalidRetryRecording: { id: string; name: string };
+    appendAnnouncementToInvalid: string;
+    returnOnInvalid: string;
+    invalidRecording: { id: string; name: string };
+    invalidDestination: string;
     timeoutRetries: number;
+    timeoutRetryRecording: { id: string; name: string };
+    appendAnnouncementOnTimeout: string;
+    returnOnTimeout: string;
+    timeoutRecording: { id: string; name: string };
+    timeoutDestination: string;
+    returnToIVRAfterVM: string;
   };
   entries: IVREntry[];
 }
@@ -150,10 +165,25 @@ const IVRForm = ({ ivrId, onSave, onCancel }) => {
         name: '', description: '',
         dtmf: {
             announcement: { id: '', name: '' },
-            timeout: 5,
+            enableDirectDial: 'Disabled',
+            ignoreTrailingKey: 'Yes',
+            forceStartDialTimeout: 'No',
+            timeout: 10,
+            alertInfo: '',
+            ringerVolumeOverride: 'None',
             invalidRetries: 3,
             invalidRetryRecording: { id: '', name: '' },
+            appendAnnouncementToInvalid: 'No',
+            returnOnInvalid: 'No',
+            invalidRecording: { id: '', name: '' },
+            invalidDestination: 'None',
             timeoutRetries: 3,
+            timeoutRetryRecording: { id: '', name: '' },
+            appendAnnouncementOnTimeout: 'No',
+            returnOnTimeout: 'No',
+            timeoutRecording: { id: '', name: '' },
+            timeoutDestination: 'None',
+            returnToIVRAfterVM: 'No',
         },
         entries: [],
     });
@@ -212,10 +242,25 @@ const IVRForm = ({ ivrId, onSave, onCancel }) => {
                         description: fetchedIvrData.description || '',
                         dtmf: {
                             announcement: fetchedIvrData.dtmf?.announcement || { id: '', name: '' },
-                            timeout: fetchedIvrData.dtmf?.timeout ?? 5,
+                            enableDirectDial: fetchedIvrData.dtmf?.enableDirectDial || 'Disabled',
+                            ignoreTrailingKey: fetchedIvrData.dtmf?.ignoreTrailingKey || 'Yes',
+                            forceStartDialTimeout: fetchedIvrData.dtmf?.forceStartDialTimeout || 'No',
+                            timeout: fetchedIvrData.dtmf?.timeout ?? 10,
+                            alertInfo: fetchedIvrData.dtmf?.alertInfo || '',
+                            ringerVolumeOverride: fetchedIvrData.dtmf?.ringerVolumeOverride || 'None',
                             invalidRetries: fetchedIvrData.dtmf?.invalidRetries ?? 3,
                             invalidRetryRecording: fetchedIvrData.dtmf?.invalidRetryRecording || { id: '', name: '' },
+                            appendAnnouncementToInvalid: fetchedIvrData.dtmf?.appendAnnouncementToInvalid || 'No',
+                            returnOnInvalid: fetchedIvrData.dtmf?.returnOnInvalid || 'No',
+                            invalidRecording: fetchedIvrData.dtmf?.invalidRecording || { id: '', name: '' },
+                            invalidDestination: fetchedIvrData.dtmf?.invalidDestination || 'None',
                             timeoutRetries: fetchedIvrData.dtmf?.timeoutRetries ?? 3,
+                            timeoutRetryRecording: fetchedIvrData.dtmf?.timeoutRetryRecording || { id: '', name: '' },
+                            appendAnnouncementOnTimeout: fetchedIvrData.dtmf?.appendAnnouncementOnTimeout || 'No',
+                            returnOnTimeout: fetchedIvrData.dtmf?.returnOnTimeout || 'No',
+                            timeoutRecording: fetchedIvrData.dtmf?.timeoutRecording || { id: '', name: '' },
+                            timeoutDestination: fetchedIvrData.dtmf?.timeoutDestination || 'None',
+                            returnToIVRAfterVM: fetchedIvrData.dtmf?.returnToIVRAfterVM || 'No',
                         },
                         entries: entries,
                     });
@@ -245,14 +290,26 @@ const IVRForm = ({ ivrId, onSave, onCancel }) => {
 
     const handleDTMFChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        const updatedDtmf = { ...ivr.dtmf };
-        if (name === 'announcement' || name === 'invalidRetryRecording') {
-            const selected = systemRecordings.find(rec => rec._id === value);
-            updatedDtmf[name] = selected ? { id: selected._id, name: selected.name } : { id: '', name: '' };
-        } else {
-            updatedDtmf[name] = Number(value);
-        }
-        setIvr(prev => ({ ...prev, dtmf: updatedDtmf }));
+        
+        setIvr(prev => {
+            const updatedDtmf = { ...prev.dtmf };
+            
+            // Handle recording fields (objects with id and name)
+            if (name === 'announcement' || name === 'invalidRetryRecording' || name === 'invalidRecording' || name === 'timeoutRetryRecording' || name === 'timeoutRecording') {
+                const selected = systemRecordings.find(rec => rec._id === value);
+                (updatedDtmf as any)[name] = selected ? { id: selected._id, name: selected.name } : { id: '', name: '' };
+            } 
+            // Handle number fields
+            else if (name === 'timeout' || name === 'invalidRetries' || name === 'timeoutRetries') {
+                (updatedDtmf as any)[name] = Number(value);
+            }
+            // Handle string fields (all the new toggle and select fields)
+            else {
+                (updatedDtmf as any)[name] = value;
+            }
+            
+            return { ...prev, dtmf: updatedDtmf };
+        });
     };
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {

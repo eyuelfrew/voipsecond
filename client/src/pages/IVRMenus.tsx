@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { FiTrash, FiEdit2, FiPlus, FiMessageSquare } from 'react-icons/fi'
 import axios from 'axios'
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '../context/ThemeContext';
 import type { IVROption } from '../components/types'
 
 type IVRMenu = {
@@ -15,6 +16,7 @@ type IVRMenu = {
 
 export default function IVRMenus() {
   const API = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+  const { isDarkMode } = useTheme();
   const [menus, setMenus] = useState<IVRMenu[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -53,9 +55,6 @@ export default function IVRMenus() {
   //   // Add edit logic here
   // }
 
-  const handleDelete = (id: string) => {
-    deleteMenu(id)
-  }
 
   if (loading) {
     return (
@@ -88,7 +87,28 @@ export default function IVRMenus() {
   }
 
   return (
-    <div className="p-6">
+    <div className="min-h-full cc-bg-background cc-transition relative"
+         style={{ 
+           background: isDarkMode 
+             ? 'linear-gradient(135deg, #000000 0%, #1F2937 25%, #111827 50%, #1F2937 75%, #000000 100%)'
+             : 'linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 25%, #F3F4F6 50%, #F9FAFB 75%, #FFFFFF 100%)'
+         }}>
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Floating Yellow Orbs */}
+        <div className="absolute top-20 right-20 w-24 h-24 bg-yellow-400 rounded-full opacity-10 animate-pulse"></div>
+        <div className="absolute bottom-32 left-20 w-32 h-32 bg-yellow-300 rounded-full opacity-5 animate-bounce"></div>
+
+        {/* Grid Pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,0,0.02)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
+
+        {/* Animated Lines */}
+        <div className="absolute top-0 left-1/3 w-px h-full bg-gradient-to-b from-transparent via-yellow-400/20 to-transparent animate-pulse"></div>
+        <div className="absolute top-0 right-1/4 w-px h-full bg-gradient-to-b from-transparent via-yellow-300/10 to-transparent animate-pulse"></div>
+      </div>
+      
+      {/* Content */}
+      <div className="relative z-10 p-6">
       {/* Header Section */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold cc-text-primary flex items-center gap-3">
@@ -98,95 +118,93 @@ export default function IVRMenus() {
           IVR Menus
         </h1>
         <button
-          onClick={() => navigate('/new-ivr')}
+          onClick={() => navigate('/ivr-menu/create')}
           className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-4 py-2 rounded-lg hover:from-yellow-500 hover:to-yellow-600 transition-all duration-200 shadow-md hover:shadow-lg font-medium flex items-center gap-2"
         >
-          <FiPlus className="h-4 w-4" />
           Add IVR Menu
         </button>
       </div>
 
       {/* Table */}
-      <div className="cc-glass rounded-lg shadow-md cc-border border overflow-hidden">
+      <div className="cc-glass rounded-xl shadow-lg cc-border border overflow-hidden">
         {menus.length === 0 ? (
-          <div className="text-center py-12 px-4">
-            <div className="w-16 h-16 bg-yellow-400/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FiMessageSquare className="h-8 w-8 cc-text-accent" />
+          <div className="text-center py-16 px-4">
+            <div className="w-20 h-20 bg-gradient-to-br from-yellow-400/20 to-yellow-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+              <FiMessageSquare className="h-10 w-10 cc-text-accent" />
             </div>
-            <h3 className="text-lg font-semibold cc-text-primary mb-2">No IVR Menus Yet</h3>
-            <p className="cc-text-secondary text-sm mb-4">Get started by creating your first IVR menu</p>
+            <h3 className="text-xl font-bold cc-text-primary mb-2">No IVR Menus Yet</h3>
+            <p className="cc-text-secondary text-sm mb-6 max-w-md mx-auto">Get started by creating your first interactive voice response menu to route calls efficiently</p>
             <button
-              onClick={() => navigate('/new-ivr')}
-              className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-4 py-2 rounded-lg hover:from-yellow-500 hover:to-yellow-600 transition-all duration-200 shadow-md font-medium inline-flex items-center gap-2"
+              onClick={() => navigate('/ivr-menu/create')}
+              className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-6 py-3 rounded-xl hover:from-yellow-500 hover:to-yellow-600 transition-all duration-300 shadow-lg hover:shadow-xl font-semibold inline-flex items-center gap-2"
             >
-              <FiPlus className="h-4 w-4" />
+              <FiPlus className="h-5 w-5" />
               Create First Menu
             </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y cc-border">
-              <thead className="cc-bg-surface">
+              <thead className="cc-bg-surface/50">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold cc-text-secondary uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold cc-text-primary uppercase tracking-wider">
                     Name
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold cc-text-secondary uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold cc-text-primary uppercase tracking-wider">
                     Description
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold cc-text-secondary uppercase tracking-wider">
-                    Options
+                  <th className="px-6 py-4 text-left text-xs font-semibold cc-text-primary uppercase tracking-wider">
+                    Entries
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold cc-text-secondary uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold cc-text-primary uppercase tracking-wider">
                     Created
                   </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-semibold cc-text-secondary uppercase tracking-wider">
+                  <th className="px-6 py-4 text-right text-xs font-semibold cc-text-primary uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y cc-border">
                 {menus.map((menu) => (
-                  <tr key={menu._id} className="hover:bg-yellow-400/5 cc-transition">
+                  <tr key={menu._id} className="hover:bg-yellow-400/5 transition-all duration-200 group">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-yellow-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <FiMessageSquare className="h-4 w-4 cc-text-accent" />
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-yellow-400/20 to-yellow-500/20 rounded-xl flex items-center justify-center group-hover:from-yellow-400/30 group-hover:to-yellow-500/30 transition-all duration-200 shadow-sm">
+                          <FiMessageSquare className="h-5 w-5 cc-text-accent" />
                         </div>
-                        <div className="font-medium cc-text-primary text-sm">{menu.name}</div>
+                        <div className="ml-4">
+                          <div className="text-sm font-semibold cc-text-primary">{menu.name}</div>
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="cc-text-secondary text-sm max-w-md truncate">
-                        {menu.description || 'No description'}
+                      <div className="text-sm cc-text-secondary max-w-xs truncate">
+                        {menu.description || <span className="italic opacity-50">No description</span>}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-400/20 cc-text-accent">
+                      <span className="px-3 py-1.5 inline-flex text-xs leading-5 font-semibold rounded-lg bg-gradient-to-r from-yellow-400/20 to-yellow-500/20 cc-text-accent border border-yellow-400/30">
                         {menu.options?.length || 0} options
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap cc-text-secondary text-sm">
-                      {new Date(menu.createdAt).toLocaleDateString('en-US', { 
-                        month: 'short', 
-                        day: 'numeric', 
-                        year: 'numeric' 
-                      })}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm cc-text-secondary font-medium">
+                      {new Date(menu.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => navigate(`/ivr-menu/edit/${menu._id}`)}
-                          className="inline-flex items-center gap-1 bg-yellow-400/10 cc-text-accent px-3 py-1.5 rounded-lg hover:bg-yellow-400/20 transition-all duration-200 font-medium border border-yellow-400/30"
+                          className="inline-flex items-center gap-1.5 bg-gradient-to-r from-yellow-400/10 to-yellow-500/10 cc-text-accent px-4 py-2 rounded-lg hover:from-yellow-400/20 hover:to-yellow-500/20 transition-all duration-200 font-semibold border border-yellow-400/30 hover:border-yellow-400/50 shadow-sm hover:shadow-md"
                         >
-                          <FiEdit2 className="h-3.5 w-3.5" />
+                          <FiEdit2 className="h-4 w-4" />
                           Edit
                         </button>
                         <button
-                          onClick={() => handleDelete(menu._id)}
-                          className="inline-flex items-center bg-red-500/10 text-red-500 p-1.5 rounded-lg hover:bg-red-500/20 transition-all duration-200 border border-red-500/30"
+                          onClick={() => deleteMenu(menu._id)}
+                          className="inline-flex items-center gap-1.5 bg-red-500/10 text-red-600 px-4 py-2 rounded-lg hover:bg-red-500/20 transition-all duration-200 font-semibold border border-red-500/30 hover:border-red-500/50 shadow-sm hover:shadow-md"
                         >
-                          <FiTrash className="h-3.5 w-3.5" />
+                          <FiTrash className="h-4 w-4" />
+                          Delete
                         </button>
                       </div>
                     </td>
@@ -196,6 +214,7 @@ export default function IVRMenus() {
             </table>
           </div>
         )}
+      </div>
       </div>
     </div>
   )

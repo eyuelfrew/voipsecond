@@ -144,10 +144,12 @@ const IVREntries: React.FC<IVREntriesProps> = ({ entries, setEntries, systemReco
   // --- Render Functions ---
 
   const renderDestinationField = (entry: IVREntry) => {
+    const selectClass = "w-full p-3 border rounded-lg cc-glass cc-text-primary focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all cc-border";
+    
     // If no type is selected, show a disabled placeholder
     if (!entry.type) {
       return (
-        <select className="w-full p-2 border rounded bg-gray-100" disabled>
+        <select className={`${selectClass} opacity-50`} disabled>
           <option>Select a type first</option>
         </select>
       );
@@ -156,13 +158,13 @@ const IVREntries: React.FC<IVREntriesProps> = ({ entries, setEntries, systemReco
     // Render the appropriate destination dropdown based on type
     switch (entry.type) {
       case 'extension':
-        if (loadingExtensions) return <div className="p-2 text-gray-500">Loading extensions...</div>;
-        if (extensionError) return <div className="p-2 text-red-500">{extensionError}</div>;
+        if (loadingExtensions) return <div className="p-3 cc-text-secondary">Loading extensions...</div>;
+        if (extensionError) return <div className="p-3 text-red-500">{extensionError}</div>;
         return (
           <select
             value={entry.value}
             onChange={(e) => updateEntry(entry.id, 'value', e.target.value)}
-            className="w-full p-2 border rounded"
+            className={selectClass}
           >
             <option value="">Select an extension...</option>
             {extensions.map((ext) => (
@@ -174,13 +176,13 @@ const IVREntries: React.FC<IVREntriesProps> = ({ entries, setEntries, systemReco
         );
 
       case 'queue':
-        if (loadingQueues) return <div className="p-2 text-gray-500">Loading queues...</div>;
-        if (fetchError) return <div className="p-2 text-red-500">{fetchError}</div>;
+        if (loadingQueues) return <div className="p-3 cc-text-secondary">Loading queues...</div>;
+        if (fetchError) return <div className="p-3 text-red-500">{fetchError}</div>;
         return (
           <select
             value={entry.value}
             onChange={(e) => updateEntry(entry.id, 'value', e.target.value)}
-            className="w-full p-2 border rounded"
+            className={selectClass}
           >
             <option value="">Select a queue...</option>
             {queues.map((queue) => (
@@ -196,7 +198,7 @@ const IVREntries: React.FC<IVREntriesProps> = ({ entries, setEntries, systemReco
             <select
               value={entry.value}
               onChange={(e) => updateEntry(entry.id, 'value', e.target.value)}
-              className="w-full p-2 border rounded"
+              className={selectClass}
             >
               <option value="">Select a recording...</option>
               {systemRecordings.map((recording) => (
@@ -211,9 +213,9 @@ const IVREntries: React.FC<IVREntriesProps> = ({ entries, setEntries, systemReco
             <select
               value={entry.value}
               onChange={(e) => updateEntry(entry.id, 'value', e.target.value)}
-              className="w-full p-2 border rounded"
+              className={selectClass}
             >
-              <option value="">Select a recording...</option>
+              <option value="">Select an IVR menu...</option>
               {menus.map((menu) => (
                 <option key={menu._id} value={menu._id}>
                   {menu.name}
@@ -228,44 +230,60 @@ const IVREntries: React.FC<IVREntriesProps> = ({ entries, setEntries, systemReco
   };
 
   return (
-    <div className="p-6 bg-white shadow-md rounded-lg border border-gray-200">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-semibold text-gray-800">Menu Entries</h3>
+    <div className="p-6 cc-glass shadow-lg rounded-xl cc-border border">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-xl font-semibold cc-text-primary flex items-center gap-2">
+          <div className="w-8 h-8 bg-gradient-to-br from-yellow-400/20 to-yellow-500/20 rounded-lg flex items-center justify-center">
+            <FiPlus className="h-4 w-4 cc-text-accent" />
+          </div>
+          Menu Entries
+        </h3>
         <button
           type="button"
           onClick={addEntry}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black rounded-lg hover:from-yellow-500 hover:to-yellow-600 transition-all duration-200 shadow-md hover:shadow-lg font-semibold"
         >
-          <FiPlus />
+          <FiPlus className="h-4 w-4" />
           Add Entry
         </button>
       </div>
 
       <div className="space-y-4">
         {entries.map((entry) => (
-          <div key={entry.id} className="border rounded-lg p-4 bg-gray-50/50 relative">
+          <div key={entry.id} className="cc-glass border cc-border rounded-xl p-5 relative hover:shadow-lg transition-all duration-200">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {/* Digit */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Digit</label>
-                <input
-                  type="text"
+                <label className="block text-sm font-medium cc-text-primary mb-2">Digit</label>
+                <select
                   value={entry.digit}
-                  onChange={(e) => updateEntry(entry.id, 'digit', e.target.value.replace(/[^0-9*#]/g, ''))}
-                  maxLength={1}
-                  className={`w-full p-2 border rounded ${errors[`digit_${entry.id}`] ? 'border-red-500' : 'border-gray-300'}`}
-                  placeholder="e.g., 1"
-                />
-                {errors[`digit_${entry.id}`] && <p className="text-red-500 text-xs mt-1">{errors[`digit_${entry.id}`]}</p>}
+                  onChange={(e) => updateEntry(entry.id, 'digit', e.target.value)}
+                  className={`w-full p-3 border rounded-lg cc-glass cc-text-primary focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all ${errors[`digit_${entry.id}`] ? 'border-red-500' : 'cc-border'}`}
+                >
+                  <option value="">Select digit...</option>
+                  <option value="0">0</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7">7</option>
+                  <option value="8">8</option>
+                  <option value="9">9</option>
+                  <option value="*">* (Star)</option>
+                  <option value="#"># (Hash)</option>
+                </select>
+                {errors[`digit_${entry.id}`] && <p className="text-red-500 text-xs mt-1 font-medium">{errors[`digit_${entry.id}`]}</p>}
               </div>
 
               {/* Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <label className="block text-sm font-medium cc-text-primary mb-2">Type</label>
                 <select
                   value={entry.type}
                   onChange={(e) => updateEntry(entry.id, 'type', e.target.value)}
-                  className="w-full p-2 border rounded border-gray-300"
+                  className="w-full p-3 border rounded-lg cc-glass cc-text-primary focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all cc-border"
                 >
                   <option value="" disabled>Choose a type...</option>
                   <option value="extension">Route to Extension</option>
@@ -277,7 +295,7 @@ const IVREntries: React.FC<IVREntriesProps> = ({ entries, setEntries, systemReco
 
               {/* Destination */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Destination</label>
+                <label className="block text-sm font-medium cc-text-primary mb-2">Destination</label>
                 {renderDestinationField(entry)}
               </div>
             </div>
@@ -287,10 +305,10 @@ const IVREntries: React.FC<IVREntriesProps> = ({ entries, setEntries, systemReco
                <button
                   type="button"
                   onClick={() => removeEntry(entry.id)}
-                  className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-600 rounded-full hover:bg-red-100 transition-colors"
+                  className="absolute top-3 right-3 p-2 cc-text-secondary hover:text-red-600 rounded-lg hover:bg-red-500/10 transition-all duration-200 border cc-border hover:border-red-500/30"
                   aria-label="Remove Entry"
                 >
-                  <FiTrash2 size={16} />
+                  <FiTrash2 size={18} />
               </button>
             )}
           </div>
