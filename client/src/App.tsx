@@ -3,8 +3,6 @@ import TopNav from "./components/TopNav";
 import LiveCalls from "./pages/Dashboard";
 import Sidebar from "./components/SideBar";
 import Agents from "./pages/Agents";
-import TableComponent from "./pages/ExtensionMestriks";
-import QueueManagement from "./pages/QueueManagement";
 import Report from "./pages/Report";
 import CallHistory from "./pages/CallHistory";
 import { io } from "socket.io-client";
@@ -17,7 +15,6 @@ import MiscApplicationForm from "./pages/MiscApplicationForm";
 import SystemRecordingsList from "./pages/SystemRecordingsList";
 import EditIVRMenu from "./pages/EditIVRMenu";
 import MiscApplicationList from "./components/MiscApplication/MiscApplicationList"; // This is the list component
-import RegistrationForm from "./forms/AgentRegistrationForm";
 import QueuePage from "./pages/QueuePage";
 import AgentPage from "./pages/AgentPage";
 import QueueList from "./pages/QueueList";
@@ -60,7 +57,7 @@ const MainLayout = () => {
       </div>
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <Sidebar />
-        <div className="w-full h-full overflow-auto">
+        <div className="flex-1 h-full overflow-auto">
           <Outlet />
         </div>
       </div>
@@ -85,25 +82,28 @@ export default function App() {
       <Route path="/" element={<MainLayout />}>
         <Route path="report" element={<Report />} />
         <Route path="dashboard" element={<LiveCalls />} />
-        <Route path="agents" element={<Agents />} />
-        <Route path="agents/new" element={<RegistrationForm />} />
-        <Route path="queues" element={<QueueManagement />} />
         <Route path="ivr-menu" element={<IVRMenus />} />
+
         <Route path="ivr-menu/edit/:id" element={<EditIVRMenu />} />
         <Route path="new-ivr" element={<IVRMenuForm />} />
+
         <Route path="system-recordings" element={<SystemRecordingsList />} />
         <Route path="system-recordings-upload" element={<SystemRecordingUpload />} />
+        
         <Route path="call-history" element={<CallHistory />} />
+
         <Route path="new-misc-application" element={<MiscApplicationForm />} />
         <Route path="misc-applications" element={<MiscApplicationList />} />
-        <Route path="queue/dev" element={<QueuePage />} />
+
         <Route path="agent/dev" element={<AgentPage />} />
         <Route path="agent/dev/:id" element={<AgentPage />} />
+        <Route path="agents" element={<Agents />} />
+        <Route path="agents/list" element={<AgentList />} />
+
         <Route path="queue-list" element={<QueueList />} />
         <Route path="queues/edit/:id" element={<QueuePage />} />
-        <Route path="agents/list" element={<AgentList />} />
+        <Route path="queue/dev" element={<QueuePage />} />
         <Route path="queue-statistics" element={<QueueStatistics />} />
-        <Route index element={<TableComponent />} />
       </Route>
     </Routes>
   );

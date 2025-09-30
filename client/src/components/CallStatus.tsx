@@ -9,8 +9,10 @@ import {
   PhoneIncoming,
   Wifi,
   WifiOff,
+  Activity,
 } from "lucide-react";
 import { RTCSession } from "jssip/lib/RTCSession";
+import { useTheme } from "../context/ThemeContext";
 
 interface ActiveCall {
   id: string;
@@ -101,6 +103,7 @@ const CallMonitorModal: React.FC<CallMonitorModalProps> = ({
 };
 
 const CallStatus: React.FC<CallStatusProps> = ({ activeCalls }) => {
+  const { isDarkMode } = useTheme();
   const [, setTimeTick] = useState<number>(0);
   const [activeJsSipSessionsMap, setActiveJsSipSessionsMap] = useState<Map<string, RTCSession>>(new Map());
   const [uaInstance, setUaInstance] = useState<JsSIP.UA | null>(null);
@@ -290,7 +293,7 @@ const CallStatus: React.FC<CallStatusProps> = ({ activeCalls }) => {
       session.on("accepted", () => {
         if (audioRef.current && session.connection.getRemoteStreams().length > 0) {
           audioRef.current.srcObject = session.connection.getRemoteStreams()[0];
-          audioRef.current.play().catch(() => {});
+          audioRef.current.play().catch(() => { });
         }
       });
       session.on("failed", () => {
@@ -351,107 +354,144 @@ const CallStatus: React.FC<CallStatusProps> = ({ activeCalls }) => {
   const onHoldCalls = activeCalls.filter((c) => c.state === "Hold").length;
 
   return (
-    <div className="p-6 w-full bg-gray-100 text-gray-900 font-sans flex flex-col items-center">
-      
+    <div className="w-full font-sans">
+
       {/* Top Header Section with Title and SIP Status */}
-      <div className="flex justify-between items-center w-full mb-6">
-        <h2 className="text-xl font-semibold text-gray-800">Calls being processed</h2>
-        <div className="text-sm font-medium flex items-center gap-2">
-          SIP Status: <span className={registrationStatus === "Registered" ? "text-green-600" : "text-red-600"}>{registrationStatus}</span>
-          {registrationStatus === "Registered" ? <Wifi className="w-4 h-4 text-green-600" /> : <WifiOff className="w-4 h-4 text-red-600" />}
+      <div className="flex justify-between items-center w-full mb-8">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-cc-yellow-400 rounded-xl flex items-center justify-center animate-pulse">
+            <Activity className="h-5 w-5 text-black" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold cc-text-accent">Active Calls</h2>
+            <p className="cc-text-secondary text-sm">Real-time call monitoring</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 cc-glass px-4 py-2 rounded-xl">
+          <span className="cc-text-secondary text-sm font-medium">SIP Status:</span>
+          <div className="flex items-center gap-2">
+            <span className={registrationStatus === "Registered" ? "text-green-400 font-semibold" : "text-red-400 font-semibold"}>{registrationStatus}</span>
+            {registrationStatus === "Registered" ?
+              <Wifi className="w-4 h-4 text-green-400 animate-pulse" /> :
+              <WifiOff className="w-4 h-4 text-red-400 animate-pulse" />
+            }
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-4 mb-6 w-full">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 w-full">
         {[
-          { label: "Total Active Calls", value: totalCalls, icon: <PhoneIncoming className="w-5 h-5 text-blue-500" /> },
-          { label: "Talking", value: talkingCalls, icon: <PhoneCall className="w-5 h-5 text-green-500" /> },
-          { label: "On Hold", value: onHoldCalls, icon: <PauseCircle className="w-5 h-5 text-yellow-500" /> },
-        ].map(({ label, value, icon }) => (
+          { label: "Total Active Calls", value: totalCalls, icon: <PhoneIncoming className="w-6 h-6" />, color: "blue" },
+          { label: "Talking", value: talkingCalls, icon: <PhoneCall className="w-6 h-6" />, color: "green" },
+          { label: "On Hold", value: onHoldCalls, icon: <PauseCircle className="w-6 h-6" />, color: "yellow" },
+        ].map(({ label, value, icon, color }) => (
           <div
             key={label}
-            className="flex-1 min-w-[150px] bg-white border border-gray-200 shadow-sm px-5 py-3 rounded-md flex items-center justify-between"
+            className="cc-glass cc-glass-hover rounded-xl p-6 cc-transition group cursor-pointer"
           >
-            <div>
-              <div className="text-sm text-gray-500">{label}</div>
-              <div className="text-xl font-bold text-gray-800">{value}</div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="cc-text-secondary text-sm font-medium mb-1">{label}</div>
+                <div className="text-3xl font-bold cc-text-accent group-hover:scale-110 cc-transition">{value}</div>
+              </div>
+              <div className={`w-14 h-14 rounded-xl flex items-center justify-center cc-transition group-hover:scale-110 ${color === 'blue' ? 'bg-blue-500/20 text-blue-400' :
+                color === 'green' ? 'bg-green-500/20 text-green-400' :
+                  'bg-yellow-500/20 text-yellow-400'
+                }`}>
+                {icon}
+              </div>
             </div>
-            {icon}
+            <div className={`mt-4 h-1 rounded-full cc-transition ${color === 'blue' ? 'bg-blue-500/30' :
+              color === 'green' ? 'bg-green-500/30' :
+                'bg-yellow-500/30'
+              } group-hover:${color === 'blue' ? 'bg-blue-500/50' :
+                color === 'green' ? 'bg-green-500/50' :
+                  'bg-yellow-500/50'
+              }`}></div>
           </div>
         ))}
       </div>
 
-      <div className="overflow-x-auto w-full bg-white shadow-lg border border-gray-200 rounded-md">
+      <div className="overflow-x-auto w-full cc-glass rounded-xl shadow-2xl">
         <table className="min-w-full w-full table-auto">
           <thead>
-            <tr className="text-left bg-gray-200 text-gray-700 font-semibold text-sm">
-              <th className="px-6 py-3">Caller</th>
-              <th className="px-6 py-3">Caller Name</th>
-              <th className="px-6 py-3">Agent</th>
-              <th className="px-6 py-3">Agent Name</th>
-              <th className="px-6 py-3">State</th>
-              <th className="px-6 py-3">Duration</th>
-              <th className="px-6 py-3 text-center">Actions</th>
+            <tr className="cc-bg-surface-variant">
+              <th className="px-6 py-4 text-left cc-text-accent font-bold text-sm tracking-wide">Caller</th>
+              <th className="px-6 py-4 text-left cc-text-accent font-bold text-sm tracking-wide">Caller Name</th>
+              <th className="px-6 py-4 text-left cc-text-accent font-bold text-sm tracking-wide">Agent</th>
+              <th className="px-6 py-4 text-left cc-text-accent font-bold text-sm tracking-wide">Agent Name</th>
+              <th className="px-6 py-4 text-left cc-text-accent font-bold text-sm tracking-wide">State</th>
+              <th className="px-6 py-4 text-left cc-text-accent font-bold text-sm tracking-wide">Duration</th>
+              <th className="px-6 py-4 text-center cc-text-accent font-bold text-sm tracking-wide">Actions</th>
             </tr>
           </thead>
           <tbody>
             {activeCalls.length > 0 ? (
-              activeCalls.map((call) => (
+              activeCalls.map((call, index) => (
                 <tr
                   key={call.id}
-                  className="border-t border-gray-200 hover:bg-blue-50 transition-colors duration-200"
+                  className={`cc-border-accent border-t hover:bg-yellow-400/5 cc-transition group ${index % 2 === 0 ? 'bg-transparent' : 'cc-bg-surface-variant/30'}`}
                 >
-                  <td className="px-6 py-4 font-semibold text-gray-800">{call.caller}</td>
-                  <td className="px-6 py-4">{call.callerName}</td>
-                  <td className="px-6 py-4">{call.agent}</td>
-                  <td className="px-6 py-4">{call.agentName}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-5 font-bold cc-text-primary">{call.caller}</td>
+                  <td className="px-6 py-5 cc-text-secondary">{call.callerName}</td>
+                  <td className="px-6 py-5 font-semibold cc-text-accent">{call.agent}</td>
+                  <td className="px-6 py-5 cc-text-secondary">{call.agentName}</td>
+                  <td className="px-6 py-5">
                     <span
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
-                        call.state === "Talking"
-                          ? "bg-green-100 text-green-700"
-                          : call.state === "Hold"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
+                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold cc-transition ${call.state === "Talking"
+                        ? "bg-green-500/20 text-green-400 animate-pulse"
+                        : call.state === "Hold"
+                          ? "bg-yellow-500/20 text-yellow-400"
+                          : "bg-red-500/20 text-red-400"
+                        }`}
                     >
                       {call.state === "Talking" ? (
-                        <PhoneCall className="w-3 h-3" />
+                        <PhoneCall className="w-4 h-4 animate-pulse" />
                       ) : call.state === "Hold" ? (
-                        <PauseCircle className="w-3 h-3" />
+                        <PauseCircle className="w-4 h-4" />
                       ) : (
-                        <XCircle className="w-3 h-3" />
+                        <XCircle className="w-4 h-4" />
                       )}
                       {call.state}
                     </span>
                   </td>
-                  <td className="px-6 py-5 font-mono text-sm text-gray-700">{getCallDuration(call.startTime)}</td>
-                  <td className="px-6 py-5 flex gap-2 justify-center">
-                    <button
-                      onClick={() => handleMonitorAction(call, "Listen")}
-                      className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:ring-2 ring-blue-500 flex items-center gap-1 shadow-sm"
-                    >
-                      <Headphones className="w-4 h-4" /> Listen
-                    </button>
-                    <button
-                      onClick={() => handleMonitorAction(call, "Whisper")}
-                      className="px-3 py-1.5 text-sm bg-yellow-500 text-white rounded-md hover:bg-yellow-600 focus:ring-2 ring-yellow-500 flex items-center gap-1 shadow-sm"
-                    >
-                      <Mic className="w-4 h-4" /> Whisper
-                    </button>
-                    <button
-                      onClick={() => handleMonitorAction(call, "Barge")}
-                      className="px-3 py-1.5 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 focus:ring-2 ring-red-500 flex items-center gap-1 shadow-sm"
-                    >
-                      <PhoneCall className="w-4 h-4" /> Barge
-                    </button>
+                  <td className="px-6 py-5 font-mono text-lg font-bold cc-text-accent">{getCallDuration(call.startTime)}</td>
+                  <td className="px-6 py-5">
+                    <div className="flex gap-2 justify-center">
+                      <button
+                        onClick={() => handleMonitorAction(call, "Listen")}
+                        className="px-4 py-2 text-sm bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 hover:scale-105 cc-transition flex items-center gap-2 font-semibold border border-blue-500/30 hover:border-blue-400"
+                      >
+                        <Headphones className="w-4 h-4" /> Listen
+                      </button>
+                      <button
+                        onClick={() => handleMonitorAction(call, "Whisper")}
+                        className="px-4 py-2 text-sm bg-yellow-500/20 text-yellow-400 rounded-lg hover:bg-yellow-500/30 hover:scale-105 cc-transition flex items-center gap-2 font-semibold border border-yellow-500/30 hover:border-yellow-400"
+                      >
+                        <Mic className="w-4 h-4" /> Whisper
+                      </button>
+                      <button
+                        onClick={() => handleMonitorAction(call, "Barge")}
+                        className="px-4 py-2 text-sm bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 hover:scale-105 cc-transition flex items-center gap-2 font-semibold border border-red-500/30 hover:border-red-400"
+                      >
+                        <PhoneCall className="w-4 h-4" /> Barge
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="px-6 py-10 text-center text-gray-500">
-                  No active calls currently.
+                <td colSpan={7} className="px-6 py-16 text-center">
+                  <div className="flex flex-col items-center space-y-4">
+                    <div className="w-16 h-16 bg-yellow-400/10 rounded-full flex items-center justify-center">
+                      <PhoneCall className="w-8 h-8 cc-text-accent opacity-50" />
+                    </div>
+                    <div>
+                      <p className="cc-text-secondary text-lg font-medium">No active calls currently</p>
+                      <p className="cc-text-secondary text-sm opacity-70 mt-1">Calls will appear here when agents are connected</p>
+                    </div>
+                  </div>
                 </td>
               </tr>
             )}

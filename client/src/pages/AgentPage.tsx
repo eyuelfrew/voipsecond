@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiSave, FiXCircle, FiTrash2, FiLoader } from 'react-icons/fi';
+import { FiSave, FiXCircle, FiTrash2, FiLoader, FiUser, FiSettings, FiPhone, FiMail, FiShield, FiMoreHorizontal } from 'react-icons/fi';
+import { useTheme } from '../context/ThemeContext';
 
 // --- IMPORT YOUR TAB COMPONENTS ---
 import AdvancedSettings from '../components/AGENT/AgentAdvancedSetting';
@@ -25,6 +26,7 @@ const AgentForm: React.FC = () => {
   // *** CHANGE 1: Use 'id' from useParams instead of 'userExtension' ***
   const { id } = useParams<{ id: string }>(); // 'id' will be the MongoDB _id
   const navigate = useNavigate();
+  const { isDarkMode } = useTheme();
 
   const [formData, setFormData] = useState<AgentFormData>(initialAgentFormData);
   const [message, setMessage] = useState<string | null>(null);
@@ -32,6 +34,16 @@ const AgentForm: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('General');
   const [initialLoading, setInitialLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // Tab configuration with icons
+  const tabs = [
+    { name: 'General', icon: FiUser },
+    { name: 'Voicemail', icon: FiMail },
+    { name: 'Find Me/Follow Me', icon: FiPhone },
+    { name: 'Advanced', icon: FiSettings },
+    { name: 'Pin Sets', icon: FiShield },
+    { name: 'Other', icon: FiMoreHorizontal }
+  ];
 
   // *** CHANGE 2: 'isEditing' now depends on the presence of 'id' ***
   const isEditing = useMemo(() => !!id, [id]);
@@ -181,10 +193,31 @@ const AgentForm: React.FC = () => {
 
   if (initialLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 p-8 font-sans flex justify-center items-center">
-        <div className="flex items-center text-blue-600 text-lg">
-          <FiLoader className="animate-spin mr-3 text-3xl" />
-          Loading agent data...
+      <div className="min-h-screen relative overflow-hidden cc-bg-background cc-transition"
+           style={{ 
+             background: isDarkMode 
+               ? 'linear-gradient(135deg, #000000 0%, #1F2937 25%, #111827 50%, #1F2937 75%, #000000 100%)'
+               : 'linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 25%, #F3F4F6 50%, #F9FAFB 75%, #FFFFFF 100%)'
+           }}>
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {/* Floating Yellow Orbs */}
+          <div className="absolute top-20 right-20 w-24 h-24 bg-cc-yellow-400 rounded-full opacity-10 animate-pulse"></div>
+          <div className="absolute bottom-32 left-20 w-32 h-32 bg-cc-yellow-300 rounded-full opacity-5 animate-bounce"></div>
+
+          {/* Grid Pattern */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,0,0.02)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
+
+          {/* Animated Lines */}
+          <div className="absolute top-0 left-1/3 w-px h-full bg-gradient-to-b from-transparent via-yellow-400/20 to-transparent animate-pulse"></div>
+          <div className="absolute top-0 right-1/4 w-px h-full bg-gradient-to-b from-transparent via-yellow-300/10 to-transparent animate-pulse"></div>
+        </div>
+        
+        <div className="relative z-10 flex items-center justify-center min-h-screen">
+          <div className="text-center p-8 rounded-2xl cc-glass cc-transition">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 cc-border-accent border-t-cc-primary mx-auto mb-4"></div>
+            <p className="text-xl font-semibold cc-text-accent">Loading Agent Data...</p>
+          </div>
         </div>
       </div>
     );
@@ -192,84 +225,189 @@ const AgentForm: React.FC = () => {
 
   if (fetchError && isEditing) {
     return (
-      <div className="min-h-screen bg-gray-100 p-8 font-sans flex justify-center items-center">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-          <FiXCircle className="inline-block mr-2" />
-          <strong className="font-bold">Error:</strong>
-          <span className="block sm:inline ml-2">{fetchError}</span>
-          <p className="mt-2 text-sm">Please check the URL or try again later.</p>
-          <button
-            onClick={() => navigate('/agents/list')}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Go to Agent List
-          </button>
+      <div className="min-h-screen relative overflow-hidden cc-bg-background cc-transition"
+           style={{ 
+             background: isDarkMode 
+               ? 'linear-gradient(135deg, #000000 0%, #1F2937 25%, #111827 50%, #1F2937 75%, #000000 100%)'
+               : 'linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 25%, #F3F4F6 50%, #F9FAFB 75%, #FFFFFF 100%)'
+           }}>
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {/* Floating Yellow Orbs */}
+          <div className="absolute top-20 right-20 w-24 h-24 bg-cc-yellow-400 rounded-full opacity-10 animate-pulse"></div>
+          <div className="absolute bottom-32 left-20 w-32 h-32 bg-cc-yellow-300 rounded-full opacity-5 animate-bounce"></div>
+
+          {/* Grid Pattern */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,0,0.02)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
+
+          {/* Animated Lines */}
+          <div className="absolute top-0 left-1/3 w-px h-full bg-gradient-to-b from-transparent via-yellow-400/20 to-transparent animate-pulse"></div>
+          <div className="absolute top-0 right-1/4 w-px h-full bg-gradient-to-b from-transparent via-yellow-300/10 to-transparent animate-pulse"></div>
+        </div>
+        
+        <div className="relative z-10 flex items-center justify-center min-h-screen">
+          <div className="text-center p-8 rounded-2xl cc-glass cc-transition max-w-md">
+            <FiXCircle className="text-6xl mx-auto mb-4 text-red-400" />
+            <h3 className="text-2xl font-bold mb-2 cc-text-accent">Error Loading Agent</h3>
+            <p className="text-red-400 mb-4">{fetchError}</p>
+            <p className="text-sm mb-6 cc-text-secondary opacity-80">
+              Please check the URL or try again later.
+            </p>
+            <button
+              onClick={() => navigate('/agents/list')}
+              className="px-6 py-3 rounded-xl font-semibold cc-transition cc-glass-hover cc-glow-yellow-hover hover:scale-105 hover:shadow-lg"
+              style={{ 
+                background: 'var(--cc-accent)',
+                color: isDarkMode ? '#000' : '#fff'
+              }}
+            >
+              Go to Agent List
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8 font-sans flex justify-center items-start">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl overflow-hidden">
-        {/* Header Tabs */}
-        <div className="flex bg-gray-50 border-b border-gray-200">
-          {['General', 'Voicemail', 'Find Me/Follow Me', 'Advanced', 'Pin Sets', 'Other'].map((tabName) => (
-            <button
-              key={tabName}
-              onClick={() => setActiveTab(tabName)}
-              className={`px-6 py-3 text-sm font-semibold focus:outline-none transition-colors duration-200
-                ${activeTab === tabName
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:text-gray-800 border-b-2 border-transparent'
-                }`}
-            >
-              {tabName}
-            </button>
-          ))}
-        </div>
+    <div className="min-h-screen relative overflow-hidden cc-bg-background cc-transition"
+         style={{ 
+           background: isDarkMode 
+             ? 'linear-gradient(135deg, #000000 0%, #1F2937 25%, #111827 50%, #1F2937 75%, #000000 100%)'
+             : 'linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 25%, #F3F4F6 50%, #F9FAFB 75%, #FFFFFF 100%)'
+         }}>
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Floating Yellow Orbs */}
+        <div className="absolute top-20 right-20 w-24 h-24 bg-cc-yellow-400 rounded-full opacity-10 animate-pulse"></div>
+        <div className="absolute bottom-32 left-20 w-32 h-32 bg-cc-yellow-300 rounded-full opacity-5 animate-bounce"></div>
 
-        {/* Message Display (Success/Error) */}
-        {message && (
-          <div className={`p-3 text-center rounded-md mx-6 mt-4 ${messageType === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-            {message}
+        {/* Grid Pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,0,0.02)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
+
+        {/* Animated Lines */}
+        <div className="absolute top-0 left-1/3 w-px h-full bg-gradient-to-b from-transparent via-yellow-400/20 to-transparent animate-pulse"></div>
+        <div className="absolute top-0 right-1/4 w-px h-full bg-gradient-to-b from-transparent via-yellow-300/10 to-transparent animate-pulse"></div>
+      </div>
+
+      {/* Main Content */}
+      <div className="relative z-10 p-8 flex justify-center items-start min-h-screen">
+        <div className="w-full max-w-5xl">
+          {/* Header */}
+          <div className="mb-8 animate-fade-in">
+            <div className="text-center mb-6">
+              <h1 className="text-4xl font-bold mb-2 cc-text-accent animate-fade-in">
+                {isEditing ? 'Edit Agent' : 'Create New Agent'}
+              </h1>
+              <p className="text-lg cc-text-secondary animate-fade-in-delay-300">
+                {isEditing 
+                  ? `Modify settings for extension ${formData.userExtension || '...'}`
+                  : 'Configure a new agent extension with advanced settings'
+                }
+              </p>
+            </div>
           </div>
-        )}
 
-        {/* Form Content */}
-        <form onSubmit={handleSubmit} className="p-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">
-            {isEditing ? `Edit Agent: ${formData.userExtension || 'Loading...'}` : 'Add New Agent'}
-          </h2>
+          {/* Main Form Container */}
+          <div className="cc-glass rounded-2xl overflow-hidden animate-fade-in cc-transition" style={{ animationDelay: '0.2s' }}>
+            
+            {/* Tab Navigation */}
+            <div className="cc-glass-hover border-b cc-border">
+              <div className="flex overflow-x-auto scrollbar-thin">
+                {tabs.map((tab, index) => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.name}
+                      onClick={() => setActiveTab(tab.name)}
+                      className={`flex items-center px-6 py-4 text-sm font-semibold focus:outline-none cc-transition whitespace-nowrap group animate-fade-in ${
+                        activeTab === tab.name
+                          ? 'border-b-2 cc-border-accent cc-text-accent scale-105'
+                          : 'border-b-2 border-transparent cc-text-secondary hover:scale-105 hover:cc-text-accent'
+                      }`}
+                      style={{ 
+                        animationDelay: `${0.3 + index * 0.1}s`
+                      }}
+                    >
+                      <Icon className={`mr-2 cc-text-accent transition-transform duration-300 ${activeTab === tab.name ? 'scale-110' : 'group-hover:scale-110'}`} />
+                      {tab.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-          {renderTabContent}
-
-          {/* Form Actions (Submit, Reset, Delete) */}
-          <div className="flex justify-end space-x-4 mt-8 p-4 border-t border-gray-200 bg-gray-50">
-            <button
-              type="button"
-              onClick={handleReset}
-              className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors duration-200"
-            >
-              <FiXCircle className="inline-block mr-2" /> Reset
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
-            >
-              <FiSave className="inline-block mr-2" /> {isEditing ? 'Update Agent' : 'Create Agent'}
-            </button>
-            {isEditing && (
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200"
-              >
-                <FiTrash2 className="inline-block mr-2" /> Delete Agent
-              </button>
+            {/* Message Display (Success/Error) */}
+            {message && (
+              <div className={`mx-6 mt-6 p-4 rounded-xl cc-glass cc-transition animate-fade-in ${
+                messageType === 'success' 
+                  ? 'border border-green-500/30 bg-green-500/10' 
+                  : 'border border-red-500/30 bg-red-500/10'
+              }`}>
+                <div className="flex items-center justify-center">
+                  {messageType === 'success' ? (
+                    <FiSave className="mr-2 text-green-400" />
+                  ) : (
+                    <FiXCircle className="mr-2 text-red-400" />
+                  )}
+                  <span className={`${
+                    messageType === 'success' 
+                      ? 'text-green-400' 
+                      : 'text-red-400'
+                  }`}>
+                    {message}
+                  </span>
+                </div>
+              </div>
             )}
+
+            {/* Form Content */}
+            <form onSubmit={handleSubmit} className="p-8">
+              <div className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
+                {renderTabContent}
+              </div>
+
+              {/* Form Actions */}
+              <div className="flex justify-end space-x-4 mt-12 pt-8 cc-border cc-glass-hover animate-fade-in cc-transition" 
+                   style={{ 
+                     animationDelay: '0.6s'
+                   }}>
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="px-8 py-3 rounded-xl font-semibold cc-transition cc-glass-hover cc-text-secondary group"
+                >
+                  <FiXCircle className="inline-block mr-2 group-hover:animate-spin cc-text-secondary" /> Reset
+                </button>
+                
+                <button
+                  type="submit"
+                  className="px-8 py-3 rounded-xl font-semibold cc-transition cc-glass-hover cc-glow-yellow-hover hover:scale-105 hover:shadow-lg extension-button"
+                  style={{ 
+                    background: 'var(--cc-accent)',
+                    color: isDarkMode ? '#000' : '#fff'
+                  }}
+                >
+                  <FiSave className="inline-block mr-2" /> {isEditing ? 'Update Agent' : 'Create Agent'}
+                </button>
+                
+                {isEditing && (
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    className="px-8 py-3 rounded-xl font-semibold cc-transition cc-glass-hover hover:scale-105 hover:shadow-lg"
+                    style={{ 
+                      background: '#EF4444',
+                      color: '#fff'
+                    }}
+                  >
+                    <FiTrash2 className="inline-block mr-2" /> Delete Agent
+                  </button>
+                )}
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

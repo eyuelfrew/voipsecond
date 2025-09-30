@@ -1,0 +1,61 @@
+/* Custom animation delays for login page */
+.animate-delay-300 {
+  animation-delay: 300ms;
+}
+
+.animate-delay-500 {
+  animation-delay: 500ms;
+}
+
+.animate-delay-600 {
+  animation-delay: 600ms;
+}
+
+.animate-delay-900 {
+  animation-delay: 900ms;
+}
+
+.animate-delay-1000 {
+  animation-delay: 1000ms;
+}
+
+.animate-delay-2000 {
+  animation-delay: 2000ms;
+}
+
+/* Custom animation combinations */
+.animate-pulse-delay-300 {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation-delay: 300ms;
+}
+
+.animate-pulse-delay-600 {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation-delay: 600ms;
+}
+
+.animate-pulse-delay-900 {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation-delay: 900ms;
+}
+
+.animate-bounce-delay-1000 {
+  animation: bounce 1s infinite;
+  animation-delay: 1000ms;
+}
+
+.animate-ping-delay-2000 {
+  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+  animation-delay: 2000ms;
+}
+
+.animate-pulse-delay-500 {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation-delay: 500ms;
+}
+
+.animate-fade-in-delay-300 {
+  animation: fade-in 0.6s ease-out;
+  animation-delay: 300ms;
+  animation-fill-mode: both;
+}

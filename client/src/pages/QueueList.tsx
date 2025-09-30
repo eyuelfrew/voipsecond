@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Pencil, Trash2, XCircle } from 'lucide-react'; // Using lucide-react for modern icons
+import { Pencil, Trash2, XCircle, Users, Plus, Activity } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 type Queue = {
   _id: string;
@@ -11,6 +12,7 @@ type Queue = {
 };
 
 const QueueList: React.FC = () => {
+  const { isDarkMode } = useTheme();
   const API = import.meta.env.VITE_API_URL || 'http://localhost:4000';
   const [queues, setQueues] = useState<Queue[]>([]);
   const [loading, setLoading] = useState(true);

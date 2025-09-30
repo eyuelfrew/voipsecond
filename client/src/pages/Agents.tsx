@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { UseSocket } from "../context/SocketContext";
+import { useTheme } from "../context/ThemeContext";
 import baseUrl from "../util/baseUrl";
 // Lucide React Icons
 import {
@@ -64,6 +65,7 @@ interface Agent {
 }
 
 const Agent: React.FC = () => {
+  const { isDarkMode } = useTheme();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -78,19 +80,19 @@ const Agent: React.FC = () => {
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
       case "online":
-        return "bg-green-500 text-white";
+        return "bg-green-500/20 text-green-400 border border-green-500/30";
       case "busy":
-        return "bg-red-500 text-white";
+        return "bg-red-500/20 text-red-400 border border-red-500/30";
       case "away":
-        return "bg-yellow-500 text-white";
+        return "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30";
       case "offline":
-        return "bg-gray-500 text-white";
+        return "bg-gray-500/20 text-gray-400 border border-gray-500/30";
       case "ringing":
-        return "bg-blue-500 text-white";
+        return "bg-blue-500/20 text-blue-400 border border-blue-500/30 animate-pulse";
       case "paused":
-        return "bg-purple-500 text-white";
+        return "bg-purple-500/20 text-purple-400 border border-purple-500/30";
       default:
-        return "bg-gray-500 text-white";
+        return "bg-gray-500/20 text-gray-400 border border-gray-500/30";
     }
   };
 
@@ -238,10 +240,16 @@ const Agent: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6 flex justify-center items-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-700 text-lg">Loading agents...</p>
+      <div className="min-h-full cc-bg-background cc-transition flex justify-center items-center p-6"
+        style={{
+          background: isDarkMode
+            ? 'linear-gradient(135deg, #000000 0%, #1F2937 25%, #111827 50%, #1F2937 75%, #000000 100%)'
+            : 'linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 25%, #F3F4F6 50%, #F9FAFB 75%, #FFFFFF 100%)'
+        }}>
+        <div className="text-center cc-glass rounded-xl p-8">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-cc-yellow-400 border-t-transparent mx-auto mb-6"></div>
+          <p className="cc-text-primary text-xl font-semibold">Loading agents...</p>
+          <p className="cc-text-secondary text-sm mt-2">Fetching real-time data</p>
         </div>
       </div>
     );
@@ -249,13 +257,20 @@ const Agent: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6 flex flex-col justify-center items-center">
-        <div className="text-center bg-white rounded-lg shadow-lg p-8">
-          <CircleX className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <p className="text-red-500 text-lg mb-4">{error}</p>
+      <div className="min-h-full cc-bg-background cc-transition flex flex-col justify-center items-center p-6"
+        style={{
+          background: isDarkMode
+            ? 'linear-gradient(135deg, #000000 0%, #1F2937 25%, #111827 50%, #1F2937 75%, #000000 100%)'
+            : 'linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 25%, #F3F4F6 50%, #F9FAFB 75%, #FFFFFF 100%)'
+        }}>
+        <div className="text-center cc-glass rounded-xl p-8 max-w-md">
+          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CircleX className="w-8 h-8 text-red-400" />
+          </div>
+          <p className="text-red-400 text-lg mb-6 font-semibold">{error}</p>
           <button
             onClick={fetchAgents}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg shadow-md flex items-center mx-auto font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="bg-cc-yellow-400 hover:bg-cc-yellow-500 text-black px-6 py-3 rounded-xl shadow-lg flex items-center mx-auto font-bold cc-transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
           >
             <Activity className="mr-2 w-5 h-5" /> Retry
           </button>
@@ -265,30 +280,46 @@ const Agent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-full cc-bg-background cc-transition p-6"
+      style={{
+        background: isDarkMode
+          ? 'linear-gradient(135deg, #000000 0%, #1F2937 25%, #111827 50%, #1F2937 75%, #000000 100%)'
+          : 'linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 25%, #F3F4F6 50%, #F9FAFB 75%, #FFFFFF 100%)'
+      }}>
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 right-20 w-24 h-24 bg-cc-yellow-400 rounded-full opacity-10 animate-pulse"></div>
+        <div className="absolute bottom-32 left-20 w-32 h-32 bg-cc-yellow-300 rounded-full opacity-5 animate-bounce"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,0,0.02)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="cc-glass rounded-xl p-8 shadow-2xl">
           <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-                <Users className="w-8 h-8 mr-3 text-indigo-600" />
-                Agent Dashboard
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Monitor agent status and performance in real-time
-              </p>
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-cc-yellow-400 rounded-xl flex items-center justify-center animate-pulse">
+                <Users className="w-6 w-6 text-black" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold cc-text-accent">
+                  Agent Dashboard
+                </h1>
+                <p className="cc-text-secondary mt-1">
+                  Monitor agent status and performance in real-time
+                </p>
+              </div>
             </div>
             <div className="flex gap-3">
               <button
                 onClick={fetchAgents}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg shadow-md flex items-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 px-6 py-3 rounded-xl shadow-lg flex items-center font-bold cc-transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-400/50"
               >
                 <Activity className="mr-2 w-4 h-4" /> Refresh
               </button>
               <button
                 onClick={handleOpenModal}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg shadow-md flex items-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                className="bg-cc-yellow-400 hover:bg-cc-yellow-500 text-black px-6 py-3 rounded-xl shadow-lg flex items-center font-bold cc-transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
               >
                 <PlusCircle className="mr-2 w-4 h-4" /> Add Agent
               </button>
@@ -297,9 +328,9 @@ const Agent: React.FC = () => {
         </div>
 
         {/* Agent Status Summary */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-            <BarChart3 className="w-5 h-5 mr-2 text-indigo-600" />
+        <div className="cc-glass rounded-xl p-6 shadow-2xl">
+          <h3 className="text-2xl font-bold cc-text-accent mb-6 flex items-center">
+            <BarChart3 className="w-6 h-6 mr-3 cc-text-accent" />
             Agent Overview
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -308,70 +339,66 @@ const Agent: React.FC = () => {
                 status !== "total" && (
                   <div
                     key={status}
-                    className="bg-gray-50 rounded-lg p-4 text-center"
+                    className="cc-glass cc-glass-hover rounded-xl p-6 text-center cc-transition group cursor-pointer"
                   >
-                    <div className="flex justify-center mb-2">
+                    <div className="flex justify-center mb-3 group-hover:scale-110 cc-transition">
                       {getStatusIcon(status, status)}
                     </div>
-                    <p className="text-sm text-gray-500 capitalize">{status}</p>
-                    <p className="text-2xl font-bold text-gray-900">{count}</p>
+                    <p className="text-sm cc-text-secondary capitalize font-medium">{status}</p>
+                    <p className="text-3xl font-bold cc-text-accent group-hover:scale-110 cc-transition">{count}</p>
                   </div>
                 )
             )}
           </div>
-          <div className="mt-6 pt-4 border-t border-gray-200 text-center">
-            <p className="text-lg font-bold text-gray-800">
-              Total Agents: {agentSummary.total}
+          <div className="mt-8 pt-6 cc-border-accent border-t text-center">
+            <p className="text-xl font-bold cc-text-accent">
+              Total Agents: <span className="text-2xl">{agentSummary.total}</span>
             </p>
           </div>
         </div>
 
         {/* Controls */}
-        <div className="bg-white rounded-xl shadow-sm p-4">
-          <div className="flex justify-between items-center">
-            <div className="flex gap-2">
+        <div className="cc-glass rounded-xl p-6 shadow-2xl">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="flex gap-3">
               <button
                 onClick={() => setViewMode("cards")}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                  viewMode === "cards"
-                    ? "bg-indigo-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
+                className={`px-6 py-3 rounded-xl font-bold cc-transition hover:scale-105 ${viewMode === "cards"
+                  ? "bg-cc-yellow-400 text-black shadow-lg"
+                  : "cc-glass hover:bg-yellow-400/10 cc-text-secondary hover:cc-text-accent"
+                  }`}
               >
                 Cards View
               </button>
               <button
                 onClick={() => setViewMode("table")}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                  viewMode === "table"
-                    ? "bg-indigo-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
+                className={`px-6 py-3 rounded-xl font-bold cc-transition hover:scale-105 ${viewMode === "table"
+                  ? "bg-cc-yellow-400 text-black shadow-lg"
+                  : "cc-glass hover:bg-yellow-400/10 cc-text-secondary hover:cc-text-accent"
+                  }`}
               >
                 Table View
               </button>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <button
                 onClick={() => setStatsView("daily")}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center ${
-                  statsView === "daily"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
+                className={`px-6 py-3 rounded-xl font-bold cc-transition hover:scale-105 flex items-center ${statsView === "daily"
+                  ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                  : "cc-glass hover:bg-blue-500/10 cc-text-secondary hover:text-blue-400"
+                  }`}
               >
-                <Calendar className="w-4 h-4 mr-1" />
+                <Calendar className="w-4 h-4 mr-2" />
                 Daily Stats
               </button>
               <button
                 onClick={() => setStatsView("overall")}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center ${
-                  statsView === "overall"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
+                className={`px-6 py-3 rounded-xl font-bold cc-transition hover:scale-105 flex items-center ${statsView === "overall"
+                  ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                  : "cc-glass hover:bg-blue-500/10 cc-text-secondary hover:text-blue-400"
+                  }`}
               >
-                <Globe className="w-4 h-4 mr-1" />
+                <Globe className="w-4 h-4 mr-2" />
                 Overall Stats
               </button>
             </div>
@@ -379,9 +406,9 @@ const Agent: React.FC = () => {
         </div>
 
         {/* Agent List */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
-            <Activity className="w-6 h-6 mr-3 text-indigo-600" />
+        <div className="cc-glass rounded-xl p-6 shadow-2xl">
+          <h2 className="text-2xl font-bold cc-text-accent mb-8 flex items-center">
+            <Activity className="w-6 h-6 mr-3 cc-text-accent animate-pulse" />
             Agent Details ({statsView === "daily" ? "Daily" : "Overall"} Stats)
           </h2>
 
@@ -395,25 +422,25 @@ const Agent: React.FC = () => {
                 return (
                   <div
                     key={agent.id}
-                    className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-200"
+                    className="cc-glass cc-glass-hover rounded-xl p-6 cc-transition group hover:scale-105"
                   >
                     {/* Agent Header */}
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
-                          <User className="w-6 h-6 text-indigo-600" />
+                        <div className="w-12 h-12 bg-cc-yellow-400 rounded-full flex items-center justify-center group-hover:scale-110 cc-transition">
+                          <User className="w-6 h-6 text-black" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">
+                          <h3 className="font-bold cc-text-primary text-lg">
                             {agent.full_name}
                           </h3>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm cc-text-secondary">
                             Ext: {agent.extension}
                           </p>
                         </div>
                       </div>
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(
+                        className={`px-4 py-2 rounded-xl text-xs font-bold ${getStatusBadge(
                           agent.status
                         )}`}
                       >
@@ -422,29 +449,29 @@ const Agent: React.FC = () => {
                     </div>
 
                     {/* Live Status */}
-                    <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-600">
+                    <div className="mb-6 p-4 cc-glass rounded-lg">
+                      <p className="text-sm cc-text-secondary">
                         Live Status:{" "}
-                        <span className="font-medium">{agent.liveStatus}</span>
+                        <span className="font-bold cc-text-accent">{agent.liveStatus}</span>
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Device: {agent.deviceState}
+                      <p className="text-xs cc-text-secondary mt-1">
+                        Device: <span className="font-semibold">{agent.deviceState}</span>
                       </p>
                       {agent.contacts && (
-                        <p className="text-xs text-gray-500 mt-1 truncate">
-                          Contact: {agent.contacts}
+                        <p className="text-xs cc-text-secondary mt-1 truncate">
+                          Contact: <span className="font-semibold">{agent.contacts}</span>
                         </p>
                       )}
                     </div>
 
                     {/* Stats */}
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="flex items-center text-sm text-gray-600">
-                          <Phone className="w-4 h-4 mr-1" />
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center p-3 cc-glass rounded-lg">
+                        <span className="flex items-center text-sm cc-text-secondary font-medium">
+                          <Phone className="w-4 h-4 mr-2" />
                           Total Calls
                         </span>
-                        <span className="font-semibold text-green-600">
+                        <span className="font-bold text-lg text-green-400">
                           {stats.totalCalls}
                         </span>
                       </div>
@@ -509,9 +536,9 @@ const Agent: React.FC = () => {
                           <span className="font-semibold text-indigo-600">
                             {stats.totalCalls > 0
                               ? `${(
-                                  (stats.answeredCalls / stats.totalCalls) *
-                                  100
-                                ).toFixed(1)}%`
+                                (stats.answeredCalls / stats.totalCalls) *
+                                100
+                              ).toFixed(1)}%`
                               : "0%"}
                           </span>
                         </div>
@@ -556,10 +583,10 @@ const Agent: React.FC = () => {
                     const successRate =
                       stats.totalCalls > 0
                         ? (
-                            ((stats.totalCalls - stats.missedCalls) /
-                              stats.totalCalls) *
-                            100
-                          ).toFixed(1)
+                          ((stats.totalCalls - stats.missedCalls) /
+                            stats.totalCalls) *
+                          100
+                        ).toFixed(1)
                         : "0";
 
                     return (
@@ -605,24 +632,23 @@ const Agent: React.FC = () => {
                             <div className="text-sm font-medium text-gray-900">
                               {stats.totalCalls > 0
                                 ? `${(
-                                    (stats.answeredCalls / stats.totalCalls) *
-                                    100
-                                  ).toFixed(1)}%`
+                                  (stats.answeredCalls / stats.totalCalls) *
+                                  100
+                                ).toFixed(1)}%`
                                 : "0%"}
                             </div>
                             <div className="ml-2 w-16 bg-gray-200 rounded-full h-2">
                               <div
                                 className="bg-green-500 h-2 rounded-full"
                                 style={{
-                                  width: `${
-                                    stats.totalCalls > 0
-                                      ? (
-                                          (stats.answeredCalls /
-                                            stats.totalCalls) *
-                                          100
-                                        ).toFixed(1)
-                                      : 0
-                                  }%`,
+                                  width: `${stats.totalCalls > 0
+                                    ? (
+                                      (stats.answeredCalls /
+                                        stats.totalCalls) *
+                                      100
+                                    ).toFixed(1)
+                                    : 0
+                                    }%`,
                                 }}
                               ></div>
                             </div>
@@ -651,11 +677,10 @@ const Agent: React.FC = () => {
                 <button
                   key={i + 1}
                   onClick={() => handlePageChange(i + 1)}
-                  className={`px-4 py-2 rounded-lg transition-all duration-200 ${
-                    currentPage === i + 1
-                      ? "bg-indigo-600 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
+                  className={`px-4 py-2 rounded-lg transition-all duration-200 ${currentPage === i + 1
+                    ? "bg-indigo-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
                 >
                   {i + 1}
                 </button>
@@ -674,21 +699,23 @@ const Agent: React.FC = () => {
 
         {/* Modal for Adding Agent */}
         {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="relative w-full max-w-lg mx-auto bg-white rounded-2xl shadow-2xl p-8 m-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+            <div className="relative w-full max-w-lg mx-auto cc-glass rounded-2xl shadow-2xl p-8 m-4 border cc-border-accent">
               <button
                 onClick={handleCloseModal}
-                className="absolute top-4 right-4 text-gray-400 hover:text-red-500 bg-gray-100 rounded-full p-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-300"
+                className="absolute top-4 right-4 cc-text-secondary hover:text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-full p-2 cc-transition focus:outline-none focus:ring-2 focus:ring-red-400/50"
                 aria-label="Close"
               >
                 <Trash className="w-5 h-5" />
               </button>
-              <h3 className="text-2xl font-bold text-center mb-6 text-gray-800">
+              <h3 className="text-2xl font-bold text-center mb-6 cc-text-accent">
                 Register New Agent
               </h3>
-              {/* Add your registration form component here */}
-              <div className="text-center text-gray-500">
-                Registration form component goes here
+              <div className="text-center cc-text-secondary">
+                <div className="w-16 h-16 bg-cc-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <PlusCircle className="w-8 h-8 text-black" />
+                </div>
+                <p>Registration form component goes here</p>
               </div>
             </div>
           </div>
