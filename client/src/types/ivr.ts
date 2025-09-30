@@ -7,10 +7,25 @@ export interface IVREntry {
 
 export interface DTMFOptions {
     announcement: {id: string, name: string};
+    enableDirectDial: string;
+    ignoreTrailingKey: string;
+    forceStartDialTimeout: string;
     timeout: number;
+    alertInfo: string;
+    ringerVolumeOverride: string;
     invalidRetries: number;
     invalidRetryRecording: {id: string, name: string};
+    appendAnnouncementToInvalid: string;
+    returnOnInvalid: string;
+    invalidRecording: {id: string, name: string};
+    invalidDestination: string;
     timeoutRetries: number;
+    timeoutRetryRecording: {id: string, name: string};
+    appendAnnouncementOnTimeout: string;
+    returnOnTimeout: string;
+    timeoutRecording: {id: string, name: string};
+    timeoutDestination: string;
+    returnToIVRAfterVM: string;
 }
 
 export interface IVRState {

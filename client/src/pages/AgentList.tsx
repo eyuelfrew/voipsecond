@@ -21,14 +21,14 @@ const AgentList: React.FC = () => {
   const API = import.meta.env.VITE_API_URL || "http://localhost:4000";
   const { isDarkMode } = useTheme();
 
-  // Mock data for demonstration
-  const mockAgents: Agent[] = [
-    { _id: "1", userExtension: "1001", displayName: "John Smith" },
-    { _id: "2", userExtension: "1002", displayName: "Sarah Johnson" },
-    { _id: "3", userExtension: "1003", displayName: "Mike Davis" },
-    { _id: "4", userExtension: "1004", displayName: "Emily Brown" },
-    { _id: "5", userExtension: "1005", displayName: "David Wilson" },
-  ];
+  // // Mock data for demonstration
+  // const mockAgents: Agent[] = [
+  //   { _id: "1", userExtension: "1001", displayName: "John Smith" },
+  //   { _id: "2", userExtension: "1002", displayName: "Sarah Johnson" },
+  //   { _id: "3", userExtension: "1003", displayName: "Mike Davis" },
+  //   { _id: "4", userExtension: "1004", displayName: "Emily Brown" },
+  //   { _id: "5", userExtension: "1005", displayName: "David Wilson" },
+  // ];
 
   // Filter agents based on search term
   const filteredAgents = agents.filter(agent =>
@@ -41,24 +41,23 @@ const AgentList: React.FC = () => {
       setLoading(true);
       setError("");
       try {
-        // Use mock data for demonstration
-        setTimeout(() => {
-          setAgents(mockAgents);
-          setLoading(false);
-        }, 1000);
+  
         
         // Uncomment below for real API call
-        // const res = await axios.get(`${API}/api/agent`);
-        // const data = Array.isArray(res.data)
-        //   ? res.data
-        //   : res.data.extensions || [];
-        // const filtered = data.map((a: any) => ({
-        //   _id: a._id,
-        //   userExtension: a.userExtension,
-        //   displayName: a.displayName,
-        // }));
-        // setAgents(filtered);
+        const res = await axios.get(`${API}/api/agent`);
+        const data = Array.isArray(res.data)
+          ? res.data
+          : res.data.extensions || [];
+        const filtered = data.map((a: any) => ({
+          _id: a._id,
+          userExtension: a.userExtension,
+          displayName: a.displayName,
+        }));
+        setAgents(filtered);
+      setLoading(false);
+
       } catch (err: any) {
+
         console.error("Error fetching agents:", err);
         setError("Failed to load agents.");
         setLoading(false);
@@ -169,12 +168,12 @@ const AgentList: React.FC = () => {
         {loading ? (
           <div className="cc-glass rounded-2xl p-12 text-center animate-fade-in cc-transition">
             <div className="animate-spin rounded-full h-16 w-16 border-4 cc-border-accent border-t-cc-primary mx-auto mb-4"></div>
-            <p className="text-xl font-semibold cc-text-accent">Loading Agents...</p>
+            <p className="text-xl cc-text-accent">Loading Agents...</p>
           </div>
         ) : error ? (
           <div className="cc-glass rounded-2xl p-12 text-center animate-fade-in cc-transition">
             <FiXCircle className="text-6xl mx-auto mb-4 text-red-400" />
-            <p className="text-xl font-semibold text-red-400 mb-2">Error Loading Agents</p>
+            <p className="text-xl text-red-400 mb-2">Error Loading Agents</p>
             <p className="opacity-80 cc-text-secondary">{error}</p>
           </div>
         ) : (
@@ -239,11 +238,11 @@ const AgentList: React.FC = () => {
                               <FiUser className="text-lg cc-text-accent" />
                             </div>
                             <div>
-                              <div className="font-semibold text-lg cc-text-accent">
+                              <div className="text-lg cc-text-primary">
                                 {agent.displayName}
                               </div>
                               <div className="text-sm opacity-60 cc-text-secondary">
-                                Agent Profile
+                                ID: {agent._id}
                               </div>
                             </div>
                           </div>
@@ -251,13 +250,13 @@ const AgentList: React.FC = () => {
                         <td className="p-6">
                           <div className="flex items-center">
                             <FiPhone className="mr-2 opacity-60 cc-text-secondary" />
-                            <span className="font-mono text-lg font-semibold cc-text-accent">
+                            <span className="font-mono text-lg cc-text-primary">
                               {agent.userExtension}
                             </span>
                           </div>
                         </td>
                         <td className="p-6">
-                          <span className="px-3 py-1 rounded-full text-sm font-medium cc-glass cc-text-accent" 
+                          <span className="px-3 py-1 rounded-full text-sm cc-glass cc-text-primary" 
                                 style={{ 
                                   background: `var(--cc-primary)20`,
                                 }}>
@@ -272,7 +271,7 @@ const AgentList: React.FC = () => {
                               style={{ 
                                 background: `var(--cc-accent)20`,
                               }}
-                              title="Edit Agent"
+                              title={`Edit Agent ${agent._id}`}
                             >
                               <FiEdit size={18} />
                             </button>
@@ -282,7 +281,7 @@ const AgentList: React.FC = () => {
                               style={{ 
                                 background: '#EF444420',
                               }}
-                              title="Delete Agent"
+                              title={`Delete Agent ${agent._id}`}
                             >
                               <FiTrash2 size={18} />
                             </button>
@@ -325,14 +324,9 @@ const AgentList: React.FC = () => {
             <div className="flex space-x-4">
               <button
                 onClick={cancelDelete}
-                className="flex-1 px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 backdrop-blur-md border border-opacity-20"
-                style={{ 
-                  background: `rgba(${isDarkMode ? '107, 114, 128' : '156, 163, 175'}, 0.2)`,
-                  borderColor: 'var(--cc-border)',
-                  color: 'var(--cc-textSecondary)'
-                }}
+                className="flex-1 px-6 py-3 rounded-xl font-semibold cc-transition cc-glass-hover"
               >
-                Cancel
+                <span className="cc-text-secondary">Cancel</span>
               </button>
               <button
                 onClick={confirmDelete}

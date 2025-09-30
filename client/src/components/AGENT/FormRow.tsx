@@ -9,7 +9,7 @@ interface FormRowProps {
   const FormRow: React.FC<FormRowProps> = React.memo(({ label, tooltip, children }) => (
     <div className="flex items-center border-b border-opacity-10 py-6 last:border-b-0 group hover:bg-opacity-5 transition-all duration-300" 
          style={{ borderColor: 'var(--cc-border)' }}>
-      <div className="w-1/3 pr-6 text-left font-semibold flex items-center justify-start" 
+      <div className="w-1/3 pr-6 text-left text-sm font-medium flex items-center justify-start" 
            style={{ color: 'var(--cc-text)' }}>
         <span className="group-hover:scale-105 transition-transform duration-300">{label}</span>
         {tooltip && (

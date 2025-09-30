@@ -148,9 +148,9 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
           value="true"
           checked={currentVal === true}
           onChange={() => handleChange(name, true)} // Directly pass name and value
-          className="form-radio h-3 w-3" // Smaller radio buttons
+          className="form-radio h-3 w-3 font-light" // Smaller radio buttons with lighter font
         />
-        <span className="ml-1">{labelTrue}</span>
+        <span className="ml-1 font-light">{labelTrue}</span>
       </label>
       <label className="inline-flex items-center">
         <input
@@ -159,9 +159,9 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
           value="false"
           checked={currentVal === false}
           onChange={() => handleChange(name, false)} // Directly pass name and value
-          className="form-radio h-3 w-3" // Smaller radio buttons
+          className="form-radio h-3 w-3 font-light" // Smaller radio buttons with lighter font
         />
-        <span className="ml-1">{labelFalse}</span>
+        <span className="ml-1 font-light">{labelFalse}</span>
       </label>
     </div>
   );
@@ -197,7 +197,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="customContext"
                 value={formData.customContext}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed text-sm font-light" // Adjusted size with lighter font
                 readOnly // Based on "ALLOW ALL (Default)" which looks like a read-only field
               />
             </FormRow>
@@ -230,7 +230,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="dtmfSignaling"
                 value={formData.dtmfSignaling}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               >
                 {dtmfSignalingOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -243,7 +243,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="defaultUser"
                 value={formData.defaultUser}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               />
             </FormRow>
             <FormRow label="Trust RPID" tooltip="Trust Remote-Party-ID header.">
@@ -260,7 +260,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="sendRPID"
                 value={formData.sendRPID}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               >
                 {sendRPIDOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -273,7 +273,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="qualifyFrequency"
                 value={formData.qualifyFrequency}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               />
             </FormRow>
             <FormRow label="Transport" tooltip="SIP transport protocol.">
@@ -281,7 +281,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="transport"
                 value={formData.transport}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               >
                 {transportOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -303,7 +303,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="callGroups"
                 value={formData.callGroups}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
                 placeholder="e.g., 1, 2"
               />
             </FormRow>
@@ -313,7 +313,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="pickupGroups"
                 value={formData.pickupGroups}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
                 placeholder="e.g., 3, 4"
               />
             </FormRow>
@@ -322,7 +322,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="disallowedCodecs"
                 value={formData.disallowedCodecs}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
                 multiple // Assuming multi-select based on typical FreePBX behavior
                 size={4}
               >
@@ -336,7 +336,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="allowedCodecs"
                 value={formData.allowedCodecs}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
                 multiple // Assuming multi-select
                 size={4}
               >
@@ -351,7 +351,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="dial"
                 value={formData.dial}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               />
             </FormRow>
             <FormRow label="Mailbox" tooltip="Voicemail mailbox for this extension.">
@@ -360,7 +360,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="mailbox"
                 value={formData.mailbox}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               />
             </FormRow>
             <FormRow label="Voicemail Extension" tooltip="Specific voicemail extension.">
@@ -369,7 +369,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="voicemailExtension"
                 value={formData.voicemailExtension}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               />
             </FormRow>
             <FormRow label="Account Code" tooltip="Account code for billing or tracking.">
@@ -378,7 +378,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="accountcode"
                 value={formData.accountcode}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               />
             </FormRow>
             <FormRow label="Max Contacts" tooltip="Maximum number of simultaneous registrations.">
@@ -387,7 +387,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="maxContacts"
                 value={formData.maxContacts}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               />
             </FormRow>
             <FormRow label="Remove Existing" tooltip="Remove existing registrations on new registration.">
@@ -410,7 +410,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="mwiSubscriptionType"
                 value={formData.mwiSubscriptionType}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               >
                 {transportOptions.map(option => ( // Re-using transport options as they match (Auto/Unsolicited/Solicited)
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -429,7 +429,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="maxAudioStreams"
                 value={formData.maxAudioStreams}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               />
             </FormRow>
             <FormRow label="Max video streams" tooltip="Maximum number of video streams.">
@@ -438,7 +438,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="maxVideoStreams"
                 value={formData.maxVideoStreams}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               />
             </FormRow>
             <FormRow label="Media Encryption" tooltip="Encryption method for media.">
@@ -446,7 +446,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="mediaEncryption"
                 value={formData.mediaEncryption}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               >
                 {mediaEncryptionOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -458,7 +458,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="sessionTimers"
                 value={formData.sessionTimers}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               >
                 {sessionTimersOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -471,7 +471,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="timerExpirationPeriod"
                 value={formData.timerExpirationPeriod}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               />
             </FormRow>
             <FormRow label="Direct Media" tooltip="Enable direct media path.">
@@ -483,7 +483,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="mediaAddress"
                 value={formData.mediaAddress}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               />
             </FormRow>
             <FormRow label="Allow Non-Encrypted Media (Opportunistic SRTP)" tooltip="Allow non-encrypted media if SRTP fails.">
@@ -498,7 +498,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="deviceStateBusyAt"
                 value={formData.deviceStateBusyAt}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               />
             </FormRow>
             <FormRow label="Match (Permit)" tooltip="IP addresses or networks to permit SIP registrations/requests.">
@@ -507,7 +507,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="matchPermit"
                 value={formData.matchPermit}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
                 placeholder="e.g., 0.0.0.0/0"
               />
             </FormRow>
@@ -517,7 +517,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="maximumExpiration"
                 value={formData.maximumExpiration}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               />
             </FormRow>
             <FormRow label="Minimum Expiration" tooltip="Minimum registration expiration time in seconds.">
@@ -526,7 +526,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="minimumExpiration"
                 value={formData.minimumExpiration}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               />
             </FormRow>
             <FormRow label="RTP Timeout" tooltip="RTP inactivity timeout in seconds.">
@@ -535,7 +535,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="rtpTimeout"
                 value={formData.rtpTimeout}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               />
             </FormRow>
             <FormRow label="RTP Hold Timeout" tooltip="RTP inactivity timeout while on hold in seconds.">
@@ -544,7 +544,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="rtpHoldTimeout"
                 value={formData.rtpHoldTimeout}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               />
             </FormRow>
             <FormRow label="Outbound Proxy" tooltip="Outbound proxy for SIP requests.">
@@ -553,7 +553,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="outboundProxy"
                 value={formData.outboundProxy}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               />
             </FormRow>
             <FormRow label="Outbound Auth" tooltip="Enable outbound authentication.">
@@ -565,7 +565,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="messagesContext"
                 value={formData.messagesContext}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               />
             </FormRow>
             <FormRow label="CID Num Alias" tooltip="Caller ID number alias.">
@@ -574,7 +574,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="cidNumAlias"
                 value={formData.cidNumAlias}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               />
             </FormRow>
             <FormRow label="SIP Alias" tooltip="SIP alias for this extension.">
@@ -583,7 +583,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="sipAlias"
                 value={formData.sipAlias}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm" // Adjusted size
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light" // Adjusted size with lighter font
               />
             </FormRow>
           </>
@@ -616,7 +616,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="asteriskDialOptions"
                 value={formData.asteriskDialOptions}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               />
             </FormRow>
             <FormRow label="Ring Time" tooltip="How long to ring the extension.">
@@ -625,7 +625,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="ringTime"
                 value={formData.ringTime}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               />
             </FormRow>
             <FormRow label="Extension Ringer Volume Override" tooltip="Override default ringer volume.">
@@ -633,7 +633,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="extensionRingerVolumeOverride"
                 value={formData.extensionRingerVolumeOverride}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               >
                 {ringerVolumeOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -646,7 +646,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="callForwardingTime"
                 value={formData.callForwardingTime}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               />
             </FormRow>
             <FormRow label="Outbound Concurrency Limit" tooltip="Maximum number of simultaneous outbound calls for this extension.">
@@ -655,7 +655,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="outboundConcurrencyLimit"
                 value={formData.outboundConcurrencyLimit}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               />
             </FormRow>
             <FormRow label="Call Waiting" tooltip="Enable or disable call waiting.">
@@ -669,7 +669,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="callScreening"
                 value={formData.callScreening}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               >
                 {callScreeningOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -681,7 +681,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="internalAutoAnswer"
                 value={formData.internalAutoAnswer}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               >
                 {internalAutoAnswerOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -696,7 +696,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="queueStateDetection"
                 value={formData.queueStateDetection}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               >
                 {queueStateDetectionOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -732,7 +732,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="inboundExternalCalls"
                 value={formData.inboundExternalCalls}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               >
                 {recordingOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -744,7 +744,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="outboundExternalCalls"
                 value={formData.outboundExternalCalls}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               >
                 {recordingOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -756,7 +756,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="inboundInternalCalls"
                 value={formData.inboundInternalCalls}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               >
                 {recordingOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -768,7 +768,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="outboundInternalCalls"
                 value={formData.outboundInternalCalls}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               >
                 {recordingOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -780,7 +780,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="onDemandRecording"
                 value={formData.onDemandRecording}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               >
                 {onDemandRecordingOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -793,7 +793,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="recordPriorityPolicy"
                 value={formData.recordPriorityPolicy}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               />
             </FormRow>
           </>
@@ -825,7 +825,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="dictationService"
                 value={formData.dictationService}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               >
                 {dictationServiceOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -839,7 +839,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                     name="dictationFormat"
                     value={formData.dictationFormat}
                     onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                    className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                    className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
                   >
                     {dictationFormatOptions.map(option => (
                       <option key={option.value} value={option.value}>{option.label}</option>
@@ -852,7 +852,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                     name="dictationEmailAddress"
                     value={formData.dictationEmailAddress}
                     onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                    className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                    className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
                   />
                 </FormRow>
                 <FormRow label="Dictation From Address" tooltip="The 'From' email address for dictation emails.">
@@ -861,7 +861,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                     name="dictationFromAddress"
                     value={formData.dictationFromAddress}
                     onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                    className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                    className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
                   />
                 </FormRow>
               </>
@@ -895,7 +895,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="defaultDirectory"
                 value={formData.defaultDirectory}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               >
                 {defaultDirectoryOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -940,7 +940,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                       name="useCertificate"
                       value={formData.useCertificate}
                       onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                      className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                      className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
                     >
                       {useCertificateOptions.map(option => (
                         <option key={option.value} value={option.value}>{option.label}</option>
@@ -953,7 +953,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                     name="dtlsVerify"
                     value={formData.dtlsVerify}
                     onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                    className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                    className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
                   >
                     {dtlsVerifyOptions.map(option => (
                       <option key={option.value} value={option.value}>{option.label}</option>
@@ -965,7 +965,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                     name="dtlsSetup"
                     value={formData.dtlsSetup}
                     onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                    className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                    className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
                   >
                     {dtlsSetupOptions.map(option => (
                       <option key={option.value} value={option.value}>{option.label}</option>
@@ -978,7 +978,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                     name="dtlsRekeyInterval"
                     value={formData.dtlsRekeyInterval}
                     onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                    className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                    className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
                   />
                 </FormRow>
               </>
@@ -1013,7 +1013,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="noAnswerDestination"
                 value={formData.noAnswerDestination}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               />
             </FormRow>
             <FormRow label="No Answer CID Prefix" tooltip="Prefix to add to Caller ID for calls forwarded on no answer.">
@@ -1022,7 +1022,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="noAnswerCIDPrefix"
                 value={formData.noAnswerCIDPrefix}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               />
             </FormRow>
             <FormRow label="Busy Destination" tooltip="Where to send calls if this extension is busy.">
@@ -1031,7 +1031,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="busyDestination"
                 value={formData.busyDestination}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               />
             </FormRow>
             <FormRow label="Busy CID Prefix" tooltip="Prefix to add to Caller ID for calls forwarded on busy.">
@@ -1040,7 +1040,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="busyCIDPrefix"
                 value={formData.busyCIDPrefix}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               />
             </FormRow>
             <FormRow label="Not Reachable Destination" tooltip="Where to send calls if this extension is unreachable.">
@@ -1049,7 +1049,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="notReachableDestination"
                 value={formData.notReachableDestination}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               />
             </FormRow>
             <FormRow label="Not Reachable CID Prefix" tooltip="Prefix to add to Caller ID for calls forwarded when not reachable.">
@@ -1058,7 +1058,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = React.memo(({ formData
                 name="notReachableCIDPrefix"
                 value={formData.notReachableCIDPrefix}
                 onChange={e => handleChange(e.target.name, e.target.value)} // Updated onChange
-                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm"
+                className="w-full py-1.5 px-2 border border-gray-300 rounded-md text-sm font-light"
               />
             </FormRow>
           </>

@@ -30,13 +30,37 @@ const createIVRMenu = async (req, res) => {
           id: dtmf.announcement.id,
           name: dtmf.announcement.name
         },
-        timeout: dtmf.timeout || 5,
+        enableDirectDial: dtmf.enableDirectDial || 'Disabled',
+        ignoreTrailingKey: dtmf.ignoreTrailingKey || 'Yes',
+        forceStartDialTimeout: dtmf.forceStartDialTimeout || 'No',
+        timeout: dtmf.timeout || 10,
+        alertInfo: dtmf.alertInfo || '',
+        ringerVolumeOverride: dtmf.ringerVolumeOverride || 'None',
         invalidRetries: dtmf.invalidRetries || 3,
-        timeoutRetries: dtmf.timeoutRetries || 3,
         invalidRetryRecording: {
           id: dtmf.invalidRetryRecording?.id || '',
           name: dtmf.invalidRetryRecording?.name || ''
-        }
+        },
+        appendAnnouncementToInvalid: dtmf.appendAnnouncementToInvalid || 'No',
+        returnOnInvalid: dtmf.returnOnInvalid || 'No',
+        invalidRecording: {
+          id: dtmf.invalidRecording?.id || '',
+          name: dtmf.invalidRecording?.name || ''
+        },
+        invalidDestination: dtmf.invalidDestination || 'None',
+        timeoutRetries: dtmf.timeoutRetries || 3,
+        timeoutRetryRecording: {
+          id: dtmf.timeoutRetryRecording?.id || '',
+          name: dtmf.timeoutRetryRecording?.name || ''
+        },
+        appendAnnouncementOnTimeout: dtmf.appendAnnouncementOnTimeout || 'No',
+        returnOnTimeout: dtmf.returnOnTimeout || 'No',
+        timeoutRecording: {
+          id: dtmf.timeoutRecording?.id || '',
+          name: dtmf.timeoutRecording?.name || ''
+        },
+        timeoutDestination: dtmf.timeoutDestination || 'None',
+        returnToIVRAfterVM: dtmf.returnToIVRAfterVM || 'No'
       },
       entries: (entries || []).map(entry => ({
         id: entry.id || Date.now(), // Simple ID for entries, consider UUID for robustness

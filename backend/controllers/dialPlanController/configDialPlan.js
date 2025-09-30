@@ -65,14 +65,26 @@ const generateIvrDialplan = (allIVRs, allRecordings) => {
     ivrConfigSections += `\n[ivr_${safeId}]\n`;
     ivrConfigSections += `exten => s,1,NoOp(IVR Menu: ${menu.name} - ID: ${safeId})\n`;
     ivrConfigSections += `same => n,Answer()\n`;
-    ivrConfigSections += `same => n,Set(TIMEOUT(digit)=${dtmf.timeout || 5})\n`;
+    ivrConfigSections += `same => n,Set(TIMEOUT(digit)=${dtmf.timeout || 10})\n`;
     ivrConfigSections += `same => n,Set(TIMEOUT(response)=10)\n`;
 
+    // Alert Info - Set SIP header if specified
+    if (dtmf.alertInfo && dtmf.alertInfo !== '' && dtmf.alertInfo !== 'None') {
+        ivrConfigSections += `same => n,Set(SIPADDHEADER=Alert-Info: ${dtmf.alertInfo})\n`;
+    }
+
+    // Ringer Volume Override
+    if (dtmf.ringerVolumeOverride && dtmf.ringerVolumeOverride !== 'None') {
+        ivrConfigSections += `same => n,Set(CHANNEL(ringer_volume)=${dtmf.ringerVolumeOverride})\n`;
+    }
+
+    // Direct Dial Extension - Allow dialing extensions directly
     if (dtmf.enableDirectDial === 'Enabled') {
       ivrConfigSections += `exten => _X.,1,NoOp(Direct Dial: \${EXTEN})\n`;
       ivrConfigSections += `same => n,Goto(from-internal,\${EXTEN},1)\n`;
     }
 
+    // Play announcement recording(s)
     const announcementFilenames = getRecordingFilenamesArray(dtmf.announcement?.id, allRecordings);
     if (announcementFilenames.length > 0) {
       announcementFilenames.forEach(filename => {
@@ -80,14 +92,8 @@ const generateIvrDialplan = (allIVRs, allRecordings) => {
       });
     }
 
-    if (dtmf.alertInfo && dtmf.alertInfo !== 'None') {
-        ivrConfigSections += `same => n,Set(SIPADDHEADER=Alert-Info: ${dtmf.alertInfo})\n`;
-    }
-    if (dtmf.ringerVolumeOverride) {
-        ivrConfigSections += `same => n,Set(CHANNEL(ringer_volume)=${dtmf.ringerVolumeOverride})\n`;
-    }
-
-    let waitExtenOptions = dtmf.ignoreTrailingHash === 'Yes' ? 'h' : '';
+    // Ignore Trailing Key - Add 'h' option to ignore # key
+    let waitExtenOptions = dtmf.ignoreTrailingKey === 'Yes' ? 'h' : '';
     ivrConfigSections += `same => n,WaitExten(10${waitExtenOptions ? `,${waitExtenOptions}` : ''})\n`;
 
     menu.entries.forEach(entry => {
@@ -98,7 +104,7 @@ const generateIvrDialplan = (allIVRs, allRecordings) => {
         case 'ivr': ivrConfigSections += `same => n,Goto(ivr_${entry.value},s,1)\n`; break;
         case 'voicemail':
           ivrConfigSections += `same => n,VoiceMail(${entry.value}@default)\n`;
-          if (dtmf.returnToIvrAfterVm === 'Yes') {
+          if (dtmf.returnToIVRAfterVM === 'Yes') {
             ivrConfigSections += `same => n,Goto(ivr_${safeId},s,1)\n`;
           }
           break;
@@ -112,39 +118,67 @@ const generateIvrDialplan = (allIVRs, allRecordings) => {
         default: ivrConfigSections += `same => n,Playback(invalid)\n`;
       }
       // Ensure calls hang up after action unless it's a specific IVR or voicemail return
-      if (entry.type !== 'ivr' && entry.type !== 'recording' && !(entry.type === 'voicemail' && dtmf.returnToIvrAfterVm === 'Yes')) {
+      if (entry.type !== 'ivr' && entry.type !== 'recording' && !(entry.type === 'voicemail' && dtmf.returnToIVRAfterVM === 'Yes')) {
           ivrConfigSections += `same => n,Hangup()\n`;
       }
     });
 
+    // Invalid Input Handler (i extension)
     ivrConfigSections += `\nexten => i,1,NoOp(Invalid option for IVR: ${menu.name})\n`;
+    
+    // Append announcement to invalid if enabled
     if (dtmf.appendAnnouncementToInvalid === 'Yes' && announcementFilenames.length > 0) {
       announcementFilenames.forEach(filename => ivrConfigSections += `same => n,Background(${filename})\n`);
     }
+    
+    // Play invalid retry recording or use invalid recording
+    const invalidRetryRecFilenames = getRecordingFilenamesArray(dtmf.invalidRetryRecording?.id, allRecordings);
     const invalidRecFilenames = getRecordingFilenamesArray(dtmf.invalidRecording?.id, allRecordings);
-    if (invalidRecFilenames.length > 0) {
+    
+    if (invalidRetryRecFilenames.length > 0) {
+        invalidRetryRecFilenames.forEach(filename => ivrConfigSections += `same => n,Playback(${filename})\n`);
+    } else if (invalidRecFilenames.length > 0) {
         invalidRecFilenames.forEach(filename => ivrConfigSections += `same => n,Playback(${filename})\n`);
     } else {
         ivrConfigSections += `same => n,Playback(invalid)\n`;
     }
-    ivrConfigSections += `same => n,${getDestinationGoto(dtmf.invalidDestination, safeId)}\n`;
-    if (dtmf.returnOnInvalid === 'Yes' && (dtmf.invalidDestination === 'None' || dtmf.invalidDestination === 'Hangup')) {
+    
+    // Handle invalid destination or return to IVR
+    if (dtmf.returnOnInvalid === 'Yes') {
         ivrConfigSections += `same => n,Goto(ivr_${safeId},s,1)\n`;
+    } else if (dtmf.invalidDestination && dtmf.invalidDestination !== 'None') {
+        ivrConfigSections += `same => n,${getDestinationGoto(dtmf.invalidDestination, safeId)}\n`;
+    } else {
+        ivrConfigSections += `same => n,Hangup()\n`;
     }
 
+    // Timeout Handler (t extension)
     ivrConfigSections += `\nexten => t,1,NoOp(Timeout for IVR: ${menu.name})\n`;
+    
+    // Append announcement to timeout if enabled
     if (dtmf.appendAnnouncementOnTimeout === 'Yes' && announcementFilenames.length > 0) {
       announcementFilenames.forEach(filename => ivrConfigSections += `same => n,Background(${filename})\n`);
     }
+    
+    // Play timeout retry recording or use timeout recording
+    const timeoutRetryRecFilenames = getRecordingFilenamesArray(dtmf.timeoutRetryRecording?.id, allRecordings);
     const timeoutRecFilenames = getRecordingFilenamesArray(dtmf.timeoutRecording?.id, allRecordings);
-    if (timeoutRecFilenames.length > 0) {
+    
+    if (timeoutRetryRecFilenames.length > 0) {
+        timeoutRetryRecFilenames.forEach(filename => ivrConfigSections += `same => n,Playback(${filename})\n`);
+    } else if (timeoutRecFilenames.length > 0) {
         timeoutRecFilenames.forEach(filename => ivrConfigSections += `same => n,Playback(${filename})\n`);
     } else {
         ivrConfigSections += `same => n,Playback(vm-timeout)\n`;
     }
-    ivrConfigSections += `same => n,${getDestinationGoto(dtmf.timeoutDestination, safeId)}\n`;
-    if (dtmf.returnOnTimeout === 'Yes' && (dtmf.timeoutDestination === 'None' || dtmf.timeoutDestination === 'Hangup')) {
+    
+    // Handle timeout destination or return to IVR
+    if (dtmf.returnOnTimeout === 'Yes') {
         ivrConfigSections += `same => n,Goto(ivr_${safeId},s,1)\n`;
+    } else if (dtmf.timeoutDestination && dtmf.timeoutDestination !== 'None') {
+        ivrConfigSections += `same => n,${getDestinationGoto(dtmf.timeoutDestination, safeId)}\n`;
+    } else {
+        ivrConfigSections += `same => n,Hangup()\n`;
     }
 
     if (menu.extension) {

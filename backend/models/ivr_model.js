@@ -22,15 +22,35 @@ const ivrMenuSchema = new mongoose.Schema({
         required: true
       }
     },
+    enableDirectDial: {
+      type: String,
+      enum: ['Disabled', 'Enabled'],
+      default: 'Disabled'
+    },
+    ignoreTrailingKey: {
+      type: String,
+      enum: ['Yes', 'No'],
+      default: 'Yes'
+    },
+    forceStartDialTimeout: {
+      type: String,
+      enum: ['Yes', 'No', 'No - Legacy'],
+      default: 'No'
+    },
     timeout: {
       type: Number,
-      default: 5
+      default: 10
+    },
+    alertInfo: {
+      type: String,
+      default: ''
+    },
+    ringerVolumeOverride: {
+      type: String,
+      enum: ['None', 'Low', 'Medium', 'High'],
+      default: 'None'
     },
     invalidRetries: {
-      type: Number,
-      default: 3
-    },
-    timeoutRetries: {
       type: Number,
       default: 3
     },
@@ -43,6 +63,73 @@ const ivrMenuSchema = new mongoose.Schema({
         type: String,
         default: ''
       }
+    },
+    appendAnnouncementToInvalid: {
+      type: String,
+      enum: ['Yes', 'No'],
+      default: 'No'
+    },
+    returnOnInvalid: {
+      type: String,
+      enum: ['Yes', 'No'],
+      default: 'No'
+    },
+    invalidRecording: {
+      id: {
+        type: String,
+        default: ''
+      },
+      name: {
+        type: String,
+        default: ''
+      }
+    },
+    invalidDestination: {
+      type: String,
+      default: 'None'
+    },
+    timeoutRetries: {
+      type: Number,
+      default: 3
+    },
+    timeoutRetryRecording: {
+      id: {
+        type: String,
+        default: ''
+      },
+      name: {
+        type: String,
+        default: ''
+      }
+    },
+    appendAnnouncementOnTimeout: {
+      type: String,
+      enum: ['Yes', 'No'],
+      default: 'No'
+    },
+    returnOnTimeout: {
+      type: String,
+      enum: ['Yes', 'No'],
+      default: 'No'
+    },
+    timeoutRecording: {
+      id: {
+        type: String,
+        default: ''
+      },
+      name: {
+        type: String,
+        default: ''
+      }
+    },
+    timeoutDestination: {
+      type: String,
+      default: 'None'
+    },
+    returnToIVRAfterVM: {
+      type: String,
+      enum: ['Yes', 'No'],
+      default: 'No'
     }
   },
   entries: [{
