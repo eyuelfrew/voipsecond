@@ -147,16 +147,15 @@ const getExtensionByUserExtension = async (req, res) => {
 // @route   PUT /api/extensions/:userExtension
 // @access  Public (or adjust based on your auth strategy)
 const updateExtension = async (req, res) => {
+  console.log('Update request body:', req.body);
   try {
     // Find the extension by userExtension and update it with the request body data
-    // { new: true } returns the updated document
-    // { runValidators: true } ensures schema validators are run on update
+    const extensionId = req.body.userExtension;
     const updatedExtension = await Ex.findOneAndUpdate(
-      { userExtension: req.params.userExtension },
+      { userExtension: extensionId },
       req.body,
       { new: true, runValidators: true }
     );
-
     // If no extension is found, return 404 Not Found
     if (!updatedExtension) {
       return res.status(404).json({
@@ -169,8 +168,7 @@ const updateExtension = async (req, res) => {
     const allExtensions = await Ex.find({});
     await generateAndWritePjsipConfigs(allExtensions);
 
-    // Regenerate and write Asterisk dialplan
-    await generateAndWriteDialplan();
+   
 
     // Respond with the updated extension
     return res.status(200).json({

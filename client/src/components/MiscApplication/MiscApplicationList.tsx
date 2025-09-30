@@ -36,7 +36,9 @@ const MiscApplicationList = () => {
       setLoading(true);
       setError('');
       const response = await axios.get<{ data: MiscApplication[] } | MiscApplication[]>(`${API_URL}/api/misc`);
-      setMiscApplications(Array.isArray(response.data) ? response.data : response.data.data || []);
+      console.log('API Response:', response.data);
+      console.log('API Response data.data:', (response.data as any).data);
+      setMiscApplications(Array.isArray(response.data) ? response.data : (response.data as any).data || []);
     } catch (err: any) {
       console.error('Error fetching Misc Applications:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch applications.';
@@ -102,11 +104,17 @@ const MiscApplicationList = () => {
 
   if (miscApplications.length === 0) {
     return (
-      <div className="flex justify-center items-center h-48">
-        <div className="p-4 bg-blue-100 border border-blue-400 text-blue-700 rounded-md flex items-center">
+      <div className="flex flex-col justify-center items-center h-48">
+        <div className="p-4 bg-blue-100 border border-blue-400 text-blue-700 rounded-md flex items-center mb-4">
           <FiInfo className="text-xl mr-2" />
           <p>No Misc Applications found. Create one to get started!</p>
         </div>
+        <button
+          className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md shadow transition-colors duration-200"
+          onClick={() => navigate('/new-misc-application')}
+        >
+          + Create New Misc
+        </button>
       </div>
     );
   }

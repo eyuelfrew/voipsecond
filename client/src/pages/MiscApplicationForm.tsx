@@ -29,12 +29,12 @@ interface DestOption {
   // Add other properties that might be returned by your API for these options
 }
 
-// Define the types of destinations available (UNCHANGED AS PER YOUR REQUEST)
+// Define the types of destinations available
 const DEST_TYPES: DestTypeOption[] = [
   { label: 'IVR', value: 'ivr', endpoint: '/api/ivr/menu' },
   { label: 'Extension', value: 'extension', endpoint: '/api/extensions' },
   { label: 'Queue', value: 'queue', endpoint: '/api/queues' },
-  // Your original types, "Recording" not added here as per "dont add aditionaly type code"
+  { label: 'Recording', value: 'recording', endpoint: '/api/audio/recordings' },
 ];
 
 // Base API URL from environment variables, defaulting for development

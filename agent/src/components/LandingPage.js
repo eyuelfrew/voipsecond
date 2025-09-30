@@ -85,7 +85,7 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100 transition-all duration-300">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-3 lg:py-4">
             {/* Logo */}
@@ -163,7 +163,7 @@ const LandingPage = () => {
               </Link>
               <Link
                 to="/login"
-                className="px-6 py-3 bg-gradient-to-r from-yellow-500 to-amber-600 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
+                className="hidden md:block px-6 py-3 bg-gradient-to-r from-yellow-500 to-amber-600 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
               >
                 Get Free Quote
               </Link>
@@ -180,7 +180,7 @@ const LandingPage = () => {
           
           {/* Mobile Menu Dropdown */}
           {isMobileMenuOpen && (
-            <div className="md:hidden bg-white border-t border-gray-100 shadow-lg">
+            <div className="md:hidden bg-white border-t border-gray-200 shadow-lg">
               <div className="px-6 py-4 space-y-4">
                 <a 
                   href="#home" 
@@ -239,12 +239,6 @@ const LandingPage = () => {
                   >
                     Sign In
                   </Link>
-                  <Link
-                    to="/login"
-                    className="block text-center px-6 py-3 bg-gradient-to-r from-yellow-500 to-amber-600 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
-                  >
-                    Get Free Quote
-                  </Link>
                 </div>
               </div>
             </div>
@@ -252,208 +246,82 @@ const LandingPage = () => {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section id="home" className="relative min-h-screen bg-gradient-to-br from-white via-gray-50 to-white overflow-hidden">
-        {/* Enhanced Background Image */}
-        <div className="absolute inset-0">
-          <img 
-            src="https://images.unsplash.com/photo-1573164574511-73c773193279?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2069&q=80"
-            alt="Ethiopian professional workspace"
-            className="absolute inset-0 w-full h-full object-cover opacity-25 animate-fade-in"
-            loading="lazy"
-          />
-          {/* Balanced overlay for optimal text readability */}
-          <div className="absolute inset-0 bg-gradient-to-r from-white/70 via-white/50 to-white/70"></div>
-        </div>
-        
-        {/* Enhanced Background Pattern with Animation */}
-        <div className="absolute inset-0 opacity-8">
-          <div className="absolute top-20 left-20 w-32 h-32 bg-yellow-400 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute top-40 right-32 w-24 h-24 bg-amber-400 rounded-full blur-2xl animate-pulse" style={{animationDelay: '1s'}}></div>
-          <div className="absolute bottom-40 left-32 w-40 h-40 bg-yellow-500 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
-          <div className="absolute bottom-20 right-20 w-28 h-28 bg-amber-500 rounded-full blur-2xl animate-pulse" style={{animationDelay: '0.5s'}}></div>
-          
-          {/* Additional floating elements */}
-          <div className="absolute top-1/3 left-1/4 w-16 h-16 bg-gradient-to-r from-yellow-300 to-amber-400 rounded-full blur-xl animate-float"></div>
-          <div className="absolute top-2/3 right-1/4 w-20 h-20 bg-gradient-to-r from-amber-300 to-yellow-400 rounded-full blur-xl animate-float" style={{animationDelay: '1.5s'}}></div>
-          <div className="absolute top-1/2 left-1/2 w-12 h-12 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full blur-lg animate-float" style={{animationDelay: '3s'}}></div>
-        </div>
-        
-        {/* Animated Grid Pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(251, 191, 36, 0.3) 1px, transparent 0)`,
-            backgroundSize: '50px 50px'
-          }}></div>
-        </div>
+      {/* Hero Section - Clean Design */}
+      <section id="home" className="relative min-h-screen bg-white">
+        {/* Clean Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-white"></div>
         
         {/* Main Content */}
-        <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 pt-20">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center min-h-screen">
-            {/* Left Column - Text Content */}
-            <div className="text-center lg:text-left">
-              <div className="inline-block px-8 py-4 bg-gradient-to-r from-yellow-100 to-amber-100 border border-yellow-200 rounded-full text-yellow-800 text-sm font-bold mb-8 shadow-lg animate-slide-in-left hover:shadow-xl transition-all duration-300">
-                🇪🇹 Ethiopian Excellence • Trusted by 500+ Companies
+        <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 pt-16 md:pt-12">
+          <div className="flex flex-col items-center justify-center min-h-screen text-center">
+            {/* Clean Text Content */}
+            <div className="max-w-4xl">
+              <div className="inline-block px-6 py-2 bg-yellow-100 text-yellow-800 rounded-full text-sm font-semibold mb-8">
+                🇪🇹 Ethiopian Excellence
               </div>
               
-              <h1 className="text-6xl md:text-7xl lg:text-8xl font-black text-gray-900 mb-8 leading-tight tracking-tight animate-fade-in-up">
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-6 leading-tight">
                 Transform Your
-                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 animate-gradient-x">
-                  Customer Experience
-                </span>
+                <span className="block text-yellow-600">Customer Experience</span>
               </h1>
               
-              <p className="text-2xl md:text-3xl text-gray-600 mb-12 leading-relaxed font-light max-w-2xl mx-auto lg:mx-0 animate-fade-in-up" style={{animationDelay: '0.2s'}}>
+              <p className="text-xl text-gray-600 mb-8 leading-relaxed max-w-3xl mx-auto">
                 Join Ethiopia's leading businesses using our world-class contact center platform. 
-                <span className="text-yellow-600 font-semibold">Built for Ethiopian companies, trusted by thousands.</span>
+                Built for Ethiopian companies, trusted by thousands.
               </p>
               
-              <div className="flex flex-col sm:flex-row gap-6 justify-center lg:justify-start mb-16 animate-fade-in-up" style={{animationDelay: '0.4s'}}>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
                 <Link
                   to="/login"
-                  className="group px-12 py-6 bg-gradient-to-r from-yellow-500 to-amber-600 text-white rounded-full font-bold text-xl shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 btn-modern relative overflow-hidden"
+                  className="px-8 py-4 bg-yellow-500 text-white rounded-lg font-semibold text-lg hover:bg-yellow-600 transition-colors"
                 >
-                  <span className="relative z-10 flex items-center justify-center space-x-3">
-                    <span>Start Free Trial</span>
-                    <svg className="w-6 h-6 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                  </span>
+                  Start Free Trial
                 </Link>
-                <button className="group px-12 py-6 border-2 border-gray-300 text-gray-700 rounded-full font-bold text-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 relative overflow-hidden">
-                  <span className="relative z-10 flex items-center justify-center space-x-3">
-                    <svg className="w-6 h-6 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M19 10a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Watch Demo</span>
-                  </span>
+                <button className="px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold text-lg hover:bg-gray-50 transition-colors">
+                  Watch Demo
                 </button>
               </div>
               
-              {/* Enhanced Trust Indicators */}
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-8 text-gray-500 animate-fade-in-up" style={{animationDelay: '0.6s'}}>
-                <div className="flex items-center space-x-3 group cursor-pointer">
-                  <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-lg font-semibold group-hover:text-green-600 transition-colors">500+ Active Agents</span>
-                </div>
-                <div className="flex items-center space-x-3 group cursor-pointer">
-                  <div className="w-4 h-4 bg-blue-500 rounded-full animate-pulse" style={{animationDelay: '0.5s'}}></div>
-                  <span className="text-lg font-semibold group-hover:text-blue-600 transition-colors">99.9% Uptime</span>
-                </div>
-                <div className="flex items-center space-x-3 group cursor-pointer">
-                  <div className="w-4 h-4 bg-yellow-500 rounded-full animate-pulse" style={{animationDelay: '1s'}}></div>
-                  <span className="text-lg font-semibold group-hover:text-yellow-600 transition-colors">24/7 Support</span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Right Column - Visual Element */}
-            <div className="relative animate-slide-in-right">
-              <div className="relative mx-auto max-w-2xl">
-                {/* Enhanced background image for the dashboard area */}
-                <div className="absolute inset-0 bg-gradient-to-br from-yellow-50 to-amber-50 rounded-3xl opacity-60 animate-pulse"></div>
-                
-                {/* Main dashboard mockup with enhanced styling */}
-                <div className="bg-white rounded-3xl p-8 shadow-2xl border border-gray-100 relative z-10 hover:shadow-3xl transition-all duration-500 transform hover:-translate-y-2">
-                  <div className="space-y-8">
-                    {/* Enhanced Header */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <img 
-                          src="/logo.png" 
-                          alt="Ethiopian VOIP Logo" 
-                          className="w-12 h-12 object-contain animate-pulse"
-                          loading="eager"
-                        />
-                        <div>
-                          <span className="text-gray-900 font-bold text-lg">Agent Dashboard</span>
-                          <div className="text-sm text-gray-500">Real-time Performance</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2 bg-green-50 px-3 py-1 rounded-full">
-                        <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                        <span className="text-sm text-green-700 font-semibold">Online</span>
-                      </div>
-                    </div>
-                    
-                    {/* Enhanced Stats Grid */}
-                    <div className="grid grid-cols-3 gap-6">
-                      <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl p-6 text-center border border-yellow-100 hover:shadow-lg transition-all duration-300 transform hover:scale-105">
-                        <div className="text-4xl font-black text-gray-900 mb-2">127</div>
-                        <div className="text-sm text-gray-600 font-medium">Calls Today</div>
-                        <div className="text-xs text-green-600 font-semibold mt-1">↗ +12%</div>
-                      </div>
-                      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 text-center border border-blue-100 hover:shadow-lg transition-all duration-300 transform hover:scale-105">
-                        <div className="text-4xl font-black text-gray-900 mb-2">4.8</div>
-                        <div className="text-sm text-gray-600 font-medium">Avg Rating</div>
-                        <div className="text-xs text-green-600 font-semibold mt-1">↗ +0.3</div>
-                      </div>
-                      <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 text-center border border-green-100 hover:shadow-lg transition-all duration-300 transform hover:scale-105">
-                        <div className="text-4xl font-black text-gray-900 mb-2">98%</div>
-                        <div className="text-sm text-gray-600 font-medium">Satisfaction</div>
-                        <div className="text-xs text-green-600 font-semibold mt-1">↗ +2%</div>
-                      </div>
-                    </div>
-                    
-                    {/* Enhanced Activity Feed */}
-                    <div className="space-y-4">
-                      <div className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                        <svg className="w-5 h-5 mr-2 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        Recent Activity
-                      </div>
-                      <div className="space-y-3">
-                        <div className="flex items-center space-x-4 text-gray-600 hover:text-gray-900 transition-colors cursor-pointer">
-                          <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                          <span className="font-medium">Call completed successfully - 2 min ago</span>
-                        </div>
-                        <div className="flex items-center space-x-4 text-gray-600 hover:text-gray-900 transition-colors cursor-pointer">
-                          <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse" style={{animationDelay: '0.5s'}}></div>
-                          <span className="font-medium">New support ticket assigned</span>
-                        </div>
-                        <div className="flex items-center space-x-4 text-gray-600 hover:text-gray-900 transition-colors cursor-pointer">
-                          <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse" style={{animationDelay: '1s'}}></div>
-                          <span className="font-medium">Performance report generated</span>
-                        </div>
-                        <div className="flex items-center space-x-4 text-gray-600 hover:text-gray-900 transition-colors cursor-pointer">
-                          <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse" style={{animationDelay: '1.5s'}}></div>
-                          <span className="font-medium">Team meeting scheduled</span>
-                        </div>
-                      </div>
-                    </div>
+              {/* Real Trust Indicators with Icons */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-8 text-gray-500">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
                   </div>
+                  <span className="font-medium">500+ Active Agents</span>
                 </div>
-                
-                {/* Enhanced floating elements around the dashboard */}
-                <div className="absolute -top-6 -right-6 w-12 h-12 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full shadow-lg animate-pulse hover:scale-110 transition-transform duration-300 cursor-pointer"></div>
-                <div className="absolute -bottom-6 -left-6 w-8 h-8 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full shadow-lg animate-pulse hover:scale-110 transition-transform duration-300 cursor-pointer" style={{animationDelay: '1s'}}></div>
-                <div className="absolute top-1/2 -left-10 w-6 h-6 bg-gradient-to-r from-yellow-500 to-amber-600 rounded-full shadow-lg animate-pulse hover:scale-110 transition-transform duration-300 cursor-pointer" style={{animationDelay: '2s'}}></div>
-                <div className="absolute top-1/4 -right-10 w-4 h-4 bg-gradient-to-r from-amber-500 to-yellow-600 rounded-full shadow-lg animate-pulse hover:scale-110 transition-transform duration-300 cursor-pointer" style={{animationDelay: '0.5s'}}></div>
-                
-                {/* Enhanced additional decorative image */}
-                <div className="absolute -bottom-8 -right-8 w-32 h-32 opacity-30 hover:opacity-40 transition-opacity duration-300 cursor-pointer">
-                  <img 
-                    src="https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
-                    alt="Ethiopian modern office"
-                    className="w-full h-full object-cover rounded-2xl hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
-                  />
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <span className="font-medium">99.9% Uptime</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M12 2.25a9.75 9.75 0 100 19.5 9.75 9.75 0 000-19.5z" />
+                    </svg>
+                  </div>
+                  <span className="font-medium">24/7 Support</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
         
-        {/* Enhanced Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10 animate-bounce">
-          <div className="flex flex-col items-center space-y-3 text-gray-400 group cursor-pointer">
-            <div className="w-10 h-10 border-2 border-gray-300 rounded-full flex items-center justify-center group-hover:border-yellow-500 group-hover:text-yellow-500 transition-all duration-300">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        {/* Simple Scroll indicator */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10">
+          <div className="flex flex-col items-center space-y-2 text-gray-400">
+            <div className="w-6 h-6 border-2 border-gray-300 rounded-full flex items-center justify-center">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
               </svg>
             </div>
-            <span className="text-sm font-medium group-hover:text-yellow-600 transition-colors">Scroll to explore</span>
+            <span className="text-sm font-medium">Scroll to explore</span>
           </div>
         </div>
       </section>

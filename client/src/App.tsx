@@ -13,10 +13,10 @@ import { UseSocket } from "./context/SocketContext";
 import IVRMenus from "./components/IVRMenus";
 import IVRMenuForm from "./components/IVRMenuForm";
 import SystemRecordingUpload from "./components/SystemRecordingUpload";
-import MiscApplication from "./pages/MiscApplication";
+import MiscApplicationForm from "./pages/MiscApplicationForm";
 import SystemRecordingsList from "./pages/SystemRecordingsList";
 import EditIVRMenu from "./pages/EditIVRMenu";
-import MiscApplicationList from "./components/MiscApplication/MiscApplicationList";
+import MiscApplicationList from "./components/MiscApplication/MiscApplicationList"; // This is the list component
 import RegistrationForm from "./forms/AgentRegistrationForm";
 import QueuePage from "./pages/QueuePage";
 import AgentPage from "./pages/AgentPage";
@@ -94,7 +94,7 @@ export default function App() {
         <Route path="system-recordings" element={<SystemRecordingsList />} />
         <Route path="system-recordings-upload" element={<SystemRecordingUpload />} />
         <Route path="call-history" element={<CallHistory />} />
-        <Route path="new-misc-application" element={<MiscApplication />} />
+        <Route path="new-misc-application" element={<MiscApplicationForm />} />
         <Route path="misc-applications" element={<MiscApplicationList />} />
         <Route path="queue/dev" element={<QueuePage />} />
         <Route path="agent/dev" element={<AgentPage />} />
