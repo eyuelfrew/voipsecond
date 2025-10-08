@@ -31,6 +31,10 @@ const getRecordingFilenamesArray = (recordingId, allRecordings) => {
 // Helper to generate Asterisk dialplan for IVR menus
 const generateIvrDialplan = (allIVRs, allRecordings) => {
   console.log("Generating IVR Dialplan...");
+  console.log("Generating IVR Dialplan...");
+  console.log("Generating IVR Dialplan...");
+  console.log("Generating IVR Dialplan...");
+  console.log("Generating IVR Dialplan...");
 
   let ivrConfigSections = ''; // For [ivr_ID] contexts
   let ivrBindings = '';       // For exten => in [from-internal-custom]
@@ -312,6 +316,8 @@ const generateAndWriteDialplan = async () => {
     try {
         // Fetch all necessary data from the database
         const allIVRs = await IVRMenu.find({});
+
+        console.log(allIVRs)
         const allRecordings = await audioRecording.find({});
         const allQueues = await Queue.find({});
         const allExtensions = await Extension.find({});

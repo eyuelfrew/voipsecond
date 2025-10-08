@@ -19,11 +19,6 @@ const getAgentMetrics = asyncHandler(async (req, res) => {
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 
-  // // Debug logging
-  // console.log('Agent Metrics Debug:');
-  // console.log('agentId:', agentId);
-  // console.log('startOfDay:', startOfDay.toISOString());
-  // console.log('endOfDay:', endOfDay.toISOString());
   const agent = await Agent.findById(agentId);
 
   // Tickets resolved today

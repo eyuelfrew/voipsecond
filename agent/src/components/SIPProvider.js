@@ -44,11 +44,13 @@ export const SIPProvider = ({ children }) => {
     };
     fetchSipPassword();
   }, [SIP_USER]);
-  const SIP_SERVER = process.env.REACT_APP_SERVER_IP || "192.168.1.7";
+  const SIP_SERVER =  "10.42.0.1";
   const SIP_PORT = process.env.REACT_APP_SIP_SERVER_PORT || 8088;
   // Use ws:// for secure WebSocket connection (required for HTTPS pages)
+  console.log(SIP_SERVER)
+  console.log(SIP_SERVER)
   const SIP_WS_SERVER = `ws://${SIP_SERVER}:${SIP_PORT}/ws`;
-  
+
   // Debug logging for SIP configuration
   console.log("🔧 SIP Configuration:", {
     SIP_SERVER,
@@ -58,14 +60,7 @@ export const SIPProvider = ({ children }) => {
     env_sip_port: process.env.REACT_APP_SIP_SERVER_PORT
   });
  const PC_CONFIG = {
-  // iceServers: [
-  //   { urls: 'stun:192.168.1.7:3478' },
-  //   {
-  //     urls: 'turn:192.168.1.7:3478?transport=tcp',
-  //     username: 'testuser',
-  //     credential: '1234'
-  //   }
-  // ],
+
   rtcpMuxPolicy: "require",
   bundlePolicy: "max-bundle",
   iceCandidatePoolSize: 10
