@@ -4,6 +4,7 @@ import CapacityOptionsTab from '../components/QUEUE/QueueCapacityOptionForm';
 import TimingAgentOptionsTab from '../components/QUEUE/TimeingAgentForm';
 import axios from 'axios';
 import { useParams } from 'react-router-dom'; // Import useParams
+import { useTheme } from '../context/ThemeContext';
 
 // Import all types and options from the new file
 import {
@@ -15,10 +16,11 @@ import {
 } from '../types/queueTypes'; // Adjust path as necessary
 
 // Corrected import for GeneralSettings (from QUEUE folder)
-import GeneralSettings from '../components/QUEUE/GeneralSettings';
+// import GeneralSettings from '../components/QUEUE/GeneralSettings';
 import CallerAnnouncements from '../components/QUEUE/CallerAnnouncements';
 import AdvancedOption from '../components/QUEUE/AdvancedOption';
 import RecetQueueStats from '../components/QUEUE/RecetQueueStats';
+import GeneralSettings from '../components/QUEUE/GeneralSettings';
 
 
 
@@ -27,6 +29,8 @@ const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 
 const QueueForm: React.FC = () => {
+  const { isDarkMode } = useTheme();
+
   // Use useParams to get the queueId from the URL
   const { id } = useParams<{ id: string }>(); // 'id' will be the queue ID from the URL like /queues/edit/:id
 
@@ -252,47 +256,47 @@ const QueueForm: React.FC = () => {
 
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setMessage(null);
-  setMessageType(null);
-
-  const payload = {
-    generalSettings: formData,
-    queueAgents: selectedQueueAgents,
-    timingAgentOptions: timingAgentFormData,
-    capacityOptions: capacityFormData,
-  };
-
-  try {
-   
-    if (queueId) {
-      // Update existing queue
-      await axios.put(`${backendUrl}/api/queue/${queueId}`, payload, {
-        withCredentials: true,
-      });
-      setMessage("Queue updated successfully!");
-    } else {
-      // Create new queue
-      await axios.post(`${backendUrl}/api/queue`, payload, {
-        withCredentials: true,
-      });
-      setMessage("Queue created successfully!");
-    }
-
-    setMessageType("success");
-    // Optionally reset form or redirect here
-
-  } catch (error: any) {
-    console.error("Queue submit error:", error);
-    setMessage(error?.response?.data?.error || "Failed to process queue");
-    setMessageType("error");
-  }
-
-  setTimeout(() => {
+    e.preventDefault();
     setMessage(null);
     setMessageType(null);
-  }, 3000);
-};
+
+    const payload = {
+      generalSettings: formData,
+      queueAgents: selectedQueueAgents,
+      timingAgentOptions: timingAgentFormData,
+      capacityOptions: capacityFormData,
+    };
+
+    try {
+
+      if (queueId) {
+        // Update existing queue
+        await axios.put(`${backendUrl}/api/queue/${queueId}`, payload, {
+          withCredentials: true,
+        });
+        setMessage("Queue updated successfully!");
+      } else {
+        // Create new queue
+        await axios.post(`${backendUrl}/api/queue`, payload, {
+          withCredentials: true,
+        });
+        setMessage("Queue created successfully!");
+      }
+
+      setMessageType("success");
+      // Optionally reset form or redirect here
+
+    } catch (error: any) {
+      console.error("Queue submit error:", error);
+      setMessage(error?.response?.data?.error || "Failed to process queue");
+      setMessageType("error");
+    }
+
+    setTimeout(() => {
+      setMessage(null);
+      setMessageType(null);
+    }, 3000);
+  };
 
   const handleReset = () => {
     setFormData({
@@ -376,120 +380,164 @@ const QueueForm: React.FC = () => {
 
   if (loadingQueueData) {
     return (
-      <div className="min-h-screen bg-gray-100 p-4 font-sans flex justify-center items-center">
-        <div className="text-lg text-gray-600">Loading queue data...</div>
+      <div className="min-h-full cc-bg-background cc-transition p-6">
+        <div className="flex justify-center items-center h-48">
+          <div className="cc-glass rounded-xl p-8 flex items-center space-x-4">
+            <div className="animate-spin cc-text-accent text-4xl">⚙️</div>
+            <p className="text-lg cc-text-secondary">Loading queue data...</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 font-sans flex justify-center items-start">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl mx-auto px-4 sm:px-8 overflow-hidden">
-        {/* Header Tabs */}
-        <div className="flex bg-gray-50 border-b border-gray-200">
-          {['General Settings', 'Queue Agents', 'Timing & Agent Options', 'Capacity Options', 'Caller Announcements', 'Advanced Options', 'Reset Queue Stats'].map((tabName) => (
-            <button
-              key={tabName}
-              onClick={() => setActiveTab(tabName)}
-              className={`px-4 py-2 text-xs font-semibold focus:outline-none transition-colors duration-200
-                ${activeTab === tabName
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:text-gray-800 border-b-2 border-transparent'
-                }`}
-            >
-              {tabName}
-            </button>
-          ))}
+    <div className="min-h-full cc-bg-background cc-transition"
+      style={{
+        background: isDarkMode
+          ? 'linear-gradient(135deg, #000000 0%, #1F2937 25%, #111827 50%, #1F2937 75%, #000000 100%)'
+          : 'linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 25%, #F3F4F6 50%, #F9FAFB 75%, #FFFFFF 100%)'
+      }}>
+
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 right-20 w-24 h-24 bg-cc-yellow-400 rounded-full opacity-10 animate-pulse-slowest"></div>
+        <div className="absolute bottom-32 left-20 w-32 h-32 bg-cc-yellow-300 rounded-full opacity-5 animate-bounce"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,0,0.02)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto p-6">
+        {/* Header Section */}
+        <div className="mb-8">
+          <div className="flex items-center space-x-4 mb-6">
+            <div className="w-12 h-12 bg-cc-yellow-400 rounded-xl flex items-center justify-center animate-pulse">
+              <div className="text-black text-xl">📞</div>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold cc-text-accent animate-fade-in">
+                {queueId ? 'Edit Queue' : 'Create New Queue'}
+              </h1>
+              <p className="cc-text-secondary animate-fade-in-delay-300">
+                {queueId ? 'Modify queue settings and configuration' : 'Configure a new call queue with routing strategies'}
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Message Display */}
-        {message && (
-          <div className={`p-3 text-center rounded-md mx-6 mt-4 ${messageType === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-            {message}
+        <div className="cc-glass rounded-xl overflow-hidden">
+          {/* Header Tabs */}
+          <div className="cc-bg-surface border-b cc-border">
+            <div className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-yellow-400/20">
+              {['General Settings', 'Queue Agents', 'Timing & Agent Options', 'Capacity Options', 'Caller Announcements', 'Advanced Options', 'Reset Queue Stats'].map((tabName) => (
+                <button
+                  key={tabName}
+                  onClick={() => setActiveTab(tabName)}
+                  className={`px-6 py-4 text-sm font-semibold focus:outline-none cc-transition whitespace-nowrap border-b-2 ${activeTab === tabName
+                    ? 'cc-text-accent border-cc-yellow-400 bg-cc-yellow-400/10'
+                    : 'cc-text-secondary hover:cc-text-accent border-transparent hover:bg-cc-yellow-400/5'
+                    }`}
+                >
+                  {tabName}
+                </button>
+              ))}
+            </div>
           </div>
-        )}
 
-        {/* Form Content - Conditional Rendering based on activeTab */}
-        <form onSubmit={handleSubmit} className="p-6">
-         
-          {activeTab === 'General Settings' && (
-            <GeneralSettings
-              formData={formData}
-              handleChange={handleChange}
-              handleQueueNoAnswerChange={handleQueueNoAnswerChange}
-              handleCallConfirmChange={handleCallConfirmChange}
-              handleWaitTimePrefixChange={handleWaitTimePrefixChange}
-              handleRingerVolumeOverrideModeChange={handleRingerVolumeOverrideModeChange}
-              handleRestrictDynamicAgentsChange={handleRestrictDynamicAgentsChange}
-              handleAgentRestrictionsChange={handleAgentRestrictionsChange}
-              handleAutofillChange={handleAutofillChange}
-              handleSkipBusyAgentsChange={handleSkipBusyAgentsChange}
-              handleCallRecordingChange={handleCallRecordingChange}
-              handleMarkCallsAnsweredElsewhereChange={handleMarkCallsAnsweredElsewhereChange}
-            />
+          {/* Message Display */}
+          {message && (
+            <div className={`mx-6 mt-4 p-4 cc-glass rounded-xl border flex items-center space-x-3 ${messageType === 'success'
+              ? 'border-green-500/20 bg-green-500/5'
+              : 'border-red-500/20 bg-red-500/5'
+              }`}>
+              <div className={`w-5 h-5 ${messageType === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                {messageType === 'success' ? '✅' : '⚠️'}
+              </div>
+              <span className="cc-text-secondary">{message}</span>
+            </div>
           )}
 
-          {activeTab === 'Queue Agents' && (
-            <QueueAgentsTab
-              initialAllAgents={allAgents}
-              initialSelectedQueueAgents={selectedQueueAgents}
-              onSelectedQueueAgentsChange={setSelectedQueueAgents}
-              onAllAgentsChange={setAllAgents}
-            />
-          )}
+          {/* Form Content - Conditional Rendering based on activeTab */}
+          <form onSubmit={handleSubmit} className="p-8">
 
-          {activeTab === 'Timing & Agent Options' && (
-            <TimingAgentOptionsTab
-              formData={timingAgentFormData}
-              handleChange={(name, value) => setTimingAgentFormData(prev => ({ ...prev, [name]: value }))}
-            />
-          )}
+            {activeTab === 'General Settings' && (
+              <GeneralSettings
+                formData={formData}
+                handleChange={handleChange}
+                handleQueueNoAnswerChange={handleQueueNoAnswerChange}
+                handleCallConfirmChange={handleCallConfirmChange}
+                handleWaitTimePrefixChange={handleWaitTimePrefixChange}
+                handleRingerVolumeOverrideModeChange={handleRingerVolumeOverrideModeChange}
+                handleRestrictDynamicAgentsChange={handleRestrictDynamicAgentsChange}
+                handleAgentRestrictionsChange={handleAgentRestrictionsChange}
+                handleAutofillChange={handleAutofillChange}
+                handleSkipBusyAgentsChange={handleSkipBusyAgentsChange}
+                handleCallRecordingChange={handleCallRecordingChange}
+                handleMarkCallsAnsweredElsewhereChange={handleMarkCallsAnsweredElsewhereChange}
+              />
+            )}
 
-          {activeTab === 'Capacity Options' && (
-            <CapacityOptionsTab
-              formData={capacityFormData}
-              handleChange={(name, value) => setCapacityFormData(prev => ({ ...prev, [name]: value }))}
-            />
-          )}
+            {activeTab === 'Queue Agents' && (
+              <QueueAgentsTab
+                initialAllAgents={allAgents}
+                initialSelectedQueueAgents={selectedQueueAgents}
+                onSelectedQueueAgentsChange={setSelectedQueueAgents}
+                onAllAgentsChange={setAllAgents}
+              />
+            )}
 
-          {activeTab === 'Caller Announcements' && (
-            <CallerAnnouncements/>
-          )}
+            {activeTab === 'Timing & Agent Options' && (
+              <TimingAgentOptionsTab
+                formData={timingAgentFormData}
+                handleChange={(name, value) => setTimingAgentFormData(prev => ({ ...prev, [name]: value }))}
+              />
+            )}
 
-          {activeTab === 'Advanced Options' && (
-            <AdvancedOption/>
-          )}
+            {activeTab === 'Capacity Options' && (
+              <CapacityOptionsTab
+                formData={capacityFormData}
+                handleChange={(name, value) => setCapacityFormData(prev => ({ ...prev, [name]: value }))}
+              />
+            )}
 
-          {activeTab === 'Reset Queue Stats' && (
-            <RecetQueueStats/>
-          )}
+            {activeTab === 'Caller Announcements' && (
+              <CallerAnnouncements />
+            )}
 
-          {/* Form Actions */}
-          <div className="flex justify-end space-x-4 mt-8 p-4 border-t border-gray-200 bg-gray-50">
-            <button
-              type="button"
-              onClick={handleReset}
-              className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors duration-200"
-            >
-              Reset
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
-            >
-              {queueId ? 'Update Queue' : 'Create Queue'}
-            </button>
-            {queueId && ( // Only show delete button if in edit mode
+            {activeTab === 'Advanced Options' && (
+              <AdvancedOption />
+            )}
+
+            {activeTab === 'Reset Queue Stats' && (
+              <RecetQueueStats />
+            )}
+
+            {/* Form Actions */}
+            <div className="flex justify-end space-x-4 mt-8 pt-6 border-t cc-border">
               <button
                 type="button"
-                onClick={handleDelete}
-                className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200"
+                onClick={handleReset}
+                className="px-6 py-3 cc-glass hover:bg-white/10 cc-text-secondary hover:cc-text-accent cc-transition rounded-xl font-semibold"
               >
-                Delete
+                Reset Form
               </button>
-            )}
-          </div>
-        </form>
+              <button
+                type="submit"
+                className="px-8 py-3 bg-gradient-to-r from-cc-yellow-400 to-cc-yellow-500 hover:from-cc-yellow-500 hover:to-cc-yellow-600 text-black font-semibold rounded-xl shadow-lg hover:shadow-xl cc-transition transform hover:scale-105"
+              >
+                {queueId ? 'Update Queue' : 'Create Queue'}
+              </button>
+              {queueId && ( // Only show delete button if in edit mode
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl cc-transition transform hover:scale-105 font-semibold"
+                >
+                  Delete Queue
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

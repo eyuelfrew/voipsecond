@@ -27,7 +27,8 @@ const Sidebar = () => {
     }
   }, [collapsed]);
   const navItems = [
-    { path: "/dashboard", name: "Dashboard", icon: <Home /> },
+    { path: "/", name: "Home", icon: <Home /> },
+    { path: "/dashboard", name: "Dashboard", icon: <BarChart3 /> },
     {
       name: "Reports",
       icon: <LineChart />,

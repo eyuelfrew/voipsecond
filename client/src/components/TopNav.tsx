@@ -98,7 +98,7 @@ const TopNav = () => {
           {/* Left: Logo/Brand and Main Navigation */}
           <div className="flex items-center">
             <div className="flex-shrink-0 mr-6">
-              <a href="/dashboard" className="text-xl font-bold flex items-center group">
+              <a href="/" className="text-xl font-bold flex items-center group">
                 <div className="flex items-center space-x-2">
                   <div className="w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center transform group-hover:rotate-12 transition-transform duration-300">
                     <Phone className="h-5 w-5 text-black" />
@@ -109,8 +109,8 @@ const TopNav = () => {
               </a>
             </div>
             <div className="flex space-x-6">
-              <Link to="/dashboard" className="cc-text-secondary hover:cc-text-accent px-3 py-2 rounded-lg text-sm font-medium flex items-center cc-transition hover:bg-yellow-400/10">
-                <Home className="h-5 w-5 mr-1" /> Dashboard
+              <Link to="/" className="cc-text-secondary hover:cc-text-accent px-3 py-2 rounded-lg text-sm font-medium flex items-center cc-transition hover:bg-yellow-400/10">
+                <Home className="h-5 w-5 mr-1" /> Home
               </Link>
               {/* Applications Dropdown */}
               <div className="relative"

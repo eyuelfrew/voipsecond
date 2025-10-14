@@ -1,6 +1,7 @@
 import { Routes, Route, Outlet } from "react-router-dom";
 import TopNav from "./components/TopNav";
 import LiveCalls from "./pages/Dashboard";
+import HomePage from "./pages/HomePage";
 import Sidebar from "./components/SideBar";
 import Agents from "./pages/Agents";
 import Report from "./pages/Report";
@@ -79,6 +80,7 @@ export default function App() {
 
       {/* 2. All other routes that share the TopNav and Sidebar layout */}
       <Route path="/" element={<MainLayout />}>
+        <Route index element={<HomePage />} />
         <Route path="report" element={<Report />} />
         <Route path="dashboard" element={<LiveCalls />} />
         <Route path="ivr-menus" element={<IVRMenus />} />

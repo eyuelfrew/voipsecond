@@ -1,6 +1,7 @@
 import { useState, useEffect, FC, ChangeEvent, FormEvent } from 'react';
 import axios, { AxiosError } from 'axios';
-import { FiPlus, FiLoader } from 'react-icons/fi'; // Assuming react-icons is installed
+import { Plus, Loader2, Settings, AlertCircle, CheckCircle } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 // 1. Define Interfaces for better type safety
 interface FormData {
@@ -152,134 +153,169 @@ const MiscApplicationForm: FC = () => {
     }
   };
 
+  const { isDarkMode } = useTheme();
+
   return (
-    <div className="max-w-2xl mx-auto p-6 font-sans">
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-semibold mb-6 text-gray-800">Create New Misc Application</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="min-h-full cc-bg-background cc-transition"
+      style={{
+        background: isDarkMode
+          ? 'linear-gradient(135deg, #000000 0%, #1F2937 25%, #111827 50%, #1F2937 75%, #000000 100%)'
+          : 'linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 25%, #F3F4F6 50%, #F9FAFB 75%, #FFFFFF 100%)'
+      }}>
 
-          {/* Name */}
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out"
-              placeholder="e.g., Sales IVR Access"
-            />
-          </div>
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 right-20 w-24 h-24 bg-cc-yellow-400 rounded-full opacity-10 animate-pulse"></div>
+        <div className="absolute bottom-32 left-20 w-32 h-32 bg-cc-yellow-300 rounded-full opacity-5 animate-bounce"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,0,0.02)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
+      </div>
 
-          {/* Feature Code */}
-          <div>
-            <label htmlFor="featureCode" className="block text-sm font-medium text-gray-700 mb-1">Feature Code</label>
-            <input
-              type="text"
-              id="featureCode"
-              name="featureCode"
-              value={formData.featureCode}
-              onChange={handleChange}
-              required
-              pattern="\d+"
-              title="Please enter numbers only"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out"
-              placeholder="e.g., 9091"
-            />
-            <p className="mt-1 text-xs text-gray-500">Numbers only (e.g., 9091)</p>
-          </div>
-
-          {/* Destination Type Dropdown */}
-          <div>
-            <label htmlFor="destType" className="block text-sm font-medium text-gray-700 mb-1">Destination Type</label>
-            <select
-              id="destType"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out"
-              value={destType} // Controlled by 'destType' state
-              onChange={handleDestTypeChange}
-              required
-            >
-              <option value="">Select type</option>
-              {DEST_TYPES.map(dt => (
-                <option key={dt.value} value={dt.value}>{dt.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Destination Item Dropdown (conditionally rendered) */}
-          {destType && (
+      <div className="relative z-10 max-w-3xl mx-auto p-6">
+        {/* Header Section */}
+        <div className="mb-8">
+          <div className="flex items-center space-x-4 mb-6">
+            <div className="w-12 h-12 bg-cc-yellow-400 rounded-xl flex items-center justify-center animate-pulse">
+              <Settings className="h-6 w-6 text-black" />
+            </div>
             <div>
-              <label htmlFor="destination" className="block text-sm font-medium text-gray-700 mb-1">
-                Select {DEST_TYPES.find(d => d.value === destType)?.label}
-              </label>
-              {destLoading ? (
-                <div className="text-gray-500 py-2 flex items-center gap-2">
-                  <FiLoader className="animate-spin mr-2" /> Loading options...
-                </div>
-              ) : (
-                <select
-                  id="destination"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out"
-                  value={formData.destinationId} // Controlled by 'formData.destinationId'
-                  onChange={handleDestinationItemChange}
-                  required
-                  disabled={destOptions.length === 0}
-                >
-                  <option value="">Select {destType}</option>
-                  {destOptions.map(opt => (
-                    <option
-                      key={opt._id || opt.id || opt.extension || opt.name || opt.number || opt.label || JSON.stringify(opt)} // Robust key generation
-                      // The value sent to the backend should be the ID
-                      value={opt._id || opt.id || opt.extension || opt.number || ''} // Prioritize actual IDs
-                    >
-                      {opt.name || opt.extension || opt.number || opt.label || 'Unnamed'} {/* Display name */}
-                    </option>
-                  ))}
-                </select>
-              )}
-              {destType && destOptions.length === 0 && !destLoading && (
-                <p className="mt-1 text-sm text-red-500">No {destType} options found. Please ensure they are created.</p>
-              )}
+              <h1 className="text-3xl font-bold cc-text-accent animate-fade-in">Create New Misc Application</h1>
+              <p className="cc-text-secondary animate-fade-in-delay-300">Configure a new feature code and destination</p>
             </div>
-          )}
-
-          {/* Submit Button */}
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={loading}
-              className={`flex items-center justify-center w-full px-4 py-2 rounded-md font-semibold text-white ${
-                loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
-              } transition-colors duration-200 ease-in-out`}
-            >
-              {loading ? (
-                <>
-                  <FiLoader className="animate-spin mr-2" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <FiPlus className="mr-2" />
-                  Create Application
-                </>
-              )}
-            </button>
           </div>
+        </div>
 
-          {/* Error/Success Messages */}
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm flex items-center">
-              <span className="mr-2 text-lg">⚠️</span> {error}
+        <div className="cc-glass rounded-xl p-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+
+            {/* Name */}
+            <div className="space-y-2">
+              <label htmlFor="name" className="block text-sm font-semibold cc-text-primary">Application Name</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
+                placeholder="e.g., Sales IVR Access"
+              />
             </div>
-          )}
-          {success && (
-            <div className="p-3 bg-green-50 border border-green-200 text-green-700 rounded-md text-sm flex items-center">
-              <span className="mr-2 text-lg">✅</span> {success}
+
+            {/* Feature Code */}
+            <div className="space-y-2">
+              <label htmlFor="featureCode" className="block text-sm font-semibold cc-text-primary">Feature Code</label>
+              <input
+                type="text"
+                id="featureCode"
+                name="featureCode"
+                value={formData.featureCode}
+                onChange={handleChange}
+                required
+                pattern="\d+"
+                title="Please enter numbers only"
+                className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
+                placeholder="e.g., 9091"
+              />
+              <p className="text-xs cc-text-secondary">Numbers only (e.g., 9091)</p>
             </div>
-          )}
-        </form>
+
+            {/* Destination Type Dropdown */}
+            <div className="space-y-2">
+              <label htmlFor="destType" className="block text-sm font-semibold cc-text-primary">Destination Type</label>
+              <select
+                id="destType"
+                className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
+                value={destType}
+                onChange={handleDestTypeChange}
+                required
+              >
+                <option value="">Select destination type</option>
+                {DEST_TYPES.map(dt => (
+                  <option key={dt.value} value={dt.value}>{dt.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Destination Item Dropdown (conditionally rendered) */}
+            {destType && (
+              <div className="space-y-2">
+                <label htmlFor="destination" className="block text-sm font-semibold cc-text-primary">
+                  Select {DEST_TYPES.find(d => d.value === destType)?.label}
+                </label>
+                {destLoading ? (
+                  <div className="cc-glass rounded-xl p-4 flex items-center space-x-3">
+                    <Loader2 className="animate-spin cc-text-accent" />
+                    <span className="cc-text-secondary">Loading options...</span>
+                  </div>
+                ) : (
+                  <select
+                    id="destination"
+                    className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition disabled:opacity-50"
+                    value={formData.destinationId}
+                    onChange={handleDestinationItemChange}
+                    required
+                    disabled={destOptions.length === 0}
+                  >
+                    <option value="">Select {destType}</option>
+                    {destOptions.map(opt => (
+                      <option
+                        key={opt._id || opt.id || opt.extension || opt.name || opt.number || opt.label || JSON.stringify(opt)}
+                        value={opt._id || opt.id || opt.extension || opt.number || ''}
+                      >
+                        {opt.name || opt.extension || opt.number || opt.label || 'Unnamed'}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {destType && destOptions.length === 0 && !destLoading && (
+                  <div className="cc-glass rounded-xl p-3 border border-red-500/20 bg-red-500/5 flex items-center space-x-2">
+                    <AlertCircle className="h-4 w-4 text-red-400" />
+                    <p className="text-sm cc-text-secondary">No {destType} options found. Please ensure they are created.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <div className="pt-4">
+              <button
+                type="submit"
+                disabled={loading}
+                className={`flex items-center justify-center w-full px-6 py-4 rounded-xl font-semibold cc-transition transform ${loading
+                  ? 'bg-gray-400 cursor-not-allowed text-white'
+                  : 'bg-gradient-to-r from-cc-yellow-400 to-cc-yellow-500 hover:from-cc-yellow-500 hover:to-cc-yellow-600 text-black hover:scale-105 shadow-lg hover:shadow-xl'
+                  }`}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="animate-spin mr-3 h-5 w-5" />
+                    Creating Application...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="mr-3 h-5 w-5" />
+                    Create Application
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Error/Success Messages */}
+            {error && (
+              <div className="cc-glass rounded-xl p-4 border border-red-500/20 bg-red-500/5 flex items-center space-x-3">
+                <AlertCircle className="h-5 w-5 text-red-400" />
+                <span className="cc-text-secondary">{error}</span>
+              </div>
+            )}
+            {success && (
+              <div className="cc-glass rounded-xl p-4 border border-green-500/20 bg-green-500/5 flex items-center space-x-3">
+                <CheckCircle className="h-5 w-5 text-green-400" />
+                <span className="cc-text-secondary">{success}</span>
+              </div>
+            )}
+          </form>
+        </div>
       </div>
     </div>
   );

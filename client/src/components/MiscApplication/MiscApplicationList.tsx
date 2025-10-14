@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FiLoader, FiAlertCircle, FiInfo, FiTrash2 } from 'react-icons/fi';
+import { Loader2, AlertCircle, Info, Trash2, Plus, Settings } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
 
 // Define the interfaces for the data received from the backend
 interface Destination {
@@ -84,19 +85,25 @@ const MiscApplicationList = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-48">
-        <FiLoader className="animate-spin text-blue-500 text-4xl" />
-        <p className="ml-3 text-lg text-gray-700">Loading Misc Applications...</p>
+      <div className="min-h-full cc-bg-background cc-transition p-6">
+        <div className="flex justify-center items-center h-48">
+          <div className="cc-glass rounded-xl p-8 flex items-center space-x-4">
+            <Loader2 className="animate-spin cc-text-accent text-4xl" />
+            <p className="text-lg cc-text-secondary">Loading Misc Applications...</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex justify-center items-center h-48">
-        <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded-md flex items-center">
-          <FiAlertCircle className="text-xl mr-2" />
-          <p>{error}</p>
+      <div className="min-h-full cc-bg-background cc-transition p-6">
+        <div className="flex justify-center items-center h-48">
+          <div className="cc-glass rounded-xl p-6 border border-red-500/20 bg-red-500/5 flex items-center space-x-3">
+            <AlertCircle className="text-xl text-red-400" />
+            <p className="cc-text-secondary">{error}</p>
+          </div>
         </div>
       </div>
     );
@@ -104,100 +111,150 @@ const MiscApplicationList = () => {
 
   if (miscApplications.length === 0) {
     return (
-      <div className="flex flex-col justify-center items-center h-48">
-        <div className="p-4 bg-blue-100 border border-blue-400 text-blue-700 rounded-md flex items-center mb-4">
-          <FiInfo className="text-xl mr-2" />
-          <p>No Misc Applications found. Create one to get started!</p>
+      <div className="min-h-full cc-bg-background cc-transition p-6">
+        <div className="flex flex-col justify-center items-center h-48 space-y-6">
+          <div className="cc-glass rounded-xl p-6 border border-blue-500/20 bg-blue-500/5 flex items-center space-x-3">
+            <Info className="text-xl text-blue-400" />
+            <p className="cc-text-secondary">No Misc Applications found. Create one to get started!</p>
+          </div>
+          <button
+            className="px-6 py-3 bg-gradient-to-r from-cc-yellow-400 to-cc-yellow-500 hover:from-cc-yellow-500 hover:to-cc-yellow-600 text-black font-semibold rounded-xl shadow-lg hover:shadow-xl cc-transition transform hover:scale-105 flex items-center space-x-2"
+            onClick={() => navigate('/new-misc-application')}
+          >
+            <Plus className="h-5 w-5" />
+            <span>Create New Misc Application</span>
+          </button>
         </div>
-        <button
-          className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md shadow transition-colors duration-200"
-          onClick={() => navigate('/new-misc-application')}
-        >
-          + Create New Misc
-        </button>
       </div>
     );
   }
 
+  const { isDarkMode } = useTheme();
+
   return (
-    <div className="max-w-4xl mx-auto p-6 font-sans">
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-semibold mb-6 text-gray-800">All Misc Applications</h2>
+    <div className="min-h-full cc-bg-background cc-transition"
+      style={{
+        background: isDarkMode
+          ? 'linear-gradient(135deg, #000000 0%, #1F2937 25%, #111827 50%, #1F2937 75%, #000000 100%)'
+          : 'linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 25%, #F3F4F6 50%, #F9FAFB 75%, #FFFFFF 100%)'
+      }}>
 
-        <button
-          className="mb-6 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md shadow transition-colors duration-200"
-          onClick={() => navigate('/new-misc-application')}
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 right-20 w-24 h-24 bg-cc-yellow-400 rounded-full opacity-10 animate-pulse"></div>
+        <div className="absolute bottom-32 left-20 w-32 h-32 bg-cc-yellow-300 rounded-full opacity-5 animate-bounce"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,0,0.02)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
+      </div>
 
-        >
-          + Create New Misc
-        </button>
-
-        {deleteLoading && (
-          <div className="flex items-center justify-center p-3 mb-4 bg-yellow-50 text-yellow-700 rounded-md text-sm">
-            <FiLoader className="animate-spin mr-2" /> Deleting application...
+      <div className="relative z-10 max-w-6xl mx-auto p-6">
+        {/* Header Section */}
+        <div className="mb-8">
+          <div className="flex items-center space-x-4 mb-6">
+            <div className="w-12 h-12 bg-cc-yellow-400 rounded-xl flex items-center justify-center animate-pulse">
+              <Settings className="h-6 w-6 text-black" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold cc-text-accent animate-fade-in">Misc Applications</h1>
+              <p className="cc-text-secondary animate-fade-in-delay-300">Manage feature codes and custom applications</p>
+            </div>
           </div>
-        )}
-        {deleteError && (
-          <div className="p-3 mb-4 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm flex items-center">
-            <span className="mr-2 text-lg">⚠️</span> {deleteError}
-          </div>
-        )}
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-            <thead>
-              {/* Corrected whitespace: th tags immediately follow tr opening */}
-              <tr className="bg-gray-100 border-b border-gray-200 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">
-                <th className="px-6 py-3 rounded-tl-lg">Name</th>
-                <th className="px-6 py-3">Feature Code</th>
-                <th className="px-6 py-3">Destination Type</th>
-                <th className="px-6 py-3 rounded-tr-lg">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {miscApplications.map((app) => (
-                // Corrected whitespace: td tags immediately follow tr opening
-                <tr key={app._id} className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{app.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{app.featureCode}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                    {app.destination?.type ? app.destination.type.toUpperCase() : 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                    <button
-                      onClick={() => handleDeleteClick(app)}
-                      className="text-red-600 hover:text-red-800 transition-colors duration-200"
-                      title="Delete Application"
-                      disabled={deleteLoading}
-                    >
-                      <FiTrash2 className="inline-block text-lg" />
-                    </button>
-                  </td>
+          <button
+            className="px-6 py-3 bg-gradient-to-r from-cc-yellow-400 to-cc-yellow-500 hover:from-cc-yellow-500 hover:to-cc-yellow-600 text-black font-semibold rounded-xl shadow-lg hover:shadow-xl cc-transition transform hover:scale-105 flex items-center space-x-2"
+            onClick={() => navigate('/new-misc-application')}
+          >
+            <Plus className="h-5 w-5" />
+            <span>Create New Misc Application</span>
+          </button>
+        </div>
+
+        <div className="cc-glass rounded-xl p-6">
+
+          {deleteLoading && (
+            <div className="flex items-center justify-center p-4 mb-6 cc-glass rounded-xl border border-yellow-500/20 bg-yellow-500/5">
+              <Loader2 className="animate-spin mr-3 text-yellow-400" />
+              <span className="cc-text-secondary">Deleting application...</span>
+            </div>
+          )}
+          {deleteError && (
+            <div className="p-4 mb-6 cc-glass rounded-xl border border-red-500/20 bg-red-500/5 flex items-center space-x-3">
+              <AlertCircle className="text-red-400" />
+              <span className="cc-text-secondary">{deleteError}</span>
+            </div>
+          )}
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full cc-glass rounded-xl overflow-hidden">
+              <thead>
+                <tr className="cc-bg-surface-variant border-b cc-border text-left text-sm font-semibold cc-text-accent uppercase tracking-wider">
+                  <th className="px-6 py-4">Name</th>
+                  <th className="px-6 py-4">Feature Code</th>
+                  <th className="px-6 py-4">Destination Type</th>
+                  <th className="px-6 py-4">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {miscApplications.map((app, index) => (
+                  <tr key={app._id} className={`border-b cc-border last:border-b-0 hover:bg-yellow-400/5 cc-transition group ${index % 2 === 0 ? 'bg-black/5 dark:bg-white/5' : ''}`}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-cc-yellow-400/20 rounded-lg flex items-center justify-center">
+                          <Settings className="h-4 w-4 cc-text-accent" />
+                        </div>
+                        <span className="text-sm font-medium cc-text-primary">{app.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-cc-yellow-400/20 cc-text-accent border border-cc-yellow-400/30">
+                        {app.featureCode}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm cc-text-secondary capitalize">
+                        {app.destination?.type ? app.destination.type : 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => handleDeleteClick(app)}
+                        className="p-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 cc-transition transform hover:scale-110 group-hover:opacity-100 opacity-70"
+                        title="Delete Application"
+                        disabled={deleteLoading}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
       {/* Confirmation Modal */}
       {showConfirmModal && appToDelete && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Confirm Deletion</h3>
-            <p className="text-gray-700 mb-6">
-              Are you sure you want to delete the Misc Application "<strong>{appToDelete.name}</strong>" (Feature Code: {appToDelete.featureCode}, Destination Type: {appToDelete.destination?.type?.toUpperCase() || 'N/A'})? This action cannot be undone.
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+          <div className="cc-glass rounded-xl p-6 shadow-2xl max-w-md w-full border border-red-500/20">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
+                <AlertCircle className="h-5 w-5 text-red-400" />
+              </div>
+              <h3 className="text-lg font-semibold cc-text-accent">Confirm Deletion</h3>
+            </div>
+            <p className="cc-text-secondary mb-6 leading-relaxed">
+              Are you sure you want to delete the Misc Application "<strong className="cc-text-accent">{appToDelete.name}</strong>" (Feature Code: <span className="cc-text-accent">{appToDelete.featureCode}</span>, Destination Type: <span className="cc-text-accent">{appToDelete.destination?.type?.toUpperCase() || 'N/A'}</span>)? This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-3">
               <button
                 onClick={cancelDelete}
-                className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors duration-200"
+                className="px-4 py-2 rounded-lg cc-glass hover:bg-white/10 cc-text-secondary hover:cc-text-accent cc-transition"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
-                className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors duration-200"
+                className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white cc-transition transform hover:scale-105"
               >
                 Delete
               </button>
