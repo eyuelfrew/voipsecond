@@ -38,8 +38,8 @@ const YesNoButtonGroup: React.FC<{ value: 'Yes' | 'No'; onChange: (value: 'Yes' 
       type="button"
       onClick={() => onChange('Yes')}
       className={`px-4 py-2 text-sm font-medium focus:outline-none cc-transition ${value === 'Yes'
-          ? 'bg-cc-yellow-400 text-black'
-          : 'cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
+        ? 'bg-cc-yellow-400 text-black'
+        : 'cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
         }`}
     >
       Yes
@@ -48,8 +48,8 @@ const YesNoButtonGroup: React.FC<{ value: 'Yes' | 'No'; onChange: (value: 'Yes' 
       type="button"
       onClick={() => onChange('No')}
       className={`px-4 py-2 text-sm font-medium focus:outline-none cc-transition ${value === 'No'
-          ? 'bg-cc-yellow-400 text-black'
-          : 'cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
+        ? 'bg-cc-yellow-400 text-black'
+        : 'cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
         }`}
     >
       No
@@ -64,8 +64,8 @@ const RingerVolumeOverrideModeButtonGroup: React.FC<{ value: 'Force' | 'Don\'t C
       type="button"
       onClick={() => onChange('Force')}
       className={`px-4 py-2 text-sm font-medium focus:outline-none cc-transition ${value === 'Force'
-          ? 'bg-cc-yellow-400 text-black'
-          : 'cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
+        ? 'bg-cc-yellow-400 text-black'
+        : 'cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
         }`}
     >
       Force
@@ -74,8 +74,8 @@ const RingerVolumeOverrideModeButtonGroup: React.FC<{ value: 'Force' | 'Don\'t C
       type="button"
       onClick={() => onChange('Don\'t Care')}
       className={`px-4 py-2 text-sm font-medium focus:outline-none cc-transition ${value === 'Don\'t Care'
-          ? 'bg-cc-yellow-400 text-black'
-          : 'cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
+        ? 'bg-cc-yellow-400 text-black'
+        : 'cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
         }`}
     >
       Don't Care
@@ -84,8 +84,8 @@ const RingerVolumeOverrideModeButtonGroup: React.FC<{ value: 'Force' | 'Don\'t C
       type="button"
       onClick={() => onChange('No')}
       className={`px-4 py-2 text-sm font-medium focus:outline-none cc-transition ${value === 'No'
-          ? 'bg-cc-yellow-400 text-black'
-          : 'cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
+        ? 'bg-cc-yellow-400 text-black'
+        : 'cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
         }`}
     >
       No
@@ -100,8 +100,8 @@ const AgentRestrictionsButtonGroup: React.FC<{ value: 'Call as Dialed' | 'No Fol
       type="button"
       onClick={() => onChange('Call as Dialed')}
       className={`px-4 py-2 text-sm font-medium rounded-xl focus:outline-none cc-transition ${value === 'Call as Dialed'
-          ? 'bg-cc-yellow-400 text-black'
-          : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
+        ? 'bg-cc-yellow-400 text-black'
+        : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
         }`}
     >
       Call as Dialed
@@ -110,8 +110,8 @@ const AgentRestrictionsButtonGroup: React.FC<{ value: 'Call as Dialed' | 'No Fol
       type="button"
       onClick={() => onChange('No Follow-Me or Call Forward')}
       className={`px-4 py-2 text-sm font-medium rounded-xl focus:outline-none cc-transition ${value === 'No Follow-Me or Call Forward'
-          ? 'bg-cc-yellow-400 text-black'
-          : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
+        ? 'bg-cc-yellow-400 text-black'
+        : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
         }`}
     >
       No Follow-Me or Call Forward
@@ -120,8 +120,8 @@ const AgentRestrictionsButtonGroup: React.FC<{ value: 'Call as Dialed' | 'No Fol
       type="button"
       onClick={() => onChange('Extensions Only')}
       className={`px-4 py-2 text-sm font-medium rounded-xl focus:outline-none cc-transition ${value === 'Extensions Only'
-          ? 'bg-cc-yellow-400 text-black'
-          : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
+        ? 'bg-cc-yellow-400 text-black'
+        : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
         }`}
     >
       Extensions Only
@@ -136,8 +136,8 @@ const SkipBusyAgentsButtonGroup: React.FC<{ value: 'Yes' | 'No' | 'Yes + (ringin
       type="button"
       onClick={() => onChange('Yes')}
       className={`px-4 py-2 text-sm font-medium rounded-xl focus:outline-none cc-transition ${value === 'Yes'
-          ? 'bg-cc-yellow-400 text-black'
-          : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
+        ? 'bg-cc-yellow-400 text-black'
+        : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
         }`}
     >
       Yes
@@ -146,8 +146,8 @@ const SkipBusyAgentsButtonGroup: React.FC<{ value: 'Yes' | 'No' | 'Yes + (ringin
       type="button"
       onClick={() => onChange('No')}
       className={`px-4 py-2 text-sm font-medium rounded-xl focus:outline-none cc-transition ${value === 'No'
-          ? 'bg-cc-yellow-400 text-black'
-          : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
+        ? 'bg-cc-yellow-400 text-black'
+        : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
         }`}
     >
       No
@@ -156,8 +156,8 @@ const SkipBusyAgentsButtonGroup: React.FC<{ value: 'Yes' | 'No' | 'Yes + (ringin
       type="button"
       onClick={() => onChange('Yes + (ringinuse=no)')}
       className={`px-4 py-2 text-sm font-medium rounded-xl focus:outline-none cc-transition ${value === 'Yes + (ringinuse=no)'
-          ? 'bg-cc-yellow-400 text-black'
-          : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
+        ? 'bg-cc-yellow-400 text-black'
+        : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
         }`}
     >
       Yes + (ringinuse=no)
@@ -166,8 +166,8 @@ const SkipBusyAgentsButtonGroup: React.FC<{ value: 'Yes' | 'No' | 'Yes + (ringin
       type="button"
       onClick={() => onChange('Queue calls only (ringinuse=no)')}
       className={`px-4 py-2 text-sm font-medium rounded-xl focus:outline-none cc-transition ${value === 'Queue calls only (ringinuse=no)'
-          ? 'bg-cc-yellow-400 text-black'
-          : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
+        ? 'bg-cc-yellow-400 text-black'
+        : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
         }`}
     >
       Queue calls only (ringinuse=no)
@@ -182,8 +182,8 @@ const CallRecordingButtonGroup: React.FC<{ value: 'force' | 'yes' | 'dontcare' |
       type="button"
       onClick={() => onChange('force')}
       className={`px-4 py-2 text-sm font-medium rounded-xl focus:outline-none cc-transition ${value === 'force'
-          ? 'bg-cc-yellow-400 text-black'
-          : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
+        ? 'bg-cc-yellow-400 text-black'
+        : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
         }`}
     >
       Force
@@ -192,8 +192,8 @@ const CallRecordingButtonGroup: React.FC<{ value: 'force' | 'yes' | 'dontcare' |
       type="button"
       onClick={() => onChange('yes')}
       className={`px-4 py-2 text-sm font-medium rounded-xl focus:outline-none cc-transition ${value === 'yes'
-          ? 'bg-cc-yellow-400 text-black'
-          : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
+        ? 'bg-cc-yellow-400 text-black'
+        : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
         }`}
     >
       Yes
@@ -202,8 +202,8 @@ const CallRecordingButtonGroup: React.FC<{ value: 'force' | 'yes' | 'dontcare' |
       type="button"
       onClick={() => onChange('dontcare')}
       className={`px-4 py-2 text-sm font-medium rounded-xl focus:outline-none cc-transition ${value === 'dontcare'
-          ? 'bg-cc-yellow-400 text-black'
-          : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
+        ? 'bg-cc-yellow-400 text-black'
+        : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
         }`}
     >
       Don't Care
@@ -212,8 +212,8 @@ const CallRecordingButtonGroup: React.FC<{ value: 'force' | 'yes' | 'dontcare' |
       type="button"
       onClick={() => onChange('no')}
       className={`px-4 py-2 text-sm font-medium rounded-xl focus:outline-none cc-transition ${value === 'no'
-          ? 'bg-cc-yellow-400 text-black'
-          : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
+        ? 'bg-cc-yellow-400 text-black'
+        : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
         }`}
     >
       No
@@ -222,8 +222,8 @@ const CallRecordingButtonGroup: React.FC<{ value: 'force' | 'yes' | 'dontcare' |
       type="button"
       onClick={() => onChange('never')}
       className={`px-4 py-2 text-sm font-medium rounded-xl focus:outline-none cc-transition ${value === 'never'
-          ? 'bg-cc-yellow-400 text-black'
-          : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
+        ? 'bg-cc-yellow-400 text-black'
+        : 'cc-glass cc-text-secondary hover:cc-text-accent hover:bg-cc-yellow-400/10'
         }`}
     >
       Never

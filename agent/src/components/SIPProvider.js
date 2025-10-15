@@ -44,7 +44,7 @@ export const SIPProvider = ({ children }) => {
     };
     fetchSipPassword();
   }, [SIP_USER]);
-  const SIP_SERVER =  "192.168.1.6";
+  const SIP_SERVER =  "127.0.0.1";
   const SIP_PORT = process.env.REACT_APP_SIP_SERVER_PORT || 8088;
   // Use ws:// for secure WebSocket connection (required for HTTPS pages)
   console.log(SIP_SERVER)
