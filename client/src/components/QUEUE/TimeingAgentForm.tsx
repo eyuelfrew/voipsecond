@@ -71,20 +71,20 @@ const agentAnnouncementOptions = [
 
 // Reusable component for form rows
 const FormRow: React.FC<{ label: string; tooltip?: string; children: React.ReactNode }> = React.memo(({ label, tooltip, children }) => (
-  <div className="flex items-center border-b border-gray-200 py-4 last:border-b-0">
-    <div className="w-1/3 pr-4 text-left text-gray-700 font-medium flex items-center justify-start">
-      {label}
+  <div className="py-4">
+    <div className="mb-2 flex items-center">
+      <label className="block text-sm font-semibold cc-text-primary">
+        {label}
+      </label>
       {tooltip && (
-        <span className="ml-2 text-gray-400 cursor-help" title={tooltip}>
+        <span className="ml-2 text-xs cc-text-secondary cursor-help" title={tooltip}>
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </span>
       )}
     </div>
-    <div className="w-2/3 pl-4">
-      {children}
-    </div>
+    {children}
   </div>
 ));
 
@@ -94,16 +94,16 @@ const YesNoButtonGroup: React.FC<{ value: 'Yes' | 'No'; onChange: (value: 'Yes' 
     <button
       type="button"
       onClick={() => onChange('Yes')}
-      className={`px-4 py-2 text-sm font-medium rounded-l-md focus:z-10 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200
-          ${value === 'Yes' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+      className={`px-4 py-2 text-sm font-medium rounded-l-md focus:z-10 focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 transition-colors duration-200
+          ${value === 'Yes' ? 'bg-gradient-to-r from-cc-yellow-400 to-cc-yellow-500 text-black shadow-md' : 'cc-glass cc-text-secondary cc-border hover:cc-text-accent'}`}
     >
       Yes
     </button>
     <button
       type="button"
       onClick={() => onChange('No')}
-      className={`px-4 py-2 text-sm font-medium rounded-r-md focus:z-10 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200
-          ${value === 'No' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+      className={`px-4 py-2 text-sm font-medium rounded-r-md focus:z-10 focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 transition-colors duration-200
+          ${value === 'No' ? 'bg-gradient-to-r from-cc-yellow-400 to-cc-yellow-500 text-black shadow-md' : 'cc-glass cc-text-secondary cc-border hover:cc-text-accent'}`}
     >
       No
     </button>
@@ -116,16 +116,16 @@ const StrictLooseButtonGroup: React.FC<{ value: 'Strict' | 'Loose'; onChange: (v
     <button
       type="button"
       onClick={() => onChange('Strict')}
-      className={`px-4 py-2 text-sm font-medium rounded-l-md focus:z-10 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200
-          ${value === 'Strict' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+      className={`px-4 py-2 text-sm font-medium rounded-l-md focus:z-10 focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 transition-colors duration-200
+          ${value === 'Strict' ? 'bg-gradient-to-r from-cc-yellow-400 to-cc-yellow-500 text-black shadow-md' : 'cc-glass cc-text-secondary cc-border hover:cc-text-accent'}`}
     >
       Strict
     </button>
     <button
       type="button"
       onClick={() => onChange('Loose')}
-      className={`px-4 py-2 text-sm font-medium rounded-r-md focus:z-10 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200
-          ${value === 'Loose' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+      className={`px-4 py-2 text-sm font-medium rounded-r-md focus:z-10 focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 transition-colors duration-200
+          ${value === 'Loose' ? 'bg-gradient-to-r from-cc-yellow-400 to-cc-yellow-500 text-black shadow-md' : 'cc-glass cc-text-secondary cc-border hover:cc-text-accent'}`}
     >
       Loose
     </button>
@@ -138,32 +138,32 @@ const AutoPauseButtonGroup: React.FC<{ value: 'Yes' | 'No' | 'Yes in this queue 
     <button
       type="button"
       onClick={() => onChange('Yes')}
-      className={`px-4 py-2 text-sm font-medium rounded-l-md focus:z-10 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200
-          ${value === 'Yes' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+      className={`px-4 py-2 text-sm font-medium rounded-l-md focus:z-10 focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 transition-colors duration-200
+          ${value === 'Yes' ? 'bg-gradient-to-r from-cc-yellow-400 to-cc-yellow-500 text-black shadow-md' : 'cc-glass cc-text-secondary cc-border hover:cc-text-accent'}`}
     >
       Yes
     </button>
     <button
       type="button"
       onClick={() => onChange('No')}
-      className={`px-4 py-2 text-sm font-medium focus:z-10 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200
-          ${value === 'No' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+      className={`px-4 py-2 text-sm font-medium focus:z-10 focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 transition-colors duration-200
+          ${value === 'No' ? 'bg-gradient-to-r from-cc-yellow-400 to-cc-yellow-500 text-black shadow-md' : 'cc-glass cc-text-secondary cc-border hover:cc-text-accent'}`}
     >
       No
     </button>
     <button
       type="button"
       onClick={() => onChange('Yes in this queue only')}
-      className={`px-4 py-2 text-sm font-medium focus:z-10 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200
-          ${value === 'Yes in this queue only' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+      className={`px-4 py-2 text-sm font-medium focus:z-10 focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 transition-colors duration-200
+          ${value === 'Yes in this queue only' ? 'bg-gradient-to-r from-cc-yellow-400 to-cc-yellow-500 text-black shadow-md' : 'cc-glass cc-text-secondary cc-border hover:cc-text-accent'}`}
     >
       Yes in this queue only
     </button>
     <button
       type="button"
       onClick={() => onChange('Yes in all queues')}
-      className={`px-4 py-2 text-sm font-medium rounded-r-md focus:z-10 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200
-          ${value === 'Yes in all queues' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+      className={`px-4 py-2 text-sm font-medium rounded-r-md focus:z-10 focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 transition-colors duration-200
+          ${value === 'Yes in all queues' ? 'bg-gradient-to-r from-cc-yellow-400 to-cc-yellow-500 text-black shadow-md' : 'cc-glass cc-text-secondary cc-border hover:cc-text-accent'}`}
     >
       Yes in all queues
     </button>
@@ -205,8 +205,16 @@ const TimingAgentOptionsTab: React.FC<TimingAgentOptionsTabProps> = ({ formData,
 
 
   return (
-    <div className="p-6">
-      <h3 className="text-xl font-semibold mb-4 text-gray-800">Timing & Agent Options Settings</h3>
+    <div className="space-y-6">
+      <div className="flex items-center space-x-3 mb-8">
+        <div className="w-8 h-8 bg-cc-yellow-400/20 rounded-lg flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 cc-text-accent" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+          </svg>
+        </div>
+        <h2 className="text-2xl font-bold cc-text-accent">Timing & Agent Options</h2>
+      </div>
+      <div className="cc-glass rounded-xl p-6">
 
       {/* Max Wait Time */}
       <FormRow label="Max Wait Time" tooltip="The maximum time (in seconds) a caller will wait in the queue before being sent to the failover destination.">
@@ -214,7 +222,7 @@ const TimingAgentOptionsTab: React.FC<TimingAgentOptionsTabProps> = ({ formData,
           name="maxWaitTime"
           value={formData.maxWaitTime}
           onChange={e => handleChange(e.target.name, e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          className="w-full p-3 cc-glass border cc-border rounded-lg cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
         >
           {maxWaitTimeOptions.map(option => (
             <option key={option.value} value={option.value}>{option.label}</option>
@@ -236,7 +244,7 @@ const TimingAgentOptionsTab: React.FC<TimingAgentOptionsTabProps> = ({ formData,
           name="agentTimeout"
           value={formData.agentTimeout}
           onChange={e => handleChange(e.target.name, e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          className="w-full p-3 cc-glass border cc-border rounded-lg cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
         >
           {agentTimeoutOptions.map(option => (
             <option key={option.value} value={option.value}>{option.label}</option>
@@ -258,7 +266,7 @@ const TimingAgentOptionsTab: React.FC<TimingAgentOptionsTabProps> = ({ formData,
           name="retry"
           value={formData.retry}
           onChange={e => handleChange(e.target.name, e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          className="w-full p-3 cc-glass border cc-border rounded-lg cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
         >
           {retryOptions.map(option => (
             <option key={option.value} value={option.value}>{option.label}</option>
@@ -272,7 +280,7 @@ const TimingAgentOptionsTab: React.FC<TimingAgentOptionsTabProps> = ({ formData,
           name="wrapUpTime"
           value={formData.wrapUpTime}
           onChange={e => handleChange(e.target.name, e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          className="w-full p-3 cc-glass border cc-border rounded-lg cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
         >
           {wrapUpTimeOptions.map(option => (
             <option key={option.value} value={option.value}>{option.label}</option>
@@ -286,7 +294,7 @@ const TimingAgentOptionsTab: React.FC<TimingAgentOptionsTabProps> = ({ formData,
           name="memberDelay"
           value={formData.memberDelay}
           onChange={e => handleChange(e.target.name, e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          className="w-full p-3 cc-glass border cc-border rounded-lg cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
         >
           {memberDelayOptions.map(option => (
             <option key={option.value} value={option.value}>{option.label}</option>
@@ -300,7 +308,7 @@ const TimingAgentOptionsTab: React.FC<TimingAgentOptionsTabProps> = ({ formData,
           name="agentAnnouncement"
           value={formData.agentAnnouncement}
           onChange={e => handleChange(e.target.name, e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          className="w-full p-3 cc-glass border cc-border rounded-lg cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
         >
           {agentAnnouncementOptions.map(option => (
             <option key={option.value} value={option.value}>{option.label}</option>
@@ -347,10 +355,11 @@ const TimingAgentOptionsTab: React.FC<TimingAgentOptionsTabProps> = ({ formData,
           name="autoPauseDelay"
           value={formData.autoPauseDelay}
           onChange={e => handleChange(e.target.name, Number(e.target.value))}
-          className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          className="w-full p-3 cc-glass border cc-border rounded-lg cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
           min="0"
         />
       </FormRow>
+      </div>
     </div>
   );
 };

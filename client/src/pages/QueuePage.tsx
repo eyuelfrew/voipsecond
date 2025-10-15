@@ -16,7 +16,6 @@ import {
 } from '../types/queueTypes'; // Adjust path as necessary
 
 // Corrected import for GeneralSettings (from QUEUE folder)
-// import GeneralSettings from '../components/QUEUE/GeneralSettings';
 import CallerAnnouncements from '../components/QUEUE/CallerAnnouncements';
 import AdvancedOption from '../components/QUEUE/AdvancedOption';
 import RecetQueueStats from '../components/QUEUE/RecetQueueStats';
@@ -66,6 +65,9 @@ const QueueForm: React.FC = () => {
   const [message, setMessage] = useState<string | null>(null);
   const [messageType, setMessageType] = useState<'success' | 'error' | null>(null);
   const [loadingQueueData, setLoadingQueueData] = useState<boolean>(false);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [modalMessage, setModalMessage] = useState<string>('');
+  const [modalType, setModalType] = useState<'success' | 'error'>('success');
 
 
   // State for active tab
@@ -274,28 +276,25 @@ const QueueForm: React.FC = () => {
         await axios.put(`${backendUrl}/api/queue/${queueId}`, payload, {
           withCredentials: true,
         });
-        setMessage("Queue updated successfully!");
+        setModalMessage("Queue updated successfully!");
       } else {
         // Create new queue
         await axios.post(`${backendUrl}/api/queue`, payload, {
           withCredentials: true,
         });
-        setMessage("Queue created successfully!");
+        setModalMessage("Queue created successfully!");
       }
 
-      setMessageType("success");
+      setModalType("success");
+      setIsModalOpen(true);
       // Optionally reset form or redirect here
 
     } catch (error: any) {
       console.error("Queue submit error:", error);
-      setMessage(error?.response?.data?.error || "Failed to process queue");
-      setMessageType("error");
+      setModalMessage(error?.response?.data?.error || "Failed to process queue");
+      setModalType("error");
+      setIsModalOpen(true);
     }
-
-    setTimeout(() => {
-      setMessage(null);
-      setMessageType(null);
-    }, 3000);
   };
 
   const handleReset = () => {
@@ -346,12 +345,9 @@ const QueueForm: React.FC = () => {
       leaveEmpty: 'No',
       penaltyMembersLimit: 'Honor Penalties',
     });
-    setMessage('Form reset successfully!');
-    setMessageType('success');
-    setTimeout(() => {
-      setMessage(null);
-      setMessageType(null);
-    }, 3000);
+    setModalMessage('Form reset successfully!');
+    setModalType('success');
+    setIsModalOpen(true);
   };
 
   const handleDelete = async () => { // Made async to handle API call
@@ -364,17 +360,15 @@ const QueueForm: React.FC = () => {
           // Optionally redirect to queue list after successful deletion
           // navigate('/queues'); // You'd need to import useNavigate from 'react-router-dom'
         } catch (error: any) {
-          setMessage(error?.response?.data?.error || 'Failed to delete queue');
-          setMessageType('error');
+          setModalMessage(error?.response?.data?.error || 'Failed to delete queue');
+          setModalType('error');
+          setIsModalOpen(true);
         }
       } else {
-        setMessage('No queue ID to delete.');
-        setMessageType('error');
+        setModalMessage('No queue ID to delete.');
+        setModalType('error');
+        setIsModalOpen(true);
       }
-      setTimeout(() => {
-        setMessage(null);
-        setMessageType(null);
-      }, 3000);
     }
   };
 
@@ -538,6 +532,50 @@ const QueueForm: React.FC = () => {
             </div>
           </form>
         </div>
+
+        {/* Success/Error Modal */}
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
+            <div className="relative w-full max-w-md mx-auto cc-glass rounded-2xl shadow-2xl p-8 border cc-border-accent">
+              <div className="text-center">
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                  modalType === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                }`}>
+                  {modalType === 'success' ? (
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                  ) : (
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                  )}
+                </div>
+                
+                <h3 className={`text-2xl font-bold mb-2 ${
+                  modalType === 'success' ? 'cc-text-accent' : 'cc-text-secondary'
+                }`}>
+                  {modalType === 'success' ? 'Success!' : 'Error!'}
+                </h3>
+                
+                <p className="cc-text-secondary mb-6 text-lg">
+                  {modalMessage}
+                </p>
+                
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className={`px-6 py-3 rounded-xl font-semibold w-full ${
+                    modalType === 'success' 
+                      ? 'bg-gradient-to-r from-cc-yellow-400 to-cc-yellow-500 text-black hover:from-cc-yellow-500 hover:to-cc-yellow-600' 
+                      : 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700'
+                  } cc-transition transform hover:scale-105 shadow-lg`}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

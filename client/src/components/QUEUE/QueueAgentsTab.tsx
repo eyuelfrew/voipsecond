@@ -63,7 +63,7 @@
                 id="agent-select"
                 value=""
                 onChange={handleSelectAndAddAgent}
-                className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
+                className="w-full px-4 py-3 cc-glass border cc-border rounded-lg cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
               >
                 <option value="">-- Select an Agent --</option>
                 {initialAllAgents.map(agent => (

@@ -83,10 +83,10 @@ const generateIvrDialplan = (allIVRs, allRecordings) => {
     }
 
     // Direct Dial Extension - Allow dialing extensions directly
-    if (dtmf.enableDirectDial === 'Enabled') {
-      ivrConfigSections += `exten => _X.,1,NoOp(Direct Dial: \${EXTEN})\n`;
-      ivrConfigSections += `same => n,Goto(from-internal,\${EXTEN},1)\n`;
-    }
+    // if (dtmf.enableDirectDial === 'Enabled') {
+    //   ivrConfigSections += `exten => _X.,1,NoOp(Direct Dial: \${EXTEN})\n`;
+    //   ivrConfigSections += `same => n,Goto(from-internal,\${EXTEN},1)\n`;
+    // }
 
     // Play announcement recording(s)
     const announcementFilenames = getRecordingFilenamesArray(dtmf.announcement?.id, allRecordings);

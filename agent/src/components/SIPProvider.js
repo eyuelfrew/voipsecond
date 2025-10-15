@@ -7,7 +7,8 @@ import React, {
 } from "react";
 import JsSIP from "jssip";
 import useStore from "../store/store";
-import { baseUrl } from "../baseUrl";
+import { baseUrl, SIP_SERVER } from "../baseUrl";
+import { SIP } from "jssip/lib/Constants";
 
 const SIPContext = createContext();
 
@@ -44,12 +45,12 @@ export const SIPProvider = ({ children }) => {
     };
     fetchSipPassword();
   }, [SIP_USER]);
-  const SIP_SERVER =  "127.0.0.1";
+  const sipSERVER = SIP_SERVER;
   const SIP_PORT = process.env.REACT_APP_SIP_SERVER_PORT || 8088;
   // Use ws:// for secure WebSocket connection (required for HTTPS pages)
-  console.log(SIP_SERVER)
-  console.log(SIP_SERVER)
-  const SIP_WS_SERVER = `ws://${SIP_SERVER}:${SIP_PORT}/ws`;
+  console.log(sipSERVER)
+  console.log(sipSERVER)
+  const SIP_WS_SERVER = `ws://${sipSERVER}:${SIP_PORT}/ws`;
 
   // Debug logging for SIP configuration
   console.log("🔧 SIP Configuration:", {
@@ -59,12 +60,12 @@ export const SIPProvider = ({ children }) => {
     env_server_ip: process.env.REACT_APP_SERVER_IP,
     env_sip_port: process.env.REACT_APP_SIP_SERVER_PORT
   });
- const PC_CONFIG = {
+  const PC_CONFIG = {
 
-  rtcpMuxPolicy: "require",
-  bundlePolicy: "max-bundle",
-  iceCandidatePoolSize: 10
-};
+    rtcpMuxPolicy: "require",
+    bundlePolicy: "max-bundle",
+    iceCandidatePoolSize: 10
+  };
 
 
   const [status, setStatus] = useState("Disconnected");
@@ -98,16 +99,16 @@ export const SIPProvider = ({ children }) => {
     if (!SIP_USER || !sipPassword || !agent) {
       console.log("⏸️ SIP connection paused - missing credentials or agent not logged in", {
         SIP_USER: !!SIP_USER,
-        sipPassword: !!sipPassword, 
+        sipPassword: !!sipPassword,
         agent: !!agent
       });
       return;
     }
-    
+
     // Reset reconnect attempts when credentials change
     setReconnectAttempts(0);
     startUA();
-    
+
     return () => {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
@@ -125,20 +126,20 @@ export const SIPProvider = ({ children }) => {
     if (uaRef.current && uaRef.current.isRegistered()) return;
     try {
       const socket = new JsSIP.WebSocketInterface(SIP_WS_SERVER);
-            const configuration = {
-                sockets: [socket],
-                uri: `sip:${SIP_USER}@${SIP_SERVER}`,
-                password: sipPassword,
-                session_timers: false,
-                pcConfig: PC_CONFIG,
-                register: true,
-                register_expires: 600,
-                no_answer_timeout: 30,
-                session_timers_expires: 90,
-                connection_recovery_min_interval: 2,
-                connection_recovery_max_interval: 30,
-                trace_sip: true
-            };
+      const configuration = {
+        sockets: [socket],
+        uri: `sip:${SIP_USER}@${SIP_SERVER}`,
+        password: sipPassword,
+        session_timers: false,
+        pcConfig: PC_CONFIG,
+        register: true,
+        register_expires: 600,
+        no_answer_timeout: 30,
+        session_timers_expires: 90,
+        connection_recovery_min_interval: 2,
+        connection_recovery_max_interval: 30,
+        trace_sip: true
+      };
       const ua = new JsSIP.UA(configuration);
       uaRef.current = ua;
       ua.on("connecting", () => setStatus("Connecting..."));
@@ -148,13 +149,13 @@ export const SIPProvider = ({ children }) => {
         setStatus("Disconnected");
         setError(`WebSocket disconnected: ${e.cause || 'Connection lost'}`);
         setRegistered(false);
-        
+
         // Clear any existing reconnect timeout
         if (reconnectTimeoutRef.current) {
           clearTimeout(reconnectTimeoutRef.current);
           reconnectTimeoutRef.current = null;
         }
-        
+
         // Only attempt to reconnect if:
         // 1. Agent is still authenticated
         // 2. We have valid credentials
@@ -164,21 +165,21 @@ export const SIPProvider = ({ children }) => {
           console.log("⏹️ Not reconnecting - agent not authenticated or missing credentials");
           return;
         }
-        
+
         if (agentStatus === "Paused" || agentStatus === "Do Not Disturb" || agentStatus === "Unavailable") {
           console.log("⏹️ Not reconnecting - agent status doesn't allow connection:", agentStatus);
           return;
         }
-        
+
         if (reconnectAttempts >= maxReconnectAttempts) {
           console.log(`⏹️ Max reconnect attempts (${maxReconnectAttempts}) reached. Stopping reconnection.`);
           setError(`Connection failed after ${maxReconnectAttempts} attempts. Please refresh the page or check your connection.`);
           return;
         }
-        
+
         const backoffDelay = Math.min(5000 * Math.pow(2, reconnectAttempts), 30000);
         console.log(`🔄 Attempting to reconnect in ${backoffDelay}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})...`);
-        
+
         reconnectTimeoutRef.current = setTimeout(() => {
           if (!uaRef.current || !uaRef.current.isRegistered()) {
             setReconnectAttempts(prev => prev + 1);
@@ -201,7 +202,7 @@ export const SIPProvider = ({ children }) => {
         setStatus("Registration Failed");
         setError(`Registration failed: ${e.cause}`);
         setRegistered(false);
-        
+
         // Don't retry on authentication failures (401, 403)
         if (e.status_code === 401 || e.status_code === 403) {
           console.log("🚫 Authentication failed - not retrying");
@@ -217,7 +218,7 @@ export const SIPProvider = ({ children }) => {
           local_identity: session.local_identity?.uri?.user,
           session_id: session.id
         });
-        
+
         if (session.direction === "incoming") {
           console.log("📞 INCOMING CALL DETECTED");
           if (agentStatus === "Paused" || agentStatus === "Do Not Disturb") {
@@ -285,14 +286,14 @@ export const SIPProvider = ({ children }) => {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
-    
+
     if (uaRef.current) {
       uaRef.current.stop();
       uaRef.current = null;
       setRegistered(false);
       setStatus("Disconnected");
     }
-    
+
     // Reset reconnect attempts
     setReconnectAttempts(0);
   };
@@ -492,7 +493,7 @@ export const SIPProvider = ({ children }) => {
       uaRef: !!uaRef.current,
       SIP_SERVER
     });
-    
+
     if (!uaRef.current || !registered) {
       console.log("❌ SIP client not registered:", { uaRef: !!uaRef.current, registered });
       setError("SIP client not registered.");
@@ -512,7 +513,7 @@ export const SIPProvider = ({ children }) => {
           new Error("getUserMedia not supported in this browser")
         ));
       console.log("✅ Microphone access granted for outgoing call");
-      
+
       const eventHandlers = {
         progress: () => {
           console.log("📞 Outgoing call progress");
@@ -537,14 +538,14 @@ export const SIPProvider = ({ children }) => {
         mediaStream: stream,
         pcConfig: PC_CONFIG,
       };
-      
+
       // Use full SIP URI with domain for proper routing
       const callUri = `sip:${destination}@${SIP_SERVER}`;
       console.log("📞 Initiating call to:", callUri);
-      
+
       const session = uaRef.current.call(callUri, options);
       console.log("📞 Call session created:", session);
-      
+
       setCallSession(session);
       setStatus("Calling...");
     } catch (err) {
