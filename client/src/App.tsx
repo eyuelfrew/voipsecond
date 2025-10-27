@@ -15,6 +15,9 @@ import SystemRecordingUpload from "./components/SystemRecordingUpload";
 import MiscApplicationForm from "./pages/MiscApplicationForm";
 import SystemRecordingsList from "./pages/SystemRecordingsList";
 import MiscApplicationList from "./components/MiscApplication/MiscApplicationList"; // This is the list component
+import AnnouncementsList from "./pages/AnnouncementsList";
+import AnnouncementForm from "./pages/AnnouncementForm";
+
 import QueuePage from "./pages/QueuePage";
 import AgentPage from "./pages/AgentPage";
 import QueueList from "./pages/QueueList";
@@ -90,6 +93,10 @@ export default function App() {
         <Route path="system-recordings" element={<SystemRecordingsList />} />
         <Route path="system-recordings-upload" element={<SystemRecordingUpload />} />
         
+        <Route path="announcements" element={<AnnouncementsList />} />
+        <Route path="announcements/create" element={<AnnouncementForm />} />
+        <Route path="announcements/edit/:id" element={<AnnouncementForm />} />
+
         <Route path="call-history" element={<CallHistory />} />
 
         <Route path="new-misc-application" element={<MiscApplicationForm />} />

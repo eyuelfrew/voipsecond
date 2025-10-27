@@ -5,7 +5,7 @@ const DestinationSchema = new mongoose.Schema({
   type: {
     type: String,
     required: [true, 'Destination type is required'],
-    enum: ['extension', 'ivr', 'queue', 'recording'], // Enforce allowed types
+    enum: ['extension', 'ivr', 'queue', 'recording', 'announcement'], // Enforce allowed types
   },
   id: {
     type: String,

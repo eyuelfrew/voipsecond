@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  option {
+    background: var(--cc-surface);
+    color: var(--cc-text);
+  }
+}
+
 /* Call Center Dashboard Theme CSS Custom Properties */
 :root {
   /* Default (Dark) Theme Colors */

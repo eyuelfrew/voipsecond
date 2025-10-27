@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useState, useContext, useEffect } from "react";
-import { Home, Users, ListOrdered, LineChart, LogOut, BarChart3, Menu, ChevronLeft, ChevronDown } from "lucide-react";
+import { Home, Users, ListOrdered, LineChart, LogOut, BarChart3, Menu, ChevronLeft, ChevronDown, MessageCircle, Mic, Upload } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 
@@ -50,27 +50,6 @@ const Sidebar = () => {
       name: "Agents",
       icon: <Users />,
     },
-    // // Misc Applications as a submenu
-    // {
-    //   name: "Misc App",
-    //   icon: <FaUsers />, // You might want a different icon for misc applications
-    //   submenus: [
-    //     { path: "/new-misc-application", name: "Creat New", icon: <FaListAlt /> },
-    //     { path: "/misc-applications" , name: "Misc Applications", icon: <FaPlus /> },
-    //   ],
-    // },
-
-    // IVR Menus and System Recordings as submenus
-    // {
-    //   name: "IVR",
-    //   icon: <FaListOl />,
-    //   submenus: [
-    //     { path: "/ivr-menu", name: "IVR Menus", icon: <FaListAlt /> },
-    //     { path: "/new-ivr", name: "New IVR", icon: <FaPlus /> },
-    //     { path: "/system-recordings", name: "Recordings", icon: <FaUsers /> },
-    //     { path: "/system-recordings-upload", name: "Upload Recording", icon: <FaHome /> },
-    //   ],
-    // },
   ];
 
   return (

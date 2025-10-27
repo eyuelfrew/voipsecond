@@ -6,7 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 
 // Define the interfaces for the data received from the backend
 interface Destination {
-  type: 'extension' | 'ivr' | 'queue' | 'recording';
+  type: 'extension' | 'ivr' | 'queue' | 'recording' | 'announcement';
   id: string; // Keep 'id' in the interface as the backend sends it, even if not displayed
 }
 
@@ -24,6 +24,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 const MiscApplicationList = () => {
   const navigate = useNavigate();
+  const { isDarkMode } = useTheme();
   const [miscApplications, setMiscApplications] = useState<MiscApplication[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
@@ -85,12 +86,15 @@ const MiscApplicationList = () => {
 
   if (loading) {
     return (
-      <div className="min-h-full cc-bg-background cc-transition p-6">
-        <div className="flex justify-center items-center h-48">
-          <div className="cc-glass rounded-xl p-8 flex items-center space-x-4">
-            <Loader2 className="animate-spin cc-text-accent text-4xl" />
-            <p className="text-lg cc-text-secondary">Loading Misc Applications...</p>
-          </div>
+      <div className="min-h-full cc-bg-background cc-transition flex justify-center items-center p-6"
+        style={{
+          background: isDarkMode
+            ? 'linear-gradient(135deg, #000000 0%, #1F2937 25%, #111827 50%, #1F2937 75%, #000000 100%)'
+            : 'linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 25%, #F3F4F6 50%, #F9FAFB 75%, #FFFFFF 100%)'
+        }}>
+        <div className="relative z-10 text-center cc-glass rounded-xl p-8">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-cc-yellow-400 border-t-transparent mx-auto mb-6"></div>
+          <p className="cc-text-primary text-xl font-semibold">Loading Misc Applications...</p>
         </div>
       </div>
     );
@@ -98,41 +102,30 @@ const MiscApplicationList = () => {
 
   if (error) {
     return (
-      <div className="min-h-full cc-bg-background cc-transition p-6">
-        <div className="flex justify-center items-center h-48">
-          <div className="cc-glass rounded-xl p-6 border border-red-500/20 bg-red-500/5 flex items-center space-x-3">
-            <AlertCircle className="text-xl text-red-400" />
-            <p className="cc-text-secondary">{error}</p>
+      <div className="min-h-full cc-bg-background cc-transition flex justify-center items-center p-6"
+        style={{
+          background: isDarkMode
+            ? 'linear-gradient(135deg, #000000 0%, #1F2937 25%, #111827 50%, #1F2937 75%, #000000 100%)'
+            : 'linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 25%, #F3F4F6 50%, #F9FAFB 75%, #FFFFFF 100%)'
+        }}>
+        <div className="relative z-10 text-center cc-glass rounded-xl p-8 max-w-md">
+          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertCircle className="w-8 h-8 text-red-400" />
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (miscApplications.length === 0) {
-    return (
-      <div className="min-h-full cc-bg-background cc-transition p-6">
-        <div className="flex flex-col justify-center items-center h-48 space-y-6">
-          <div className="cc-glass rounded-xl p-6 border border-blue-500/20 bg-blue-500/5 flex items-center space-x-3">
-            <Info className="text-xl text-blue-400" />
-            <p className="cc-text-secondary">No Misc Applications found. Create one to get started!</p>
-          </div>
+          <p className="text-red-400 text-lg mb-6 font-semibold">{error}</p>
           <button
-            className="px-6 py-3 bg-gradient-to-r from-cc-yellow-400 to-cc-yellow-500 hover:from-cc-yellow-500 hover:to-cc-yellow-600 text-black font-semibold rounded-xl shadow-lg hover:shadow-xl cc-transition transform hover:scale-105 flex items-center space-x-2"
-            onClick={() => navigate('/new-misc-application')}
+            onClick={fetchMiscApplications}
+            className="bg-gradient-to-r from-cc-yellow-400 to-cc-yellow-500 hover:from-cc-yellow-500 hover:to-cc-yellow-600 text-black px-6 py-3 rounded-xl shadow-lg font-bold cc-transition hover:scale-105"
           >
-            <Plus className="h-5 w-5" />
-            <span>Create New Misc Application</span>
+            Retry
           </button>
         </div>
       </div>
     );
   }
 
-  const { isDarkMode } = useTheme();
-
   return (
-    <div className="min-h-full cc-bg-background cc-transition"
+    <div className="min-h-full cc-bg-background cc-transition p-6"
       style={{
         background: isDarkMode
           ? 'linear-gradient(135deg, #000000 0%, #1F2937 25%, #111827 50%, #1F2937 75%, #000000 100%)'
@@ -146,29 +139,32 @@ const MiscApplicationList = () => {
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,0,0.02)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
       </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto p-6">
-        {/* Header Section */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-4 mb-6">
-            <div className="w-12 h-12 bg-cc-yellow-400 rounded-xl flex items-center justify-center animate-pulse">
-              <Settings className="h-6 w-6 text-black" />
+      <div className="relative z-10 max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="cc-glass rounded-xl p-8 shadow-2xl">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-cc-yellow-400 rounded-xl flex items-center justify-center animate-pulse">
+                <Settings className="h-6 w-6 text-black" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold cc-text-accent">Misc Applications</h1>
+                <p className="cc-text-secondary mt-1">
+                  Manage feature codes and custom applications
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold cc-text-accent animate-fade-in">Misc Applications</h1>
-              <p className="cc-text-secondary animate-fade-in-delay-300">Manage feature codes and custom applications</p>
-            </div>
+            <button
+              onClick={() => navigate('/new-misc-application')}
+              className="bg-gradient-to-r from-cc-yellow-400 to-cc-yellow-500 hover:from-cc-yellow-500 hover:to-cc-yellow-600 text-black px-6 py-3 rounded-xl shadow-lg flex items-center font-bold cc-transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+            >
+              <Plus className="mr-2 w-5 h-5" /> Create Misc Application
+            </button>
           </div>
-
-          <button
-            className="px-6 py-3 bg-gradient-to-r from-cc-yellow-400 to-cc-yellow-500 hover:from-cc-yellow-500 hover:to-cc-yellow-600 text-black font-semibold rounded-xl shadow-lg hover:shadow-xl cc-transition transform hover:scale-105 flex items-center space-x-2"
-            onClick={() => navigate('/new-misc-application')}
-          >
-            <Plus className="h-5 w-5" />
-            <span>Create New Misc Application</span>
-          </button>
         </div>
 
-        <div className="cc-glass rounded-xl p-6">
+        {/* Misc Applications Table */}
+        <div className="cc-glass rounded-xl overflow-hidden">
 
           {deleteLoading && (
             <div className="flex items-center justify-center p-4 mb-6 cc-glass rounded-xl border border-yellow-500/20 bg-yellow-500/5">
@@ -184,24 +180,32 @@ const MiscApplicationList = () => {
           )}
 
           <div className="overflow-x-auto">
-            <table className="min-w-full cc-glass rounded-xl overflow-hidden">
+            <table className="min-w-full divide-y cc-border-accent">
               <thead>
-                <tr className="cc-bg-surface-variant border-b cc-border text-left text-sm font-semibold cc-text-accent uppercase tracking-wider">
-                  <th className="px-6 py-4">Name</th>
-                  <th className="px-6 py-4">Feature Code</th>
-                  <th className="px-6 py-4">Destination Type</th>
-                  <th className="px-6 py-4">Actions</th>
+                <tr>
+                  <th className="px-6 py-4 text-left text-sm font-semibold cc-text-accent uppercase tracking-wider">
+                    Name
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold cc-text-accent uppercase tracking-wider">
+                    Feature Code
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold cc-text-accent uppercase tracking-wider">
+                    Destination Type
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold cc-text-accent uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
-              <tbody>
-                {miscApplications.map((app, index) => (
-                  <tr key={app._id} className={`border-b cc-border last:border-b-0 hover:bg-yellow-400/5 cc-transition group ${index % 2 === 0 ? 'bg-black/5 dark:bg-white/5' : ''}`}>
+              <tbody className="divide-y cc-border">
+                {miscApplications.map((app) => (
+                  <tr key={app._id} className="hover:bg-cc-yellow-400/5 cc-transition group">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 bg-cc-yellow-400/20 rounded-lg flex items-center justify-center">
                           <Settings className="h-4 w-4 cc-text-accent" />
                         </div>
-                        <span className="text-sm font-medium cc-text-primary">{app.name}</span>
+                        <span className="font-medium cc-text-primary">{app.name}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -209,19 +213,17 @@ const MiscApplicationList = () => {
                         {app.featureCode}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm cc-text-secondary capitalize">
-                        {app.destination?.type ? app.destination.type : 'N/A'}
-                      </span>
+                    <td className="px-6 py-4 whitespace-nowrap cc-text-primary capitalize">
+                      {app.destination?.type ? app.destination.type : 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button
                         onClick={() => handleDeleteClick(app)}
-                        className="p-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 cc-transition transform hover:scale-110 group-hover:opacity-100 opacity-70"
+                        className="p-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 cc-transition"
                         title="Delete Application"
                         disabled={deleteLoading}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="w-5 h-5" />
                       </button>
                     </td>
                   </tr>
@@ -230,6 +232,23 @@ const MiscApplicationList = () => {
             </table>
           </div>
         </div>
+
+        {/* Empty State */}
+        {miscApplications.length === 0 && (
+          <div className="cc-glass rounded-xl p-12 text-center">
+            <div className="w-16 h-16 bg-cc-yellow-400/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Settings className="h-8 w-8 cc-text-accent" />
+            </div>
+            <h3 className="text-xl font-bold cc-text-accent mb-2">No misc applications found</h3>
+            <p className="cc-text-secondary mb-6">Create your first misc application to get started.</p>
+            <button
+              onClick={() => navigate('/new-misc-application')}
+              className="bg-gradient-to-r from-cc-yellow-400 to-cc-yellow-500 hover:from-cc-yellow-500 hover:to-cc-yellow-600 text-black px-6 py-3 rounded-xl shadow-lg flex items-center justify-center font-semibold cc-transition hover:scale-105 mx-auto"
+            >
+              <Plus className="mr-2 w-4 h-4" /> Create Misc Application
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Confirmation Modal */}

@@ -32,6 +32,7 @@ interface DestOption {
 
 // Define the types of destinations available
 const DEST_TYPES: DestTypeOption[] = [
+  { label: 'Announcement', value: 'announcement', endpoint: '/api/announcements' },
   { label: 'IVR', value: 'ivr', endpoint: '/api/ivr/menu' },
   { label: 'Extension', value: 'extension', endpoint: '/api/extensions' },
   { label: 'Queue', value: 'queue', endpoint: '/api/queues' },
@@ -221,20 +222,25 @@ const MiscApplicationForm: FC = () => {
             </div>
 
             {/* Destination Type Dropdown */}
-            <div className="space-y-2">
+            <div className="space-y-2 relative">
               <label htmlFor="destType" className="block text-sm font-semibold cc-text-primary">Destination Type</label>
               <select
                 id="destType"
-                className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
+                className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition appearance-none"
                 value={destType}
                 onChange={handleDestTypeChange}
                 required
               >
                 <option value="">Select destination type</option>
                 {DEST_TYPES.map(dt => (
-                  <option key={dt.value} value={dt.value}>{dt.label}</option>
+                  <option key={dt.value} value={dt.value} className="cc-bg-surface cc-text-primary">{dt.label}</option>
                 ))}
               </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-cc-text-primary">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
             </div>
 
             {/* Destination Item Dropdown (conditionally rendered) */}
@@ -249,24 +255,32 @@ const MiscApplicationForm: FC = () => {
                     <span className="cc-text-secondary">Loading options...</span>
                   </div>
                 ) : (
-                  <select
-                    id="destination"
-                    className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition disabled:opacity-50"
-                    value={formData.destinationId}
-                    onChange={handleDestinationItemChange}
-                    required
-                    disabled={destOptions.length === 0}
-                  >
-                    <option value="">Select {destType}</option>
-                    {destOptions.map(opt => (
-                      <option
-                        key={opt._id || opt.id || opt.extension || opt.name || opt.number || opt.label || JSON.stringify(opt)}
-                        value={opt._id || opt.id || opt.extension || opt.number || ''}
-                      >
-                        {opt.name || opt.extension || opt.number || opt.label || 'Unnamed'}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      id="destination"
+                      className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition disabled:opacity-50 appearance-none"
+                      value={formData.destinationId}
+                      onChange={handleDestinationItemChange}
+                      required
+                      disabled={destOptions.length === 0}
+                    >
+                      <option value="" className="cc-bg-surface cc-text-primary">Select {destType}</option>
+                      {destOptions.map(opt => (
+                        <option
+                          key={opt._id || opt.id || opt.extension || opt.name || opt.number || opt.label || JSON.stringify(opt)}
+                          value={opt._id || opt.id || opt.extension || opt.number || ''}
+                          className="cc-bg-surface cc-text-primary"
+                        >
+                          {opt.name || opt.extension || opt.number || opt.label || 'Unnamed'}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-cc-text-primary">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </div>
+                  </div>
                 )}
                 {destType && destOptions.length === 0 && !destLoading && (
                   <div className="cc-glass rounded-xl p-3 border border-red-500/20 bg-red-500/5 flex items-center space-x-2">

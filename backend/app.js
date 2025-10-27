@@ -24,6 +24,7 @@ const callRoutes = require('./routes/callRoutes');
 const authRoutes = require('./routes/auth');
 const contactRoutes = require('./routes/contactRoutes');
 const cannedResponseRoutes = require('./routes/cannedResponseRoutes');
+const announcementRoutes = require('./routes/announcementRoutes');
 
 const supervisorRoutes = require('./routes/supervisorRoutes');
 // =========================
@@ -105,6 +106,7 @@ app.use('/api/call', callRoutes);
 app.use("/api/auth", authRoutes); // Register the new auth route
 app.use('/api/contacts', contactRoutes);
 app.use('/api/canned-responses', cannedResponseRoutes);
+app.use('/api/announcements', announcementRoutes);
 // =========================
 // Export App
 // =========================
