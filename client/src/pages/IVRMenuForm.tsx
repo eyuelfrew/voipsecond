@@ -49,6 +49,56 @@ const IVRMenuCreator = () => {
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(isEditMode);
 
+  const showCustomAlert = (message: string, type: 'success' | 'error') => {
+    // Create custom alert element
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 p-6 rounded-xl shadow-2xl backdrop-blur-sm border max-w-md w-full mx-4 animate-fade-in ${
+      type === 'success' 
+        ? 'bg-green-500/90 border-green-400 text-white' 
+        : 'bg-red-500/90 border-red-400 text-white'
+    }`;
+    
+    alertDiv.innerHTML = `
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+          ${type === 'success' ? '✅' : '⚠️'}
+        </div>
+        <div>
+          <h3 class="font-semibold text-lg">${type === 'success' ? 'Success!' : 'Error!'}</h3>
+          <p class="text-sm opacity-90">${message}</p>
+        </div>
+      </div>
+      <button class="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-sm">×</button>
+    `;
+    
+    // Add backdrop
+    const backdrop = document.createElement('div');
+    backdrop.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-40';
+    
+    document.body.appendChild(backdrop);
+    document.body.appendChild(alertDiv);
+    
+    // Auto remove after 4 seconds
+    const autoRemove = setTimeout(() => {
+      if (document.body.contains(alertDiv)) {
+        document.body.removeChild(alertDiv);
+        document.body.removeChild(backdrop);
+      }
+    }, 4000);
+    
+    // Remove on click
+    const removeAlert = () => {
+      clearTimeout(autoRemove);
+      if (document.body.contains(alertDiv)) {
+        document.body.removeChild(alertDiv);
+        document.body.removeChild(backdrop);
+      }
+    };
+    
+    alertDiv.addEventListener('click', removeAlert);
+    backdrop.addEventListener('click', removeAlert);
+  };
+
   const handleGeneralChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setIvr({ ...ivr, [name]: value });
