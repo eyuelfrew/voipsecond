@@ -20,12 +20,12 @@ const PORT = process.env.PORT || 4000;
 const AMI_USERNAME = process.env.AMI_USERNAME || "admin";
 const AMI_PASSWORD = process.env.AMI_PASSWORD || "admin@123";
 const NODE_ENV = process.env.NODE_ENV || 'development';
-console.log('Environment:', AMI_PASSWORD,AMI_USERNAME,NODE_ENV);
+console.log('Environment:', AMI_PASSWORD, AMI_USERNAME, NODE_ENV);
 // Dynamic IP configuration based on NODE_ENV
-const AMI_HOST = NODE_ENV === 'production' 
+const AMI_HOST = NODE_ENV === 'production'
   ? (process.env.PROD_AMI_HOST || '172.20.47.18')
   : (process.env.DEV_AMI_HOST || '127.0.0.1');
-  console.log('AMI Host:', AMI_HOST);
+console.log('AMI Host:', AMI_HOST);
 const AMI_PORT = parseInt(process.env.AMI_PORT || 5038, 10);
 
 // --- SSL Certificate Configuration ---
@@ -46,7 +46,7 @@ let sslOptions = null;
 const server = sslOptions ? https.createServer(sslOptions, app) : require('http').createServer(app);
 console.log(NODE_ENV)
 // CORS configuration based on environment
-const corsOrigins = NODE_ENV === 'production' 
+const corsOrigins = NODE_ENV === 'production'
   ? ['https://172.20.47.53', 'https://172.20.47.53:443', 'https://172.20.47.53:5173', 'https://172.20.47.53:3000', 'https://172.20.47.53:4000', 'http://172.20.47.53', 'http://172.20.47.53:5173', 'http://172.20.47.53:3000', 'http://172.20.47.53:4000']
   : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:4000', 'https://localhost:5173', 'https://localhost:3000'];
 
@@ -74,7 +74,7 @@ ami
 
     // CRITICAL: Set up the AMI event listeners ONCE after a successful connection.
     setupAmiEventListeners(ami, io);
-    
+
     // Initialize queue statistics scheduler
     scheduleQueueStatsCalculation();
     // Handle individual client (browser) connections.
@@ -83,7 +83,7 @@ ami
 
       // When a new client connects, send them the current state immediately.
       // This ensures their dashboard is populated without waiting for a new event.
-      
+
       // Send current queue members to new clients
       const { emitQueueMembersStatus } = require("./config/amiConfig");
       // For individual socket, we need to emit directly
@@ -112,8 +112,8 @@ ami
       console.log(`📞 Sent ${Object.keys(state.ongoingCalls).length} ongoing calls to new client ${socket.id}`);
 
       // Handle request for current agent list - now uses enriched data.
-      socket.on("on-going-calles", ()=>{
-        io.emit('ongoingCalls',Object.values(state.ongoingCalls))
+      socket.on("on-going-calles", () => {
+        io.emit('ongoingCalls', Object.values(state.ongoingCalls))
         io.emit('queueStatus', Object.values(state.queueCallers))
       })
       socket.on("requestAgentList", () => {

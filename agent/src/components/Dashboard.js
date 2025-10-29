@@ -13,9 +13,7 @@ import TicketDetail from './TicketDetail';
 import CustomerInfo from './CustomerInfo';
 import CallControlBar from './CallControlBar';
 import ShiftTimer from './ShiftTimer';
-import NavBar from './NavBar';
 import axios from 'axios';
-import Sidebar from './Sidebar';
 import ContactSection from './ContactSection';
 import { baseUrl } from '../baseUrl';
 import KnowledgeBaseSearch from './KnowledgeBaseSearch';
@@ -32,108 +30,9 @@ const Header = ({ handleSearch, search, setSearch }) => (
   </div>
 );
 
-const ShiftReportPanel = ({ loadingShifts, shiftReport, reasonEdits, handleReasonChange, handleReasonSubmit, reasonLoading, setShiftPage }) => (
-  <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4 animate-fade-in border border-gray-200">
-    <div className="flex items-center justify-between">
-      <h2 className="text-2xl font-bold text-gray-800">Today's Shift Sessions</h2>
-    </div>
-    {loadingShifts ? (
-      <div className="text-center py-8 text-gray-500">Loading shifts...</div>
-    ) : !shiftReport || shiftReport.shifts.length === 0 ? (
-      <div className="text-center py-8 text-gray-500">No shift records for today.</div>
-    ) : (
-      <>
-        <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between text-sm text-gray-600">
-          {shiftReport.agent && (
-            <div>Agent: <span className="font-semibold">{shiftReport.agent.name || shiftReport.agent.username}</span> ({shiftReport.agent.username})</div>
-          )}
-          <div>Total Shifts: <span className="font-semibold">{shiftReport.totalShifts}</span></div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
-              <tr>
-                <th className="p-3">Start Time</th>
-                <th className="p-3">End Time</th>
-                <th className="p-3 text-center">Duration (s)</th>
-                <th className="p-3 text-center">Ongoing</th>
-                <th className="p-3">Reason</th>
-                <th className="p-3 text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {shiftReport.shifts.map((shift, idx) => (
-                <tr key={idx} className={`hover:bg-gray-50 ${shift.ongoing ? "bg-yellow-50" : ""}`}>
-                  <td className="p-3">{shift.startTime ? new Date(shift.startTime).toLocaleString() : '-'}</td>
-                  <td className="p-3">{shift.endTime ? new Date(shift.endTime).toLocaleString() : (shift.ongoing ? 'Ongoing' : '-')}</td>
-                  <td className="p-3 text-center">{Math.round(shift.duration)}</td>
-                  <td className="p-3 text-center">{shift.ongoing ? 'Yes' : 'No'}</td>
-                  <td className="p-3">
-                    {shift.ongoing || !shift.reason ? (
-                      <input
-                        type="text"
-                        className="w-full bg-gray-100 border-gray-300 rounded px-2 py-1 text-sm focus:ring-primary-500 focus:border-primary-500"
-                        value={reasonEdits[shift._id] || shift.reason || ''}
-                        onChange={e => handleReasonChange(shift._id, e.target.value)}
-                        placeholder="Enter reason..."
-                        disabled={reasonLoading}
-                      />
-                    ) : (
-                      shift.reason
-                    )}
-                  </td>
-                  <td className="p-3 text-center">
-                    {(shift.ongoing || !shift.reason) && reasonEdits[shift._id] ? (
-                      <button
-                        className="px-3 py-1 bg-primary-600 text-white rounded-md text-xs hover:bg-primary-700 transition-colors"
-                        onClick={() => handleReasonSubmit(shift._id)}
-                        disabled={reasonLoading}
-                      >
-                        Save
-                      </button>
-                    ) : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {/* Pagination Controls */}
-        <div className="flex justify-end items-center mt-4 space-x-2">
-          <button
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={() => setShiftPage(p => Math.max(1, p - 1))}
-            disabled={shiftReport.page === 1}
-          >Prev</button>
-          <span className="px-4 py-2 text-sm font-medium text-gray-700">Page {shiftReport.page} of {shiftReport.totalPages}</span>
-          <button
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={() => setShiftPage(p => p < shiftReport.totalPages ? p + 1 : p)}
-            disabled={shiftReport.page >= shiftReport.totalPages}
-          >Next</button>
-        </div>
-      </>
-    )}
-  </div>
-);
 
-const QueueWaitingReportPanel = ({ queueWaitingReport }) => (
-  <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4 animate-fade-in border border-gray-200">
-    <h2 className="text-2xl font-bold text-gray-800">Queue Waiting Report</h2>
-    {queueWaitingReport.length > 0 ? (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {queueWaitingReport.map((queue, index) => (
-          <div key={index} className="bg-green-50 rounded-xl p-4 transition-all duration-300 hover:shadow-md hover:scale-105">
-            <div className="text-sm font-semibold text-green-800 mb-1">Queue: {queue.queue}</div>
-            <div className="text-3xl font-bold text-green-600">{queue.waitingCount} <span className="text-lg font-medium">waiting</span></div>
-          </div>
-        ))}
-      </div>
-    ) : (
-      <div className="text-center py-8 text-gray-500">No queues with waiting calls.</div>
-    )}
-  </div>
-);
+
+
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
@@ -222,34 +121,7 @@ const StatsPanel = ({ statsLoading, statsError, agentStats, simulatedOnlineMinut
 );
 
 const Dashboard = () => {
-  // Pagination state for shift report
-  const [shiftPage, setShiftPage] = useState(1);
-  const shiftsPerPage = 10;
-  const [reasonEdits, setReasonEdits] = useState({});
-  const [reasonLoading, setReasonLoading] = useState(false);
 
-  // Handler to update reason for a shift
-  const handleReasonChange = (shiftId, value) => {
-    setReasonEdits(prev => ({ ...prev, [shiftId]: value }));
-  };
-
-  const handleReasonSubmit = async (shiftId) => {
-    if (!reasonEdits[shiftId]) return;
-    setReasonLoading(true);
-    try {
-      await fetch(`${baseUrl}/shifts/${shiftId}/reason`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: reasonEdits[shiftId] })
-      });
-      setReasonEdits(prev => ({ ...prev, [shiftId]: '' }));
-      // Refresh shift report after update
-      fetchShiftReport(shiftPage);
-    } catch (err) {
-      // Handle error
-    }
-    setReasonLoading(false);
-  };
   const agent = useStore(state => state.agent);
   const logout = useStore(state => state.logout);
   const navigate = useNavigate();
@@ -260,34 +132,12 @@ const Dashboard = () => {
   const [simulatedOnlineSeconds, setSimulatedOnlineSeconds] = useState(0);
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState(null);
-  const [queueWaitingReport, setQueueWaitingReport] = useState([]);
+
   const [activeTab, setActiveTab] = useState("dashboard");
   const [showKeypad, setShowKeypad] = useState(false);
   const [showKBPopup, setShowKBPopup] = useState(false);
   const [showCannedPopup, setShowCannedPopup] = useState(false);
-  // Dialog state moved to main return block below
-  const [shiftReport, setShiftReport] = useState({ agent: null, shifts: [], totalShifts: 0, totalDuration: 0 });
-  const [loadingShifts, setLoadingShifts] = useState(false);
 
-  // Define fetchShiftReport so it can be called from anywhere
-  const fetchShiftReport = async (page = 1) => {
-    if (!agent || !(agent._id || agent.id)) return;
-    setLoadingShifts(true);
-    try {
-      const res = await fetch(`${baseUrl}/metrics/agent/${agent._id || agent.id}/shifts/today?page=${page}&limit=${shiftsPerPage}`);
-      const data = await res.json();
-      setShiftReport({
-        agent: data.agent,
-        shifts: data.shifts || [],
-        totalShifts: data.totalShifts || 0,
-        totalDuration: data.totalDuration || 0,
-        page: data.page || 1,
-      });
-    } catch (err) {
-      setShiftReport({ agent: null, shifts: [], totalShifts: 0, totalDuration: 0, page: 1, totalPages: 1 });
-    }
-    setLoadingShifts(false);
-  };
 
   useEffect(() => {
     async function loadStats() {
@@ -305,25 +155,13 @@ const Dashboard = () => {
       }
     }
     loadStats();
-    fetchShiftReport(shiftPage);
     // Reset simulated minutes when agentStats change
     setSimulatedOnlineMinutes(0);
     setSimulatedOnlineSeconds(0);
-  }, [agent, shiftPage]);
+  }, [agent]);
 
 
-  useEffect(() => {
-    async function fetchQueueWaitingReport() {
-      try {
-        const response = await axios.get(`${baseUrl}/report/queues/waiting-report`);
-        setQueueWaitingReport(response.data.data);
-      } catch (error) {
-        console.error('Failed to fetch queue waiting report:', error);
-      }
-    }
 
-    fetchQueueWaitingReport();
-  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -370,16 +208,7 @@ const Dashboard = () => {
 
   return (
     <>
-      {/* Top Bar with agent status controls */}
-      <NavBar
-        onLogout={handleLogout}
-        isSIPReady={isSIPReady}
-        agentStatus={agentStatus}
-        setAgentStatus={setAgentStatus}
-      />
-
       <div className="flex h-[calc(100vh-68px)]  text-gray-800">
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} tabs={["dashboard", "contacts", "analytics"]} />
         <main className="flex-1 overflow-y-auto px-8 py-6">
           <div className="max-w-5xl mx-auto flex flex-col space-y-8">
             {/* Top action buttons for dialogs */}
@@ -405,8 +234,7 @@ const Dashboard = () => {
 
                 <StatsPanel statsLoading={statsLoading} statsError={statsError} agentStats={agentStats} simulatedOnlineMinutes={simulatedOnlineMinutes} simulatedOnlineSeconds={simulatedOnlineSeconds} />
 
-                <ShiftReportPanel loadingShifts={loadingShifts} shiftReport={shiftReport} reasonEdits={reasonEdits} handleReasonChange={handleReasonChange} handleReasonSubmit={handleReasonSubmit} reasonLoading={reasonLoading} setShiftPage={setShiftPage} />
-                <QueueWaitingReportPanel queueWaitingReport={queueWaitingReport} />
+
               </>
             )}
             {activeTab === "contacts" && <ContactSection />}
@@ -414,33 +242,7 @@ const Dashboard = () => {
               <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
                 <h2 className="text-2xl font-extrabold text-primary-800 mb-4">Analytics & Full Reporting</h2>
                 <div className="text-gray-700 mb-2">View detailed reports and analytics for agent performance, shifts, calls, tickets, and more.</div>
-                {/* Example: Show all shifts, not just today */}
-                {loadingShifts ? (
-                  <div className="text-primary-600 font-semibold">Loading...</div>
-                ) : !shiftReport || shiftReport.shifts.length === 0 ? (
-                  <div className="text-gray-400">No shift records available.</div>
-                ) : (
-                  <table className="w-full text-sm border">
-                    <thead>
-                      <tr className="bg-primary-50">
-                        <th className="p-2 border">Start Time</th>
-                        <th className="p-2 border">End Time</th>
-                        <th className="p-2 border">Duration (s)</th>
-                        <th className="p-2 border">Ongoing</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {shiftReport.shifts.map((shift, idx) => (
-                        <tr key={idx} className={shift.ongoing ? "bg-yellow-50" : ""}>
-                          <td className="p-2 border">{shift.startTime ? new Date(shift.startTime).toLocaleString() : '-'}</td>
-                          <td className="p-2 border">{shift.endTime ? new Date(shift.endTime).toLocaleString() : (shift.ongoing ? 'Ongoing' : '-')}</td>
-                          <td className="p-2 border">{Math.round(shift.duration)}</td>
-                          <td className="p-2 border">{shift.ongoing ? 'Yes' : 'No'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
+
                 {/* Add more analytics and reporting features here as needed */}
               </div>
             )}
@@ -468,7 +270,6 @@ const Dashboard = () => {
             )}
           </div>
         </main>
-        {/* Sidebar removed for cleaner layout */}
         {/* Floating Call Button with bounce animation */}
         <button
           className={`fixed bottom-10 right-10 z-50 w-16 h-16 rounded-2xl bg-primary-500 shadow-xl text-white text-2xl flex items-center justify-center hover:bg-primary-600 transition ${!isSIPReady ? 'opacity-50 cursor-not-allowed' : ''} animate-bounce`}

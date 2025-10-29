@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import useStore from '../store/store';
 import { baseUrl } from '../baseUrl';
+import { Phone, Lock, User, Zap, Shield, Eye, EyeOff } from 'lucide-react';
 
-const Login = ({ onSwitch }) => {
+const Login = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const setAuth = useStore(state => state.setAuth);
@@ -16,7 +18,6 @@ const Login = ({ onSwitch }) => {
         setError('');
         setLoading(true);
         try {
-            console.log("baseUrl", baseUrl)
             const res = await fetch(`${baseUrl}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -25,10 +26,8 @@ const Login = ({ onSwitch }) => {
             });
             const data = await res.json();
             if (res.ok && data.agent) {
-                // Attach SIP credentials to agent for SIPProvider
                 const agentWithSip = { ...data.agent, sip: data.sip };
                 setAuth({ agent: agentWithSip });
-                // Navigate to dashboard after successful login
                 navigate('/dashboard');
             } else {
                 setError(data.message || 'Login failed. Please check your credentials.');
@@ -41,208 +40,205 @@ const Login = ({ onSwitch }) => {
     };
 
     return (
-        <div className="min-h-screen bg-white flex flex-col">
-            {/* Navbar */}
-            <nav className="bg-white/95 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-16">
-                        <div className="flex items-center">
-                            <img 
-                                src="/logo.png" 
-                                alt="Ethiopian VOIP Logo" 
-                                className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 object-contain"
-                                loading="eager"
-                            />
-                            <span className="ml-3 text-xl font-bold text-gray-900 drop-shadow-lg">ETHIOPIAN VOIP</span>
-                        </div>
-                        <div className="hidden md:block">
-                            <div className="ml-10 flex items-baseline space-x-4">
-                                <Link to="/" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 ease-in-out">
-                                    Home
-                                </Link>
-                                <Link to="/login" className="bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-yellow-600 transition-colors">
-                                    Sign In
-                                </Link>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </nav>
+        <div className="min-h-screen bg-black relative overflow-hidden flex items-center justify-center">
+            {/* Animated Background */}
+            <div className="absolute inset-0">
+                {/* Yellow Gradient Orbs */}
+                <div className="absolute top-0 left-1/4 w-96 h-96 bg-yellow-500/20 rounded-full blur-3xl animate-pulse"></div>
+                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-yellow-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-yellow-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+                
+                {/* Grid Pattern */}
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,215,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,215,0,0.03)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
+                
+                {/* Animated Lines */}
+                <div className="absolute top-0 left-1/4 w-px h-full bg-gradient-to-b from-transparent via-yellow-500/20 to-transparent animate-pulse"></div>
+                <div className="absolute top-0 right-1/3 w-px h-full bg-gradient-to-b from-transparent via-yellow-400/10 to-transparent animate-pulse" style={{ animationDelay: '1.5s' }}></div>
+            </div>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
-                <div className="w-full max-w-md">
-                    {/* Logo and Header */}
-                    <div className="text-center mb-12">
-                        <div className="flex items-center justify-center mb-8">
-                            <div className="relative">
-                                <div className="absolute inset-0 bg-yellow-200 rounded-full blur-xl opacity-30 animate-pulse"></div>
-                                <img 
-                                    src="/logo.png" 
-                                    alt="Ethiopian VOIP Logo" 
-                                    className="relative w-20 h-20 object-contain drop-shadow-lg"
-                                    loading="eager"
-                                />
-                            </div>
-                        </div>
-                        <h1 className="text-4xl font-bold text-gray-900 mb-3 tracking-tight">ETHIOPIAN VOIP</h1>
-                        <p className="text-gray-600 text-lg">Sign in to your agent dashboard</p>
-                        <div className="mt-4 h-1 w-20 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full mx-auto"></div>
+            <div className="relative z-10 w-full max-w-md px-6">
+                {/* Header Icon */}
+                <div className="text-center mb-8 animate-fade-in">
+                    <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-2xl shadow-2xl shadow-yellow-500/50 mb-6 animate-bounce-slow">
+                        <Phone className="w-10 h-10 text-black" />
                     </div>
-                    {/* Login Form */}
-                    <div className="bg-white rounded-3xl shadow-2xl p-10 border border-gray-100 relative overflow-hidden">
-                        {/* Subtle background pattern */}
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-yellow-100 to-transparent rounded-full -translate-y-16 translate-x-16 opacity-20"></div>
-                        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-yellow-100 to-transparent rounded-full translate-y-12 -translate-x-12 opacity-20"></div>
+                    <h1 className="text-4xl font-black text-white mb-2 tracking-tight">
+                        Agent Portal
+                    </h1>
+                    <p className="text-gray-400 text-lg">Sign in to your dashboard</p>
+                </div>
+
+                {/* Login Card */}
+                <div className="bg-gradient-to-br from-gray-900/90 to-black/90 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-yellow-500/20 animate-slide-up">
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Error Message */}
+                        {error && (
+                            <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-xl text-sm flex items-center space-x-2 animate-shake">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>{error}</span>
+                            </div>
+                        )}
                         
-                        <form onSubmit={handleSubmit} className="space-y-8 relative z-10">
-                            {error && (
-                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm animate-pulse">
-                                    {error}
+                        {/* Username Field */}
+                        <div className="space-y-2">
+                            <label className="block text-sm font-semibold text-gray-300 mb-2">
+                                Username
+                            </label>
+                            <div className="relative group">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <User className="w-5 h-5 text-gray-500 group-focus-within:text-yellow-400 transition-colors" />
                                 </div>
-                            )}
-                            
-                            <div className="space-y-2">
-                                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                                    Username
-                                </label>
                                 <input
                                     type="text"
                                     placeholder="Enter your username"
                                     value={username}
                                     onChange={e => setUsername(e.target.value)}
-                                    className="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-yellow-100 focus:border-yellow-500 transition-all duration-300 bg-gray-50 hover:bg-white"
+                                    className="w-full pl-12 pr-4 py-4 bg-black/50 border-2 border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 focus:ring-4 focus:ring-yellow-500/20 transition-all duration-300"
                                     required
                                     autoFocus
                                 />
                             </div>
-                            
-                            <div className="space-y-2">
-                                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                                    Password
-                                </label>
+                        </div>
+                        
+                        {/* Password Field */}
+                        <div className="space-y-2">
+                            <label className="block text-sm font-semibold text-gray-300 mb-2">
+                                Password
+                            </label>
+                            <div className="relative group">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <Lock className="w-5 h-5 text-gray-500 group-focus-within:text-yellow-400 transition-colors" />
+                                </div>
                                 <input
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     placeholder="Enter your password"
                                     value={password}
                                     onChange={e => setPassword(e.target.value)}
-                                    className="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-yellow-100 focus:border-yellow-500 transition-all duration-300 bg-gray-50 hover:bg-white"
+                                    className="w-full pl-12 pr-12 py-4 bg-black/50 border-2 border-gray-800 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 focus:ring-4 focus:ring-yellow-500/20 transition-all duration-300"
                                     required
                                 />
-                            </div>
-                            
-                            <button
-                                type="submit"
-                                className={`w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-white py-4 rounded-xl font-bold text-lg hover:from-yellow-600 hover:to-yellow-700 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-1 ${loading ? 'cursor-wait' : ''}`}
-                                disabled={loading}
-                            >
-                                {loading ? (
-                                    <div className="flex items-center justify-center">
-                                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                                        Signing in...
-                                    </div>
-                                ) : (
-                                    'Sign In'
-                                )}
-                            </button>
-                        </form>
-                    </div>
-                    {/* Trust Indicators */}
-                    <div className="mt-16 text-center">
-                        <p className="text-gray-500 text-sm mb-6 font-medium">Trusted by Ethiopian businesses</p>
-                        <div className="flex items-center justify-center gap-8 text-gray-500">
-                            <div className="flex items-center space-x-3 group">
-                                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center group-hover:bg-green-200 transition-colors duration-300">
-                                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </div>
-                                <span className="text-sm font-medium">Secure</span>
-                            </div>
-                            <div className="flex items-center space-x-3 group">
-                                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center group-hover:bg-blue-200 transition-colors duration-300">
-                                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                    </svg>
-                                </div>
-                                <span className="text-sm font-medium">Encrypted</span>
-                            </div>
-                            <div className="flex items-center space-x-3 group">
-                                <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center group-hover:bg-yellow-200 transition-colors duration-300">
-                                    <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                    </svg>
-                                </div>
-                                <span className="text-sm font-medium">Fast</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-yellow-400 transition-colors"
+                                >
+                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                </button>
                             </div>
                         </div>
+                        
+                        {/* Submit Button */}
+                        <button
+                            type="submit"
+                            className="w-full bg-gradient-to-r from-yellow-400 to-yellow-600 text-black py-4 rounded-xl font-bold text-lg hover:from-yellow-500 hover:to-yellow-700 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-yellow-500/50 hover:shadow-xl hover:shadow-yellow-500/60 transform hover:-translate-y-1 active:translate-y-0 flex items-center justify-center space-x-2"
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <>
+                                    <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                                    <span>Signing in...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>Sign In</span>
+                                    <Zap className="w-5 h-5" />
+                                </>
+                            )}
+                        </button>
+                    </form>
+                </div>
+
+                {/* Trust Indicators */}
+                <div className="mt-8 flex items-center justify-center gap-8 text-gray-500 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+                    <div className="flex items-center space-x-2 group cursor-pointer">
+                        <div className="w-10 h-10 bg-yellow-500/10 rounded-full flex items-center justify-center group-hover:bg-yellow-500/20 transition-all duration-300 group-hover:scale-110">
+                            <Shield className="w-5 h-5 text-yellow-400" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-400 group-hover:text-yellow-400 transition-colors">Secure</span>
                     </div>
+                    <div className="flex items-center space-x-2 group cursor-pointer">
+                        <div className="w-10 h-10 bg-yellow-500/10 rounded-full flex items-center justify-center group-hover:bg-yellow-500/20 transition-all duration-300 group-hover:scale-110">
+                            <Lock className="w-5 h-5 text-yellow-400" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-400 group-hover:text-yellow-400 transition-colors">Encrypted</span>
+                    </div>
+                    <div className="flex items-center space-x-2 group cursor-pointer">
+                        <div className="w-10 h-10 bg-yellow-500/10 rounded-full flex items-center justify-center group-hover:bg-yellow-500/20 transition-all duration-300 group-hover:scale-110">
+                            <Zap className="w-5 h-5 text-yellow-400" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-400 group-hover:text-yellow-400 transition-colors">Fast</span>
+                    </div>
+                </div>
+
+                {/* Footer Text */}
+                <div className="mt-8 text-center text-gray-600 text-sm animate-fade-in" style={{ animationDelay: '0.5s' }}>
+                    <p>© 2024 Agent Portal. All rights reserved.</p>
                 </div>
             </div>
 
-            {/* Footer */}
-            <footer className="bg-gray-900 text-white">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                        {/* Company Info */}
-                        <div className="col-span-1 md:col-span-2">
-                            <div className="flex items-center mb-4">
-                                <img 
-                                    src="/logo.png" 
-                                    alt="Ethiopian VOIP Logo" 
-                                    className="w-10 h-10 object-contain"
-                                    loading="eager"
-                                />
-                                <span className="ml-3 text-xl font-bold">ETHIOPIAN VOIP</span>
-                            </div>
-                            <p className="text-gray-300 mb-4 max-w-md">
-                                Empowering Ethiopian businesses with cutting-edge VOIP technology. 
-                                Reliable, secure, and affordable communication solutions.
-                            </p>
-                            <div className="flex space-x-4">
-                                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                    </svg>
-                                </div>
-                                <span className="text-sm text-gray-300">500+ Active Agents</span>
-                            </div>
-                        </div>
+            <style jsx>{`
+                @keyframes fade-in {
+                    from {
+                        opacity: 0;
+                        transform: translateY(10px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
 
-                        {/* Quick Links */}
-                        <div>
-                            <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
-                            <ul className="space-y-2">
-                                <li><Link to="/" className="text-gray-300 hover:text-white transition-colors">Home</Link></li>
-                                <li><Link to="/#services" className="text-gray-300 hover:text-white transition-colors">Services</Link></li>
-                                <li><Link to="/#about" className="text-gray-300 hover:text-white transition-colors">About</Link></li>
-                                <li><Link to="/#contact" className="text-gray-300 hover:text-white transition-colors">Contact</Link></li>
-                            </ul>
-                        </div>
+                @keyframes slide-up {
+                    from {
+                        opacity: 0;
+                        transform: translateY(30px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
 
-                        {/* Contact Info */}
-                        <div>
-                            <h3 className="text-lg font-semibold mb-4">Contact</h3>
-                            <div className="space-y-2 text-gray-300">
-                                <p>Addis Ababa, Ethiopia</p>
-                                <p>+251 11 123 4567</p>
-                                <p>info@ethiopianvoip.com</p>
-                            </div>
-                        </div>
-                    </div>
+                @keyframes bounce-slow {
+                    0%, 100% {
+                        transform: translateY(0);
+                    }
+                    50% {
+                        transform: translateY(-10px);
+                    }
+                }
 
-                    {/* Bottom Bar */}
-                    <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col sm:flex-row justify-between items-center">
-                        <p className="text-gray-400 text-sm">
-                            © 2024 Ethiopian VOIP. All rights reserved.
-                        </p>
-                        <div className="flex space-x-6 mt-4 sm:mt-0">
-                            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Privacy Policy</a>
-                            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Terms of Service</a>
-                        </div>
-                    </div>
-                </div>
-            </footer>
+                @keyframes shake {
+                    0%, 100% {
+                        transform: translateX(0);
+                    }
+                    25% {
+                        transform: translateX(-5px);
+                    }
+                    75% {
+                        transform: translateX(5px);
+                    }
+                }
+
+                .animate-fade-in {
+                    animation: fade-in 0.6s ease-out forwards;
+                }
+
+                .animate-slide-up {
+                    animation: slide-up 0.6s ease-out forwards;
+                }
+
+                .animate-bounce-slow {
+                    animation: bounce-slow 3s ease-in-out infinite;
+                }
+
+                .animate-shake {
+                    animation: shake 0.4s ease-in-out;
+                }
+            `}</style>
         </div>
     );
 };

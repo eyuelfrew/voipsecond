@@ -187,12 +187,17 @@ export const SIPProvider = ({ children }) => {
           }
         }, backoffDelay);
       });
-      ua.on("registered", () => {
+      ua.on("registered", (e) => {
+        console.log("✅ SIP REGISTERED successfully:", {
+          response: e?.response?.status_code,
+          expires: e?.response?.getHeader('Expires')
+        });
         setStatus("Registered & Idle");
         setRegistered(true);
         setError("");
         // Reset reconnect attempts on successful registration
         setReconnectAttempts(0);
+        console.log("✅ Registration state updated - ready to make calls");
       });
       ua.on("unregistered", () => {
         setStatus("Unregistered");
@@ -273,7 +278,9 @@ export const SIPProvider = ({ children }) => {
         session.on("ended", () => handleCallEnd("Call ended"));
         session.on("failed", (e) => handleCallEnd(`Call failed: ${e.cause}`));
       });
+      console.log("🚀 Starting SIP UA...");
       ua.start();
+      console.log("✅ SIP UA started, waiting for registration...");
     } catch (e) {
       setError("Failed to initialize SIP client.");
     }
@@ -491,14 +498,43 @@ export const SIPProvider = ({ children }) => {
       destination,
       registered,
       uaRef: !!uaRef.current,
-      SIP_SERVER
+      isRegistered: uaRef.current?.isRegistered(),
+      isConnected: uaRef.current?.isConnected(),
+      SIP_SERVER,
+      status
     });
 
-    if (!uaRef.current || !registered) {
-      console.log("❌ SIP client not registered:", { uaRef: !!uaRef.current, registered });
-      setError("SIP client not registered.");
+    if (!uaRef.current) {
+      console.log("❌ SIP client not initialized");
+      setError("SIP client not initialized. Please wait for connection.");
       return;
     }
+
+    // Check actual registration status from UA
+    const isActuallyRegistered = uaRef.current.isRegistered();
+    console.log("📞 Actual registration status:", isActuallyRegistered);
+
+    if (!isActuallyRegistered) {
+      console.log("❌ SIP client not registered:", { 
+        stateRegistered: registered, 
+        actualRegistered: isActuallyRegistered,
+        isConnected: uaRef.current.isConnected(),
+        status
+      });
+      setError("SIP client not registered. Please wait for registration to complete.");
+      
+      // Try to trigger registration if connected but not registered
+      if (uaRef.current.isConnected() && !isActuallyRegistered) {
+        console.log("🔄 Attempting to register...");
+        try {
+          uaRef.current.register();
+        } catch (e) {
+          console.error("❌ Failed to register:", e);
+        }
+      }
+      return;
+    }
+
     if (!destination) {
       console.log("❌ No destination provided");
       setError("No destination number provided.");

@@ -1,38 +1,66 @@
-import { Users, Gauge, BarChart2 } from "lucide-react";
+import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { LayoutDashboard, Phone, BarChart3, Users, Hash, Settings, PhoneCall } from 'lucide-react';
 
-function Sidebar({ activeTab, setActiveTab, tabs }) {
-    // Default tabs if not provided
-    const defaultTabs = [
-        { name: "Dashboard", key: "dashboard", icon: <Gauge /> },
-        { name: "Contacts", key: "contacts", icon: <Users /> },
-        { name: "Analytics", key: "analytics", icon: <BarChart2 /> },
+function Sidebar() {
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const menuItems = [
+        { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+        { name: "Call History", path: "/call-history", icon: PhoneCall },
+        { name: "Analytics", path: "/analytics", icon: BarChart3 },
+        { name: "Contacts", path: "/dashboard", icon: Users, tab: "contacts" },
+        { name: "Phone Numbers", path: "/phone-numbers", icon: Hash },
+        { name: "Settings", path: "/settings", icon: Settings },
     ];
-    const sidebarTabs = tabs
-        ? tabs.map(tabKey => {
-            if (tabKey === "dashboard") return { name: "Dashboard", key: "dashboard", icon: <Gauge /> };
-            if (tabKey === "contacts") return { name: "Contacts", key: "contacts", icon: <Users /> };
-            if (tabKey === "analytics") return { name: "Analytics", key: "analytics", icon: <BarChart2 /> };
-            return { name: tabKey, key: tabKey, icon: null };
-        })
-        : defaultTabs;
+
+    const isActive = (path) => location.pathname === path;
 
     return (
-        <aside className="w-64 shadow-xl border-r flex flex-col min-h-screen bg-white">
-            <div className="flex-1 px-4 space-y-2 mt-4">
-                {sidebarTabs.map((tab) => (
-                    <button
-                        key={tab.key}
-                        className={`flex items-center gap-3 w-full text-base font-semibold px-4 py-3 rounded-lg transition-all duration-150
-                            ${activeTab === tab.key
-                                ? "bg-primary-50 text-primary-700 shadow border border-primary-200"
-                                : "text-gray-700 hover:bg-primary-600 hover:text-white"
+        <aside className="w-64 bg-gradient-to-b from-gray-900 to-black border-r border-yellow-500/20 flex flex-col min-h-screen">
+            {/* Logo/Brand */}
+            <div className="p-6 border-b border-yellow-500/20">
+                <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-yellow-500 rounded-xl flex items-center justify-center">
+                        <Phone className="w-6 h-6 text-black" />
+                    </div>
+                    <div>
+                        <h2 className="text-white font-black text-lg">Agent Portal</h2>
+                        <p className="text-gray-400 text-xs">Call Center</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Navigation */}
+            <nav className="flex-1 px-4 py-6 space-y-2">
+                {menuItems.map((item) => {
+                    const Icon = item.icon;
+                    const active = isActive(item.path);
+                    
+                    return (
+                        <button
+                            key={item.path}
+                            onClick={() => navigate(item.path)}
+                            className={`flex items-center space-x-3 w-full px-4 py-3 rounded-xl font-semibold transition-all transform ${
+                                active
+                                    ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/50 scale-105'
+                                    : 'text-gray-300 hover:bg-gray-800 hover:text-white hover:scale-105'
                             }`}
-                        onClick={() => setActiveTab(tab.key)}
-                    >
-                        {tab.icon && <span className="text-xl">{tab.icon}</span>}
-                        {tab.name}
-                    </button>
-                ))}
+                        >
+                            <Icon className="w-5 h-5" />
+                            <span>{item.name}</span>
+                        </button>
+                    );
+                })}
+            </nav>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-yellow-500/20">
+                <div className="bg-gray-800/50 rounded-xl p-3 text-center">
+                    <p className="text-gray-400 text-xs">Version 1.0.0</p>
+                    <p className="text-gray-500 text-xs mt-1">© 2024 Agent Portal</p>
+                </div>
             </div>
         </aside>
     );
