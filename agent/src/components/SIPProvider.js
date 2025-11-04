@@ -138,8 +138,15 @@ export const SIPProvider = ({ children }) => {
         session_timers_expires: 90,
         connection_recovery_min_interval: 2,
         connection_recovery_max_interval: 30,
-        trace_sip: true
+        trace_sip: true,
+        log: {
+          builtinEnabled: true,
+          level: 'debug',
+        }
       };
+
+      console.log("✨ JsSIP UA Configuration:", configuration);
+
       const ua = new JsSIP.UA(configuration);
       uaRef.current = ua;
       ua.on("connecting", () => setStatus("Connecting..."));
@@ -256,32 +263,54 @@ export const SIPProvider = ({ children }) => {
           console.log("setCallSession called:", session);
         }
         session.on("peerconnection", ({ peerconnection }) => {
+          console.log("🔌 PEER CONNECTION EVENT");
+          console.log("ICE Connection State:", peerconnection.iceConnectionState);
+          console.log("ICE Gathering State:", peerconnection.iceGatheringState);
+          console.log("Signaling State:", peerconnection.signalingState);
+
           peerconnection.ontrack = (event) => {
+            console.log("🛤️ ONTRACK EVENT FIRED");
             if (remoteAudioRef.current) {
+              console.log("🔊 Attaching remote stream to audio element");
               remoteAudioRef.current.srcObject = event.streams[0];
-              remoteAudioRef.current.play().catch(() => { });
+              remoteAudioRef.current.play().catch((e) => console.error("🚨 Audio play failed:", e));
             }
           };
           peerconnection.oniceconnectionstatechange = () => {
             const state = peerconnection.iceConnectionState;
+            console.log(`🧊 ICE Connection State Change: ${state}`);
             setIceStatus(state);
-            if (state === "failed") setError("Audio connection failed.");
+            if (state === "failed") {
+              console.error("🚨 ICE connection failed.");
+              setError("Audio connection failed.");
+            }
           };
         });
-        session.on("progress", () => setStatus("Ringing..."));
-        session.on("accepted", () => {
+        session.on("progress", (e) => {
+          console.log("⏳ CALL PROGRESS:", e);
+          setStatus("Ringing...");
+        });
+        session.on("accepted", (e) => {
+          console.log("✅ CALL ACCEPTED:", e);
           setStatus("In Call");
           setAgentStatus("On Call");
           setTimerActive(true);
           setIncomingCall(null);
         });
-        session.on("ended", () => handleCallEnd("Call ended"));
-        session.on("failed", (e) => handleCallEnd(`Call failed: ${e.cause}`));
+        session.on("ended", (e) => {
+          console.log("🔚 CALL ENDED:", e);
+          handleCallEnd("Call ended");
+        });
+        session.on("failed", (e) => {
+          console.error("❌ CALL FAILED:", e);
+          handleCallEnd(`Call failed: ${e.cause}`);
+        });
       });
       console.log("🚀 Starting SIP UA...");
       ua.start();
       console.log("✅ SIP UA started, waiting for registration...");
     } catch (e) {
+      console.error("🚨 Failed to initialize SIP client:", e);
       setError("Failed to initialize SIP client.");
     }
   };

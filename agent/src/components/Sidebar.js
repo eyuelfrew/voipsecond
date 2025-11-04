@@ -18,7 +18,7 @@ function Sidebar() {
     const isActive = (path) => location.pathname === path;
 
     return (
-        <aside className="w-64 bg-gradient-to-b from-gray-900 to-black border-r border-yellow-500/20 flex flex-col min-h-screen">
+        <aside className="w-64 bg-gradient-to-b from-gray-100 to-gray-200 border-r border-gray-300 flex flex-col min-h-screen">
             {/* Logo/Brand */}
             <div className="p-6 border-b border-yellow-500/20">
                 <div className="flex items-center space-x-3">
@@ -26,8 +26,8 @@ function Sidebar() {
                         <Phone className="w-6 h-6 text-black" />
                     </div>
                     <div>
-                        <h2 className="text-white font-black text-lg">Agent Portal</h2>
-                        <p className="text-gray-400 text-xs">Call Center</p>
+                        <h2 className="text-gray-900 font-black text-lg">Agent Portal</h2>
+                        <p className="text-gray-600 text-xs">Call Center</p>
                     </div>
                 </div>
             </div>
@@ -45,7 +45,7 @@ function Sidebar() {
                             className={`flex items-center space-x-3 w-full px-4 py-3 rounded-xl font-semibold transition-all transform ${
                                 active
                                     ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/50 scale-105'
-                                    : 'text-gray-300 hover:bg-gray-800 hover:text-white hover:scale-105'
+                                    : 'text-gray-700 hover:bg-gray-300 hover:text-gray-900 hover:scale-105'
                             }`}
                         >
                             <Icon className="w-5 h-5" />
@@ -56,9 +56,9 @@ function Sidebar() {
             </nav>
 
             {/* Footer */}
-            <div className="p-4 border-t border-yellow-500/20">
-                <div className="bg-gray-800/50 rounded-xl p-3 text-center">
-                    <p className="text-gray-400 text-xs">Version 1.0.0</p>
+            <div className="p-4 border-t border-gray-300">
+                <div className="bg-gray-200 rounded-xl p-3 text-center">
+                    <p className="text-gray-600 text-xs">Version 1.0.0</p>
                     <p className="text-gray-500 text-xs mt-1">© 2024 Agent Portal</p>
                 </div>
             </div>

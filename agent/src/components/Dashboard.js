@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
-} from 'recharts';
-import { fetchAgentDailyStats } from '../store/agentStats';
+
 import { Phone, Bell, User, ChevronDown, ChevronUp } from 'lucide-react';
 import { useSIP } from './SIPProvider';
 import CallPopup from './CallPopup';
@@ -34,91 +31,9 @@ const Header = ({ handleSearch, search, setSearch }) => (
 
 
 
-const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="p-4 bg-gray-800 text-white rounded-lg shadow-lg">
-        <p className="font-bold">{label}</p>
-        {payload.map((pld, index) => (
-          <div key={index} style={{ color: pld.fill }}>
-            {`${pld.name}: ${pld.value}`}
-          </div>
-        ))}
-      </div>
-    );
-  }
 
-  return null;
-};
 
-const StatsPanel = ({ statsLoading, statsError, agentStats, simulatedOnlineMinutes, simulatedOnlineSeconds }) => (
-  <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4 animate-fade-in border border-gray-200">
-    <div className="flex items-center justify-between">
-      <h2 className="text-2xl font-bold text-gray-800">Agent Performance Overview</h2>
-      <span className="text-sm font-medium text-gray-500">Today</span>
-    </div>
-    {statsLoading ? (
-      <div className="text-center py-8 text-gray-500">Loading stats...</div>
-    ) : statsError ? (
-      <div className="text-center py-8 text-red-600 bg-red-50 border border-red-200 rounded-md">{statsError}</div>
-    ) : agentStats ? (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Calls Overview Card */}
-        <div className="bg-gray-50 rounded-xl p-4 transition-all duration-300 hover:shadow-md hover:scale-105">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-700">Calls Overview</h3>
-            <div className="text-3xl font-bold text-primary-600">{agentStats.totalCalls || 0}</div>
-          </div>
-          <ResponsiveContainer width="100%" height={150}>
-            <BarChart data={[{ name: 'Calls', Handled: agentStats.callsHandled || 0, Missed: agentStats.missedCalls || 0 }]}>
-              <XAxis dataKey="name" tickLine={false} axisLine={false} />
-              <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend iconType="circle" />
-              <Bar dataKey="Handled" fill="#4f46e5" radius={[4, 4, 0, 0]} onClick={() => console.log('Filtering by Handled')} />
-              <Bar dataKey="Missed" fill="#ef4444" radius={[4, 4, 0, 0]} onClick={() => console.log('Filtering by Missed')} />
-            </BarChart>
-          </ResponsiveContainer>
-          <div className="mt-4 text-center text-sm font-medium text-gray-600">
-            Avg. Duration: {agentStats.avgDuration ? agentStats.avgDuration.toFixed(1) : 0}s
-          </div>
-        </div>
-        {/* Tickets & Online Card */}
-        <div className="bg-gray-50 rounded-xl p-4 transition-all duration-300 hover:shadow-md hover:scale-105">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-700">Tickets & Online</h3>
-            <div className="text-3xl font-bold text-green-600">{agentStats.ticketsResolved || 0}</div>
-          </div>
-          <ResponsiveContainer width="100%" height={150}>
-            <PieChart>
-              <Pie
-                data={[{ name: 'Tickets Resolved', value: agentStats.ticketsResolved || 0 }, { name: 'Online Sessions', value: agentStats.onlineTime || 0 }]}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                innerRadius={40}
-                outerRadius={60}
-                paddingAngle={5}
-                fill="#8884d8"
-                onClick={(data) => console.log(`Filtering by ${data.name}`)}
-              >
-                <Cell key="tickets" fill="#10b981" />
-                <Cell key="online" fill="#f59e0b" />
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="mt-4 text-center text-sm font-medium text-gray-600">
-            Online Time: {simulatedOnlineMinutes.toString().padStart(2, '0')}:{simulatedOnlineSeconds.toString().padStart(2, '0')}
-          </div>
-        </div>
-      </div>
-    ) : (
-      <div className="text-center py-8 text-gray-500">No stats available.</div>
-    )}
-  </div>
-);
+
 
 const Dashboard = () => {
 
@@ -127,11 +42,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [dialNumber, setDialNumber] = useState("");
   const [search, setSearch] = useState("");
-  const [agentStats, setAgentStats] = useState(null);
-  const [simulatedOnlineMinutes, setSimulatedOnlineMinutes] = useState(0);
-  const [simulatedOnlineSeconds, setSimulatedOnlineSeconds] = useState(0);
-  const [statsLoading, setStatsLoading] = useState(false);
-  const [statsError, setStatsError] = useState(null);
+
 
   const [activeTab, setActiveTab] = useState("dashboard");
   const [showKeypad, setShowKeypad] = useState(false);
@@ -139,26 +50,7 @@ const Dashboard = () => {
   const [showCannedPopup, setShowCannedPopup] = useState(false);
 
 
-  useEffect(() => {
-    async function loadStats() {
-      if (agent && (agent._id || agent.id)) {
-        setStatsLoading(true);
-        setStatsError(null);
-        try {
-          const stats = await fetchAgentDailyStats(agent._id || agent.id);
-          setAgentStats(stats);
-        } catch (err) {
-          setStatsError('Failed to load stats');
-        } finally {
-          setStatsLoading(false);
-        }
-      }
-    }
-    loadStats();
-    // Reset simulated minutes when agentStats change
-    setSimulatedOnlineMinutes(0);
-    setSimulatedOnlineSeconds(0);
-  }, [agent]);
+
 
 
 
@@ -179,36 +71,11 @@ const Dashboard = () => {
   const { makeCall, agentStatus, setAgentStatus } = sip;
   const isSIPReady = typeof makeCall === 'function';
 
-  // Simulate online minutes incrementing in real time
-  useEffect(() => {
-    let interval;
-    if (isSIPReady && agentStatus === 'Available' && agentStats && agentStats.onlineDuration) {
-      let startSeconds = Math.floor(agentStats.onlineDuration);
-      setSimulatedOnlineMinutes(Math.floor(startSeconds / 60));
-      setSimulatedOnlineSeconds(startSeconds % 60);
-      interval = setInterval(() => {
-        setSimulatedOnlineSeconds(prevSec => {
-          if (prevSec === 59) {
-            setSimulatedOnlineMinutes(prevMin => prevMin + 1);
-            return 0;
-          }
-          return prevSec + 1;
-        });
-      }, 1000);
-    } else {
-      // Reset timer to static value if SIP is not ready or agentStatus is not 'Available'
-      let startSeconds = agentStats && agentStats.onlineDuration ? Math.floor(agentStats.onlineDuration) : 0;
-      setSimulatedOnlineMinutes(Math.floor(startSeconds / 60));
-      setSimulatedOnlineSeconds(startSeconds % 60);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isSIPReady, agentStatus, agentStats?.onlineDuration]);
+
 
   return (
     <>
-      <div className="flex h-[calc(100vh-68px)]  text-gray-800">
+      <div className="flex h-[calc(100vh-68px)]  text-gray-900">
         <main className="flex-1 overflow-y-auto px-8 py-6">
           <div className="max-w-5xl mx-auto flex flex-col space-y-8">
             {/* Top action buttons for dialogs */}
@@ -232,7 +99,7 @@ const Dashboard = () => {
               <>
                 <Header handleSearch={handleSearch} search={search} setSearch={setSearch} />
 
-                <StatsPanel statsLoading={statsLoading} statsError={statsError} agentStats={agentStats} simulatedOnlineMinutes={simulatedOnlineMinutes} simulatedOnlineSeconds={simulatedOnlineSeconds} />
+
 
 
               </>

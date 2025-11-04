@@ -12,7 +12,7 @@ const Layout = ({ children }) => {
   const isSIPReady = typeof makeCall === 'function';
 
   return (
-    <div className="flex h-screen bg-black overflow-hidden">
+    <div className="flex h-screen bg-gray-100 overflow-hidden">
       {/* Sidebar */}
       <Sidebar />
 
