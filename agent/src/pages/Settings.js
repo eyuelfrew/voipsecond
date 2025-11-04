@@ -60,8 +60,8 @@ const Settings = () => {
                                 <button
                                     onClick={() => setTheme('light')}
                                     className={`p-4 rounded-xl border-2 transition-all ${theme === 'light'
-                                            ? 'border-yellow-500 bg-yellow-500/10'
-                                            : 'border-gray-700 bg-gray-800 hover:border-gray-600'
+                                        ? 'border-yellow-500 bg-yellow-500/10'
+                                        : 'border-gray-700 bg-gray-800 hover:border-gray-600'
                                         }`}
                                 >
                                     <Sun className="w-6 h-6 text-yellow-400 mx-auto mb-2" />
@@ -70,8 +70,8 @@ const Settings = () => {
                                 <button
                                     onClick={() => setTheme('dark')}
                                     className={`p-4 rounded-xl border-2 transition-all ${theme === 'dark'
-                                            ? 'border-yellow-500 bg-yellow-500/10'
-                                            : 'border-gray-700 bg-gray-800 hover:border-gray-600'
+                                        ? 'border-yellow-500 bg-yellow-500/10'
+                                        : 'border-gray-700 bg-gray-800 hover:border-gray-600'
                                         }`}
                                 >
                                     <Moon className="w-6 h-6 text-blue-400 mx-auto mb-2" />
