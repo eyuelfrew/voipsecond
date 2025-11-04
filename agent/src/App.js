@@ -9,6 +9,11 @@ import CallHistory from './pages/CallHistory';
 import Analytics from './pages/Analytics';
 import PhoneNumbers from './pages/PhoneNumbers';
 import Settings from './pages/Settings';
+import Performance from './pages/Performance';
+import ShiftManagement from './pages/ShiftManagement';
+import CustomerTimeline from './pages/CustomerTimeline';
+import QualityMonitoring from './pages/QualityMonitoring';
+import TeamCollaboration from './pages/TeamCollaboration';
 import './App.css';
 
 function App() {
@@ -65,6 +70,56 @@ function App() {
                 <RequireAuth>
                   <Layout>
                     <Settings />
+                  </Layout>
+                </RequireAuth>
+              } 
+            />
+            <Route 
+              path="/performance" 
+              element={
+                <RequireAuth>
+                  <Layout>
+                    <Performance />
+                  </Layout>
+                </RequireAuth>
+              } 
+            />
+            <Route 
+              path="/shift-management" 
+              element={
+                <RequireAuth>
+                  <Layout>
+                    <ShiftManagement />
+                  </Layout>
+                </RequireAuth>
+              } 
+            />
+            <Route 
+              path="/customer-timeline" 
+              element={
+                <RequireAuth>
+                  <Layout>
+                    <CustomerTimeline />
+                  </Layout>
+                </RequireAuth>
+              } 
+            />
+            <Route 
+              path="/quality-monitoring" 
+              element={
+                <RequireAuth>
+                  <Layout>
+                    <QualityMonitoring />
+                  </Layout>
+                </RequireAuth>
+              } 
+            />
+            <Route 
+              path="/team-collaboration" 
+              element={
+                <RequireAuth>
+                  <Layout>
+                    <TeamCollaboration />
                   </Layout>
                 </RequireAuth>
               } 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, PhoneOff, Mic, MicOff, Pause, Play, Grid3x3, Users, PhoneForwarded, Volume2, VolumeX, X, User as UserIcon, Clock } from 'lucide-react';
+import { Phone, PhoneOff, Mic, MicOff, Pause, Play, Grid3x3, Users, PhoneForwarded, Volume2, VolumeX, X, User as UserIcon, Clock, Minimize2, Maximize2 } from 'lucide-react';
 
 const CallPopup = ({
     showKeypad,
@@ -25,6 +25,7 @@ const CallPopup = ({
     const [showTransfer, setShowTransfer] = useState(false);
     const [transferTarget, setTransferTarget] = useState('');
     const [activeView, setActiveView] = useState('keypad'); // 'keypad', 'call', 'incoming'
+    const [isMinimized, setIsMinimized] = useState(false);
 
     // Keyboard input for keypad
     useEffect(() => {
@@ -127,13 +128,70 @@ const CallPopup = ({
         { key: '#', sub: '' },
     ];
 
+    // For incoming calls, force expand and show in center
+    const forceExpanded = activeView === 'incoming';
+
+    // Minimized view (compact bar on right side)
+    if (isMinimized && !forceExpanded) {
+        return (
+            <div className="fixed right-6 top-24 z-50 animate-slide-in-right">
+                <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl shadow-2xl border-2 border-yellow-500/50 p-4 w-80">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center">
+                                <Phone className="w-5 h-5 text-yellow-400 animate-pulse" />
+                            </div>
+                            <div>
+                                <p className="text-white font-semibold text-sm">{remoteNumber || 'Unknown'}</p>
+                                <p className="text-gray-400 text-xs">{formatTime(callTimer)}</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setIsMinimized(false)}
+                            className="text-gray-400 hover:text-yellow-400 transition-colors"
+                            title="Expand"
+                        >
+                            <Maximize2 className="w-5 h-5" />
+                        </button>
+                    </div>
+                    
+                    {/* Quick Controls */}
+                    <div className="flex items-center space-x-2">
+                        <button
+                            onClick={handleMute}
+                            className={`flex-1 flex items-center justify-center space-x-1 py-2 rounded-lg font-semibold transition-all ${
+                                isMuted ? 'bg-yellow-500 text-black' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                            }`}
+                        >
+                            {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                        </button>
+                        <button
+                            onClick={handleHold}
+                            className={`flex-1 flex items-center justify-center space-x-1 py-2 rounded-lg font-semibold transition-all ${
+                                isHeld ? 'bg-yellow-500 text-black' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                            }`}
+                        >
+                            {isHeld ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+                        </button>
+                        <button
+                            onClick={hangup}
+                            className="flex-1 flex items-center justify-center py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold transition-all"
+                        >
+                            <PhoneOff className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-            <div className="relative w-full max-w-md mx-4">
+        <div className={`fixed ${forceExpanded ? 'inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center' : 'right-6 top-24'} z-50 animate-fade-in`}>
+            <div className={`relative ${forceExpanded ? 'w-full max-w-md mx-4' : 'w-96'}`}>
                 {/* Phone Container */}
-                <div className="bg-gradient-to-br from-gray-900 via-black to-gray-900 rounded-[3rem] shadow-2xl border-4 border-gray-800 overflow-hidden">
+                <div className="bg-gradient-to-br from-gray-900 via-black to-gray-900 rounded-2xl shadow-2xl border-2 border-yellow-500/50 overflow-hidden">
                     {/* Status Bar */}
-                    <div className="bg-black px-8 py-3 flex items-center justify-between">
+                    <div className="bg-black px-6 py-3 flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                             <div className={`w-2 h-2 rounded-full ${
                                 agentStatus === 'Available' ? 'bg-green-400 animate-pulse' : 
@@ -142,18 +200,24 @@ const CallPopup = ({
                             }`}></div>
                             <span className="text-yellow-400 text-xs font-semibold">{agentStatus || 'Ready'}</span>
                         </div>
-                        <div className="flex items-center space-x-1">
-                            <div className="w-1 h-1 bg-gray-500 rounded-full"></div>
-                            <div className="w-1 h-1 bg-gray-500 rounded-full"></div>
-                            <div className="w-1 h-1 bg-yellow-400 rounded-full"></div>
+                        <div className="flex items-center space-x-2">
+                            {!forceExpanded && hasActiveCall && (
+                                <button
+                                    onClick={() => setIsMinimized(true)}
+                                    className="text-gray-400 hover:text-yellow-400 transition-colors"
+                                    title="Minimize"
+                                >
+                                    <Minimize2 className="w-5 h-5" />
+                                </button>
+                            )}
+                            <button onClick={handleClose} className="text-gray-400 hover:text-yellow-400 transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
                         </div>
-                        <button onClick={handleClose} className="text-gray-400 hover:text-yellow-400 transition-colors">
-                            <X className="w-5 h-5" />
-                        </button>
                     </div>
 
                     {/* Main Content Area */}
-                    <div className="bg-black px-6 py-8 min-h-[600px]">
+                    <div className="bg-black px-6 py-6 min-h-[500px]">
                         {/* INCOMING CALL VIEW */}
                         {activeView === 'incoming' && (
                             <div className="flex flex-col items-center justify-center h-full space-y-8 animate-slide-up">
@@ -384,6 +448,17 @@ const CallPopup = ({
                     }
                 }
 
+                @keyframes slide-in-right {
+                    from {
+                        opacity: 0;
+                        transform: translateX(100px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateX(0);
+                    }
+                }
+
                 @keyframes slide-up {
                     from {
                         opacity: 0;
@@ -393,6 +468,10 @@ const CallPopup = ({
                         opacity: 1;
                         transform: translateY(0);
                     }
+                }
+
+                .animate-slide-in-right {
+                    animation: slide-in-right 0.3s ease-out;
                 }
 
                 @keyframes slide-down {

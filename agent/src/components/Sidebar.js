@@ -1,6 +1,9 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Phone, BarChart3, Users, Hash, Settings, PhoneCall } from 'lucide-react';
+import { 
+    LayoutDashboard, Phone, BarChart3, Users, Hash, Settings, PhoneCall,
+    TrendingUp, Clock, User as UserIcon, Award, MessageSquare
+} from 'lucide-react';
 
 function Sidebar() {
     const navigate = useNavigate();
@@ -8,9 +11,13 @@ function Sidebar() {
 
     const menuItems = [
         { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+        { name: "Performance", path: "/performance", icon: TrendingUp },
+        { name: "Shift Management", path: "/shift-management", icon: Clock },
         { name: "Call History", path: "/call-history", icon: PhoneCall },
         { name: "Analytics", path: "/analytics", icon: BarChart3 },
-        { name: "Contacts", path: "/dashboard", icon: Users, tab: "contacts" },
+        { name: "Customer Timeline", path: "/customer-timeline", icon: UserIcon },
+        { name: "Quality Monitoring", path: "/quality-monitoring", icon: Award },
+        { name: "Team Collaboration", path: "/team-collaboration", icon: MessageSquare },
         { name: "Phone Numbers", path: "/phone-numbers", icon: Hash },
         { name: "Settings", path: "/settings", icon: Settings },
     ];

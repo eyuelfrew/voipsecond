@@ -882,7 +882,7 @@ async function setupAmiEventListeners(ami, io) {
   ami.on("QueueCallerJoin", (event) => handleQueueCallerJoin(event, io));
   ami.on("QueueCallerLeave", (event) => handleQueueCallerLeave(event, io));
   ami.on("QueueCallerAbandon", (event) => handleQueueCallerAbandon(event, io));
-
+  ami.on("QueueMemberPause", (event)=>{console.log(event)})
   // Endpoint/Agent Status Events
   ami.on("EndpointList", handleEndpointList);
   ami.on("EndpointListComplete", (event) =>

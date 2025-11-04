@@ -14,7 +14,7 @@ interface QueueMemberType {
   InCall: string;
   Status: string;
   Paused: string;
-  pauseReason: string;
+  PausedReason: string;
   queueName: string;
 }
 
@@ -183,7 +183,7 @@ export default function QueueMembersDashboard() {
                     )}
                   </td>
                   <td className="px-6 py-5 text-center cc-text-secondary">
-                    {agent.Paused === "1" ? (agent.pauseReason || 'No reason') : "-"}
+                    {agent.Paused === "1" ? (agent.PausedReason || 'No reason') : "-"}
                   </td>
                   <td className="px-6 py-5 text-center">
                     <span className="cc-text-accent font-bold text-lg">{agent.CallsTaken}</span>
