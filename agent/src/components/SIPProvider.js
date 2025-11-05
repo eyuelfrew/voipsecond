@@ -334,24 +334,10 @@ export const SIPProvider = ({ children }) => {
     setReconnectAttempts(0);
   };
 
-  // Notify backend of agent status change
-  const notifyAgentStatus = async (status) => {
-    try {
-      await fetch(`${baseUrl}/agent/status`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-    } catch (err) {
-      // Optionally handle error
-    }
-  };
 
   // Enhanced setAgentStatus
   const setAgentStatus = async (newStatus) => {
     setAgentStatusState(newStatus);
-    await notifyAgentStatus(newStatus);
     if (
       newStatus === "Paused" ||
       newStatus === "Do Not Disturb" ||

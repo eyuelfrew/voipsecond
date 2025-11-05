@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Wifi, LogOut, Pause, Play } from 'lucide-react';
 import useStore from '../store/store';
 import PauseModal from './PauseModal';
@@ -11,6 +11,33 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
     const [pauseReason, setPauseReason] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
 
+    // Check agent pause status on component mount
+    useEffect(() => {
+        const checkPauseStatus = async () => {
+            if (!agent?.username) return;
+
+            try {
+                const response = await fetch(`http://localhost:4000/api/agent/status/${agent.username}`, {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        setIsPaused(data.isPaused);
+                        setPauseReason(data.pauseReason || '');
+                        setAgentStatus(data.isPaused ? 'Paused' : 'Available');
+                        console.log('📊 Agent pause status loaded:', data);
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error checking pause status:', error);
+            }
+        };
+
+        checkPauseStatus();
+    }, [agent?.username, setAgentStatus]);
+
     // Get first two letters of agent's name for avatar
     const getInitials = (name) => {
         if (!name) return 'NA';
@@ -22,19 +49,12 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
         return initials;
     };
 
-    // Pause agent (AMI integration)
+    // Pause agent (Database + AMI)
     const handlePause = async (reason) => {
         setIsProcessing(true);
         console.log('⏸️  Attempting to pause agent:', { username: agent?.username, reason });
-        console.log('📡 Sending request to: http://localhost:4000/api/agent/pause');
-        
+
         try {
-            console.log('📤 Request body:', {
-                agentId: agent?.username,
-                reason: reason,
-                paused: true
-            });
-            
             const response = await fetch('http://localhost:4000/api/agent/pause', {
                 method: 'POST',
                 headers: {
@@ -42,20 +62,19 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
                 },
                 credentials: 'include',
                 body: JSON.stringify({
-                    agentId: agent?.username, // Use extension number (e.g., "1003")
-                    reason: reason,
-                    paused: true
+                    agentId: agent?.username,
+                    reason: reason
                 })
             });
 
-            console.log('📥 Pause response status:', response.status);
             const data = await response.json();
-            console.log('📥 Pause response data:', data);
+            console.log('📥 Pause response:', data);
 
             if (!response.ok || !data.success) {
-                throw new Error(data.error || data.details || 'Failed to pause agent');
+                throw new Error(data.error || 'Failed to pause agent');
             }
 
+            // Update UI state
             setIsPaused(true);
             setPauseReason(reason);
             setAgentStatus('Paused');
@@ -63,44 +82,36 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
         } catch (error) {
             console.error('❌ Error pausing agent:', error);
             alert(`Failed to pause: ${error.message}`);
-            throw error;
         } finally {
             setIsProcessing(false);
         }
     };
 
-    // Resume agent (AMI integration)
+    // Resume agent (Database + AMI)
     const handleResume = async () => {
         setIsProcessing(true);
         console.log('▶️  Attempting to resume agent:', { username: agent?.username });
-        console.log('📡 Sending request to: http://localhost:4000/api/agent/pause');
-        
+
         try {
-            console.log('📤 Request body:', {
-                agentId: agent?.username,
-                paused: false
-            });
-            
-            const response = await fetch('http://localhost:4000/api/agent/pause', {
+            const response = await fetch('http://localhost:4000/api/agent/unpause', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 credentials: 'include',
                 body: JSON.stringify({
-                    agentId: agent?.username, // Use extension number (e.g., "1003")
-                    paused: false
+                    agentId: agent?.username
                 })
             });
 
-            console.log('📥 Resume response status:', response.status);
             const data = await response.json();
-            console.log('📥 Resume response data:', data);
+            console.log('📥 Resume response:', data);
 
             if (!response.ok || !data.success) {
-                throw new Error(data.error || data.details || 'Failed to resume agent');
+                throw new Error(data.error || 'Failed to resume agent');
             }
 
+            // Update UI state
             setIsPaused(false);
             setPauseReason('');
             setAgentStatus('Available');
@@ -136,11 +147,10 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
                         }
                     }}
                     disabled={!isSIPReady || isProcessing}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-sm border-2 ${
-                        isPaused
-                            ? 'border-green-500 bg-green-50 text-green-700 hover:bg-green-100'
-                            : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                    } ${!isSIPReady || isProcessing ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-sm border-2 ${isPaused
+                        ? 'border-green-500 bg-green-50 text-green-700 hover:bg-green-100'
+                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                        } ${!isSIPReady || isProcessing ? 'opacity-60 cursor-not-allowed' : ''}`}
                     title={isPaused ? 'Click to Resume Work' : 'Click to Pause Work'}
                 >
                     {isProcessing ? (
@@ -161,32 +171,19 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
                     )}
                 </button>
 
-                {/* Agent Status Toggle */}
-                <button
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-sm border border-gray-200 ${isSIPReady && agentStatus === 'Available'
-                        ? 'bg-primary-50 text-primary-600 hover:bg-primary-100'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        } ${!isSIPReady ? 'opacity-60 cursor-not-allowed' : ''}`}
-                    onClick={() =>
-                        isSIPReady &&
-                        setAgentStatus(agentStatus === 'Available' ? 'Unavailable' : 'Available')
-                    }
-                    disabled={!isSIPReady}
-                    aria-label={`Set agent status to ${agentStatus === 'Available' ? 'Unavailable' : 'Available'}`}
-                    title={`Set ${agentStatus === 'Available' ? 'Unavailable' : 'Available'}`}
+                {/* Active Status Indicator */}
+                <div
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-sm border-2 ${isSIPReady
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-gray-300 bg-gray-50 text-gray-600'
+                        }`}
+                    title={isSIPReady ? 'SIP Connected - Agent Active' : 'SIP Disconnected'}
                 >
-                    <Wifi
-                        size={20}
-                        className={
-                            isSIPReady
-                                ? agentStatus === 'Available'
-                                    ? 'text-primary-600'
-                                    : 'text-gray-600'
-                                : 'text-gray-400'
-                        }
-                    />
-                    <span className="text-sm font-semibold">{agentStatus}</span>
-                </button>
+                    <div className={`w-2 h-2 rounded-full ${isSIPReady ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                    <span className="text-sm font-semibold">
+                        {isSIPReady ? 'Active' : 'Inactive'}
+                    </span>
+                </div>
 
                 {/* Agent Profile with Dropdown */}
                 {agent && (

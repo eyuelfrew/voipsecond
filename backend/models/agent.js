@@ -12,6 +12,12 @@ const agentSchema = new mongoose.Schema({
 
     queues: [{ type: String }], // queue memberships
 
+    // --- Pause state tracking ---
+    isPaused: { type: Boolean, default: false },
+    pauseReason: { type: String, default: '' },
+    pausedAt: { type: Date, default: null },
+    pausedBy: { type: String, default: 'agent' }, // 'agent', 'supervisor', 'system'
+
     // --- Daily stats (reset at midnight) ---
     totalCallsToday: { type: Number, default: 0 },
     answeredCallsToday: { type: Number, default: 0 }, // Queue calls answered
