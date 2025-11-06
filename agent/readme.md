@@ -66,12 +66,12 @@ Create a `.env` file in the `agent/` directory:
 
 ```env
 # SIP Server Configuration
-REACT_APP_SIP_SERVER=10.42.0.1
+REACT_APP_SIP_SERVER=192.168.1.2
 REACT_APP_SIP_SERVER_PORT=8088
 
 # API Server Configuration
-REACT_APP_DEV_BASE_URL=http://10.42.0.1:4000/api
-REACT_APP_PROD_BASE_URL=https://10.42.0.1:4000/api
+REACT_APP_DEV_BASE_URL=http://192.168.1.2:4000/api
+REACT_APP_PROD_BASE_URL=https://192.168.1.2:4000/api
 
 # Environment
 NODE_ENV=development
@@ -97,7 +97,7 @@ The application will open at `http://localhost:3000`
 
 ### IP Address Configuration
 
-The default IP is set to `10.42.0.1`. To change it:
+The default IP is set to `192.168.1.2`. To change it:
 
 #### Option 1: Environment Variables (Recommended)
 Edit `.env` file:
@@ -257,7 +257,7 @@ curl -i -N -H "Connection: Upgrade" \
   -H "Upgrade: websocket" \
   -H "Sec-WebSocket-Version: 13" \
   -H "Sec-WebSocket-Key: test" \
-  http://10.42.0.1:8088/ws
+  http://192.168.1.2:8088/ws
 ```
 
 **Solution**:
@@ -370,7 +370,7 @@ server {
     
     # WebSocket proxy for SIP
     location /ws {
-        proxy_pass http://10.42.0.1:8088;
+        proxy_pass http://192.168.1.2:8088;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";

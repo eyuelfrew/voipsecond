@@ -6,9 +6,9 @@ The agent webphone is now configured with a stunning black and yellow theme, fea
 ## Current Configuration
 
 ### IP Address
-- **Default IP**: `10.42.0.1`
-- **SIP Server**: `10.42.0.1:8088`
-- **API Server**: `10.42.0.1:4000`
+- **Default IP**: `192.168.1.2`
+- **SIP Server**: `192.168.1.2:8088`
+- **API Server**: `192.168.1.2:4000`
 
 ### Changing the IP Address
 

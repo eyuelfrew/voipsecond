@@ -61,10 +61,10 @@ npm start
 Edit `.env` file:
 ```env
 # Your SIP server IP
-REACT_APP_SIP_SERVER=10.42.0.1
+REACT_APP_SIP_SERVER=192.168.1.2
 
 # Your API server
-REACT_APP_DEV_BASE_URL=http://10.42.0.1:4000/api
+REACT_APP_DEV_BASE_URL=http://192.168.1.2:4000/api
 ```
 
 ### Advanced Configuration
