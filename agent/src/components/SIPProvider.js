@@ -22,44 +22,35 @@ export const SIPProvider = ({ children }) => {
   // Fetch SIP password from /auth/me when SIP_USER changes
   useEffect(() => {
     if (!SIP_USER) return;
+    
+    let isMounted = true;
+    
     const fetchSipPassword = async () => {
       try {
         const res = await fetch(`${baseUrl}/auth/me`, {
           method: "GET",
           credentials: "include",
         });
-        // console.log('Fetching SIP password for user:', await res.text());
-        if (res.status === 200) {
+        
+        if (res.status === 200 && isMounted) {
           const data = await res.json();
-
-          console.log("SIP credentials fetched:", data);
           setSipPassword(data.sip?.password || "");
-          console.log(
-            "SIP_USER:",
-            SIP_USER,
-            "SIP_PASSWORD:",
-            data.sip?.password || ""
-          );
         }
-      } catch { }
+      } catch (error) {
+        console.error("Error fetching SIP password:", error);
+      }
     };
+    
     fetchSipPassword();
-  }, [SIP_USER]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [SIP_USER, baseUrl]);
   const sipSERVER = SIP_SERVER;
   const SIP_PORT = process.env.REACT_APP_SIP_SERVER_PORT || 8088;
   // Use ws:// for secure WebSocket connection (required for HTTPS pages)
-  console.log(sipSERVER)
-  console.log(sipSERVER)
   const SIP_WS_SERVER = `ws://${sipSERVER}:${SIP_PORT}/ws`;
-
-  // Debug logging for SIP configuration
-  console.log("🔧 SIP Configuration:", {
-    SIP_SERVER,
-    SIP_PORT,
-    SIP_WS_SERVER,
-    env_server_ip: process.env.REACT_APP_SERVER_IP,
-    env_sip_port: process.env.REACT_APP_SIP_SERVER_PORT
-  });
   const PC_CONFIG = {
 
     rtcpMuxPolicy: "require",
@@ -78,7 +69,8 @@ export const SIPProvider = ({ children }) => {
   const [iceStatus, setIceStatus] = useState("");
   const [agentStatus, setAgentStatusState] = useState("Available");
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
-  const [maxReconnectAttempts] = useState(5);
+  const [maxReconnectAttempts] = useState(3); // Reduced from 5 to 3
+  const [connectionFailed, setConnectionFailed] = useState(false); // New state to track permanent failure
   const uaRef = useRef(null);
   const remoteAudioRef = useRef(null);
   const ringtoneRef = useRef(null);
@@ -97,16 +89,24 @@ export const SIPProvider = ({ children }) => {
   useEffect(() => {
     // Only start SIP connection if we have valid credentials and agent is authenticated
     if (!SIP_USER || !sipPassword || !agent) {
-      console.log("⏸️ SIP connection paused - missing credentials or agent not logged in", {
-        SIP_USER: !!SIP_USER,
-        sipPassword: !!sipPassword,
-        agent: !!agent
-      });
+      // If agent is not authenticated, ensure SIP connection is stopped
+      if (uaRef.current) {
+        uaRef.current.stop();
+        uaRef.current = null;
+        setRegistered(false);
+        setStatus("Disconnected");
+      }
       return;
     }
 
-    // Reset reconnect attempts when credentials change
+    // Don't try to reconnect if connection has permanently failed
+    if (connectionFailed) {
+      return;
+    }
+
+    // Reset reconnect attempts and connection failed state when credentials change
     setReconnectAttempts(0);
+    setConnectionFailed(false);
     startUA();
 
     return () => {
@@ -119,8 +119,8 @@ export const SIPProvider = ({ children }) => {
         uaRef.current = null;
       }
     };
-    // Only rerun when SIP_USER, sipPassword, or agent authentication changes
-  }, [SIP_USER, sipPassword, agent]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [SIP_USER, sipPassword, agent?._id]);
 
   const startUA = () => {
     if (uaRef.current && uaRef.current.isRegistered()) return;
@@ -145,16 +145,13 @@ export const SIPProvider = ({ children }) => {
         }
       };
 
-      console.log("✨ JsSIP UA Configuration:", configuration);
-
       const ua = new JsSIP.UA(configuration);
       uaRef.current = ua;
       ua.on("connecting", () => setStatus("Connecting..."));
       ua.on("connected", () => setStatus("Connected (Registering...)"));
       ua.on("disconnected", (e) => {
-        console.log("🔌 WebSocket disconnected:", e);
-        setStatus("Disconnected");
-        setError(`WebSocket disconnected: ${e.cause || 'Connection lost'}`);
+        setStatus("Connection Failed");
+        setError(`Network issue: Unable to connect to phone system`);
         setRegistered(false);
 
         // Clear any existing reconnect timeout
@@ -169,23 +166,29 @@ export const SIPProvider = ({ children }) => {
         // 3. Haven't exceeded max reconnect attempts
         // 4. Agent status allows connection
         if (!agent || !SIP_USER || !sipPassword) {
-          console.log("⏹️ Not reconnecting - agent not authenticated or missing credentials");
           return;
         }
 
         if (agentStatus === "Paused" || agentStatus === "Do Not Disturb" || agentStatus === "Unavailable") {
-          console.log("⏹️ Not reconnecting - agent status doesn't allow connection:", agentStatus);
           return;
         }
 
         if (reconnectAttempts >= maxReconnectAttempts) {
-          console.log(`⏹️ Max reconnect attempts (${maxReconnectAttempts}) reached. Stopping reconnection.`);
-          setError(`Connection failed after ${maxReconnectAttempts} attempts. Please refresh the page or check your connection.`);
+          // Stop all reconnection attempts permanently
+          setConnectionFailed(true);
+          setStatus("Connection Failed - Network Issue");
+          setError(`Unable to connect to phone system. Please check your network connection and refresh the page.`);
+          
+          // Stop the UA completely
+          if (uaRef.current) {
+            uaRef.current.stop();
+            uaRef.current = null;
+          }
           return;
         }
 
-        const backoffDelay = Math.min(5000 * Math.pow(2, reconnectAttempts), 30000);
-        console.log(`🔄 Attempting to reconnect in ${backoffDelay}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})...`);
+        // Only retry with exponential backoff
+        const backoffDelay = Math.min(3000 * Math.pow(2, reconnectAttempts), 15000); // Reduced delays
 
         reconnectTimeoutRef.current = setTimeout(() => {
           if (!uaRef.current || !uaRef.current.isRegistered()) {
@@ -194,17 +197,12 @@ export const SIPProvider = ({ children }) => {
           }
         }, backoffDelay);
       });
-      ua.on("registered", (e) => {
-        console.log("✅ SIP REGISTERED successfully:", {
-          response: e?.response?.status_code,
-          expires: e?.response?.getHeader('Expires')
-        });
+      ua.on("registered", () => {
         setStatus("Registered & Idle");
         setRegistered(true);
         setError("");
         // Reset reconnect attempts on successful registration
         setReconnectAttempts(0);
-        console.log("✅ Registration state updated - ready to make calls");
       });
       ua.on("unregistered", () => {
         setStatus("Unregistered");
@@ -217,31 +215,18 @@ export const SIPProvider = ({ children }) => {
 
         // Don't retry on authentication failures (401, 403)
         if (e.status_code === 401 || e.status_code === 403) {
-          console.log("🚫 Authentication failed - not retrying");
           setError(`Authentication failed: ${e.cause}. Please check your credentials.`);
           return;
         }
       });
       ua.on("newRTCSession", ({ session }) => {
-        console.log("🆕 NEW RTC SESSION EVENT:", {
-          direction: session.direction,
-          status: session.status,
-          remote_identity: session.remote_identity?.uri?.user,
-          local_identity: session.local_identity?.uri?.user,
-          session_id: session.id
-        });
-
         if (session.direction === "incoming") {
-          console.log("📞 INCOMING CALL DETECTED");
           if (agentStatus === "Paused" || agentStatus === "Do Not Disturb") {
-            console.log("🚫 Agent is paused/DND - rejecting call");
             session.terminate({ status_code: 486, reason_phrase: "Busy Here" });
             return;
           }
-          console.log("✅ Setting incoming call state");
           setIncomingCall(session);
           setStatus(`Incoming call from ${session.remote_identity.uri.user}`);
-          console.log("setIncomingCall called:", session);
           // Play ringtone
           if (ringtoneRef.current) {
             ringtoneRef.current.currentTime = 0;
@@ -258,57 +243,40 @@ export const SIPProvider = ({ children }) => {
             if (ringtoneRef.current) ringtoneRef.current.pause();
           });
         } else {
-          console.log("📞 OUTGOING CALL DETECTED");
           setCallSession(session);
-          console.log("setCallSession called:", session);
         }
         session.on("peerconnection", ({ peerconnection }) => {
-          console.log("🔌 PEER CONNECTION EVENT");
-          console.log("ICE Connection State:", peerconnection.iceConnectionState);
-          console.log("ICE Gathering State:", peerconnection.iceGatheringState);
-          console.log("Signaling State:", peerconnection.signalingState);
-
           peerconnection.ontrack = (event) => {
-            console.log("🛤️ ONTRACK EVENT FIRED");
             if (remoteAudioRef.current) {
-              console.log("🔊 Attaching remote stream to audio element");
               remoteAudioRef.current.srcObject = event.streams[0];
-              remoteAudioRef.current.play().catch((e) => console.error("🚨 Audio play failed:", e));
+              remoteAudioRef.current.play().catch((e) => console.error("Audio play failed:", e));
             }
           };
           peerconnection.oniceconnectionstatechange = () => {
             const state = peerconnection.iceConnectionState;
-            console.log(`🧊 ICE Connection State Change: ${state}`);
             setIceStatus(state);
             if (state === "failed") {
-              console.error("🚨 ICE connection failed.");
               setError("Audio connection failed.");
             }
           };
         });
-        session.on("progress", (e) => {
-          console.log("⏳ CALL PROGRESS:", e);
+        session.on("progress", () => {
           setStatus("Ringing...");
         });
-        session.on("accepted", (e) => {
-          console.log("✅ CALL ACCEPTED:", e);
+        session.on("accepted", () => {
           setStatus("In Call");
           setAgentStatus("On Call");
           setTimerActive(true);
           setIncomingCall(null);
         });
-        session.on("ended", (e) => {
-          console.log("🔚 CALL ENDED:", e);
+        session.on("ended", () => {
           handleCallEnd("Call ended");
         });
         session.on("failed", (e) => {
-          console.error("❌ CALL FAILED:", e);
           handleCallEnd(`Call failed: ${e.cause}`);
         });
       });
-      console.log("🚀 Starting SIP UA...");
       ua.start();
-      console.log("✅ SIP UA started, waiting for registration...");
     } catch (e) {
       console.error("🚨 Failed to initialize SIP client:", e);
       setError("Failed to initialize SIP client.");
@@ -334,6 +302,31 @@ export const SIPProvider = ({ children }) => {
     setReconnectAttempts(0);
   };
 
+  // Manual retry function for user to trigger
+  const retryConnection = () => {
+    // Reset all connection states
+    setConnectionFailed(false);
+    setReconnectAttempts(0);
+    setError("");
+    
+    // Clear any existing timeouts
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    
+    // Stop existing UA if any
+    if (uaRef.current) {
+      uaRef.current.stop();
+      uaRef.current = null;
+    }
+    
+    // Start fresh connection
+    if (SIP_USER && sipPassword && agent) {
+      startUA();
+    }
+  };
+
 
   // Enhanced setAgentStatus
   const setAgentStatus = async (newStatus) => {
@@ -345,7 +338,10 @@ export const SIPProvider = ({ children }) => {
     ) {
       stopUA();
     } else if (newStatus === "Available") {
-      startUA();
+      // Only start UA if we have valid credentials
+      if (SIP_USER && sipPassword && agent) {
+        startUA();
+      }
     }
   };
 
@@ -353,7 +349,12 @@ export const SIPProvider = ({ children }) => {
     setCallSession(null);
     setIncomingCall(null);
     setStatus("Registered & Idle");
-    setAgentStatus("Available");
+    // Only set agent status to Available if we have valid credentials
+    if (SIP_USER && sipPassword && agent) {
+      setAgentStatus("Available");
+    } else {
+      setAgentStatusState("Available");
+    }
     setTimerActive(false);
     setCallTimer(0);
     setIceStatus("");
@@ -361,60 +362,18 @@ export const SIPProvider = ({ children }) => {
   };
 
   const hangup = () => {
-    console.log("🔴 HANGUP/REJECT BUTTON CLICKED");
-    console.log("📞 Current callSession:", callSession);
-    console.log("📞 Current incomingCall:", incomingCall);
-
     if (callSession) {
-      console.log("🔴 Terminating active call session...");
-      console.log("📞 Call session details:", {
-        direction: callSession.direction,
-        status: callSession.status,
-        remote_identity: callSession.remote_identity?.uri?.user,
-      });
       callSession.terminate();
-      console.log("✅ Active call terminated");
     }
 
     if (incomingCall) {
-      console.log("🔴 Rejecting incoming call...");
-      console.log("📞 Incoming call details:", {
-        direction: incomingCall.direction,
-        status: incomingCall.status,
-        remote_identity: incomingCall.remote_identity?.uri?.user,
-      });
       incomingCall.terminate({ status_code: 486, reason_phrase: "Rejected" });
-      console.log("✅ Incoming call rejected");
-    }
-
-    if (!callSession && !incomingCall) {
-      console.log("⚠️ No active call or incoming call to hangup/reject");
     }
   };
 
   const answer = async () => {
-    console.log("🟢 ANSWER BUTTON CLICKED");
-    console.log("📞 Current incomingCall:", incomingCall);
-    console.log("📞 Current callSession:", callSession);
-
     if (incomingCall) {
-      console.log("🟢 Processing answer for incoming call...");
-      console.log("📞 Incoming call details:", {
-        direction: incomingCall.direction,
-        status: incomingCall.status,
-        remote_identity: incomingCall.remote_identity?.uri?.user,
-        local_identity: incomingCall.local_identity?.uri?.user,
-      });
-
-      // JsSIP status constants: 1 = STATUS_WAITING_FOR_ANSWER
-      // if (incomingCall.status !== 1) {
-      //     setError('Cannot answer: call is no longer available (status ' + incomingCall.status + ')');
-      //     console.warn('Cannot answer: session status is', incomingCall.status);
-      //     return;
-      // }
-
       try {
-        console.log("🎤 Requesting microphone access...");
         const stream = await (window.navigator.mediaDevices &&
           window.navigator.mediaDevices.getUserMedia
           ? window.navigator.mediaDevices.getUserMedia({ audio: true })
@@ -422,72 +381,32 @@ export const SIPProvider = ({ children }) => {
             new Error("getUserMedia not supported in this browser")
           ));
 
-        console.log("✅ Microphone access granted:", stream);
-
         const options = {
           mediaConstraints: { audio: true, video: false },
           mediaStream: stream,
           pcConfig: PC_CONFIG,
         };
 
-        console.log("📞 Answer options:", options);
-
         // Attach event handlers for the session before answering
-        console.log("🔗 Attaching event handlers...");
-        incomingCall.on("progress", () =>
-          console.log("📞 Session event: progress")
-        );
         incomingCall.on("accepted", () => {
-          console.log("✅ Call accepted successfully!");
-          console.log("📞 Moving incomingCall to callSession...");
           setCallSession(incomingCall);
           setStatus("In Call");
           setAgentStatus("On Call");
           setTimerActive(true);
           setIncomingCall(null);
-          console.log("✅ Call state updated");
         });
         incomingCall.on("failed", (e) => {
-          console.log("❌ Call failed after answer:", e);
-          console.log("❌ Failure details:", {
-            cause: e.cause,
-            status_code: e.status_code,
-            reason_phrase: e.reason_phrase,
-            response: e.response
-          });
           handleCallEnd(`Call failed: ${e.cause || e.reason_phrase || 'Unknown error'}`);
         });
         incomingCall.on("ended", () => {
-          console.log("📞 Call ended after answer");
           handleCallEnd("Call ended");
         });
-        incomingCall.on("confirmed", () =>
-          console.log("📞 Session event: confirmed")
-        );
-        incomingCall.on("peerconnection", () =>
-          console.log("📞 Session event: peerconnection")
-        );
 
-        console.log("📞 Calling incomingCall.answer()...");
         incomingCall.answer(options);
-        console.log("✅ Answer method called successfully");
       } catch (err) {
-        console.error("❌ Error in answer function:", err);
-        console.error("❌ Error details:", {
-          message: err?.message,
-          stack: err?.stack,
-          name: err?.name,
-        });
+        console.error("Error answering call:", err);
         setError("Failed to answer call: " + (err?.message || err));
       }
-    } else {
-      console.log("⚠️ No incoming call to answer");
-      console.log("📞 Current state:", {
-        incomingCall,
-        callSession,
-        status,
-        agentStatus,
-      });
     }
   };
 
@@ -509,77 +428,51 @@ export const SIPProvider = ({ children }) => {
 
   // Make call function
   const makeCall = async (destination) => {
-    console.log("📞 MAKE CALL INITIATED:", {
-      destination,
-      registered,
-      uaRef: !!uaRef.current,
-      isRegistered: uaRef.current?.isRegistered(),
-      isConnected: uaRef.current?.isConnected(),
-      SIP_SERVER,
-      status
-    });
-
     if (!uaRef.current) {
-      console.log("❌ SIP client not initialized");
       setError("SIP client not initialized. Please wait for connection.");
       return;
     }
 
     // Check actual registration status from UA
     const isActuallyRegistered = uaRef.current.isRegistered();
-    console.log("📞 Actual registration status:", isActuallyRegistered);
 
     if (!isActuallyRegistered) {
-      console.log("❌ SIP client not registered:", { 
-        stateRegistered: registered, 
-        actualRegistered: isActuallyRegistered,
-        isConnected: uaRef.current.isConnected(),
-        status
-      });
       setError("SIP client not registered. Please wait for registration to complete.");
       
       // Try to trigger registration if connected but not registered
       if (uaRef.current.isConnected() && !isActuallyRegistered) {
-        console.log("🔄 Attempting to register...");
         try {
           uaRef.current.register();
         } catch (e) {
-          console.error("❌ Failed to register:", e);
+          console.error("Failed to register:", e);
         }
       }
       return;
     }
 
     if (!destination) {
-      console.log("❌ No destination provided");
       setError("No destination number provided.");
       return;
     }
     try {
-      console.log("🎤 Requesting microphone access for outgoing call...");
       const stream = await (window.navigator.mediaDevices &&
         window.navigator.mediaDevices.getUserMedia
         ? window.navigator.mediaDevices.getUserMedia({ audio: true })
         : Promise.reject(
           new Error("getUserMedia not supported in this browser")
         ));
-      console.log("✅ Microphone access granted for outgoing call");
 
       const eventHandlers = {
         progress: () => {
-          console.log("📞 Outgoing call progress");
           setStatus("Ringing...");
         },
         failed: (e) => {
-          console.log("❌ Outgoing call failed:", e);
           handleCallEnd(`Call failed: ${e.cause}`);
         },
         ended: () => {
-          console.log("📞 Outgoing call ended");
           handleCallEnd("Call ended");
         },
         confirmed: () => {
-          console.log("✅ Outgoing call confirmed");
           setStatus("In Call");
         },
       };
@@ -592,15 +485,13 @@ export const SIPProvider = ({ children }) => {
 
       // Use full SIP URI with domain for proper routing
       const callUri = `sip:${destination}@${SIP_SERVER}`;
-      console.log("📞 Initiating call to:", callUri);
 
       const session = uaRef.current.call(callUri, options);
-      console.log("📞 Call session created:", session);
 
       setCallSession(session);
       setStatus("Calling...");
     } catch (err) {
-      console.error("❌ Error making call:", err);
+      console.error("Error making call:", err);
       setError(
         "Failed to make call or get microphone: " + (err?.message || err)
       );
@@ -728,6 +619,8 @@ export const SIPProvider = ({ children }) => {
         unholdCall,
         muteCall,
         unmuteCall,
+        connectionFailed,
+        retryConnection,
       }}
     >
       {children}

@@ -44,8 +44,15 @@ const AgentPerformanceDashboard = ({ agent }) => {
     const fetchStats = async () => {
       if (!agent?.username) return;
       
+      // Use agent.id instead of agent._id since agent objects typically use 'id' property
+      const agentId = agent.id || agent._id;
+      if (!agentId) {
+        console.error('Agent ID not found');
+        return;
+      }
+      
       try {
-        const response = await axios.get(`${baseUrl}/api/agent/ex/${agent._id}`, {
+        const response = await axios.get(`${baseUrl}/agent/ex/${agentId}`, {
           withCredentials: true
         });
         
@@ -71,7 +78,7 @@ const AgentPerformanceDashboard = ({ agent }) => {
     // Refresh stats every 30 seconds
     const interval = setInterval(fetchStats, 30000);
     return () => clearInterval(interval);
-  }, [agent]);
+  }, [agent?.id, agent?._id, agent?.username]);
 
   const formatTime = (seconds) => {
     if (!seconds) return '0s';

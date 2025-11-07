@@ -5,6 +5,7 @@ import RequireAuth from './components/RequireAuth';
 import Login from './components/Login';
 import Layout from './components/Layout';
 import { SIPProvider } from './components/SIPProvider';
+import { ThemeProvider } from './contexts/ThemeContext';
 import CallHistory from './pages/CallHistory';
 import Analytics from './pages/Analytics';
 import PhoneNumbers from './pages/PhoneNumbers';
@@ -18,9 +19,10 @@ import './App.css';
 
 function App() {
   return (
-    <Router>
-      <SIPProvider>
-        <div className="App">
+    <ThemeProvider>
+      <Router>
+        <SIPProvider>
+          <div className="App">
           <Routes>
             <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
@@ -129,6 +131,7 @@ function App() {
         </div>
       </SIPProvider>
     </Router>
+    </ThemeProvider>
   );
 }
 
