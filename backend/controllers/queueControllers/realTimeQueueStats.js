@@ -14,36 +14,36 @@ const getTodayKey = () => {
 const initializeQueueStats = (queueId, queueName) => {
   const todayKey = getTodayKey();
   const key = `${queueId}-${todayKey}`;
-  
+
   if (!queueStatsCache.has(key)) {
     queueStatsCache.set(key, {
       queueId,
       queueName,
       date: todayKey,
-      
+
       // Real-time counters
       totalCalls: 0,
       answeredCalls: 0,
       abandonedCalls: 0,
       missedCalls: 0,
       currentWaitingCallers: 0,
-      
+
       // Time tracking
       totalWaitTime: 0,
       totalTalkTime: 0,
       totalHoldTime: 0,
       longestWaitTime: 0,
       shortestWaitTime: null,
-      
+
       // Service level tracking
       callsWithinServiceLevel: 0,
       serviceLevelTarget: 60,
-      
+
       // Current state
       activeAgents: 0,
       availableAgents: 0,
       busyAgents: 0,
-      
+
       // Hourly breakdown
       hourlyStats: Array.from({ length: 24 }, (_, hour) => ({
         hour,
@@ -54,11 +54,11 @@ const initializeQueueStats = (queueId, queueName) => {
         avgTalkTime: 0,
         waitingCallers: 0
       })),
-      
+
       lastUpdated: new Date()
     });
   }
-  
+
   return queueStatsCache.get(key);
 };
 
@@ -73,7 +73,7 @@ const getQueueStats = (queueId) => {
 const updateQueueStats = (queueId, queueName, updates) => {
   const stats = initializeQueueStats(queueId, queueName);
   const currentHour = new Date().getHours();
-  
+
   // Apply updates
   Object.keys(updates).forEach(key => {
     if (key === 'hourlyUpdate') {
@@ -88,33 +88,33 @@ const updateQueueStats = (queueId, queueName, updates) => {
       stats[key] = updates[key];
     }
   });
-  
+
   // Recalculate derived metrics
   if (stats.totalCalls > 0) {
     stats.averageWaitTime = Math.round(stats.totalWaitTime / stats.totalCalls);
     stats.serviceLevelPercentage = Math.round((stats.callsWithinServiceLevel / stats.totalCalls) * 100 * 100) / 100;
   }
-  
+
   if (stats.answeredCalls > 0) {
     stats.averageTalkTime = Math.round(stats.totalTalkTime / stats.answeredCalls);
     stats.averageHoldTime = Math.round(stats.totalHoldTime / stats.answeredCalls);
   }
-  
+
   stats.answerRate = stats.totalCalls > 0 ? Math.round((stats.answeredCalls / stats.totalCalls) * 100 * 100) / 100 : 0;
   stats.abandonmentRate = stats.totalCalls > 0 ? Math.round((stats.abandonedCalls / stats.totalCalls) * 100 * 100) / 100 : 0;
-  
+
   stats.lastUpdated = new Date();
-  
+
   return stats;
 };
 
 // Handle queue caller join event
 const handleQueueCallerJoin = (event, io) => {
   const { Queue: queueId, CallerIDNum, Position } = event;
-  
+
   // Get queue name from global state or database
   const queueName = global.queueNameMap?.[queueId] || queueId;
-  
+
   const stats = updateQueueStats(queueId, queueName, {
     totalCalls: 1,
     currentWaitingCallers: 1,
@@ -123,7 +123,7 @@ const handleQueueCallerJoin = (event, io) => {
       waitingCallers: 1
     }
   });
-  
+
   // Emit real-time update
   io.emit('queueStatsUpdate', {
     queueId,
@@ -137,30 +137,30 @@ const handleQueueCallerJoin = (event, io) => {
       }
     }
   });
-  
+
   console.log(`📊 Queue ${queueId}: Caller joined, total calls today: ${stats.totalCalls}`);
 };
 
 // Handle queue caller leave/abandon event
 const handleQueueCallerLeave = (event, io, reason = 'answered') => {
   const { Queue: queueId, CallerIDNum, Uniqueid } = event;
-  
+
   // Get queue name
   const queueName = global.queueNameMap?.[queueId] || queueId;
-  
+
   // Calculate wait time if available from global state
   const waitTime = global.state?.queueCallers?.find(c => c.id === Uniqueid)?.waitTime || 0;
-  
+
   const updates = {
     currentWaitingCallers: -1,
     totalWaitTime: waitTime
   };
-  
+
   // Update based on reason
   if (reason === 'answered') {
     updates.answeredCalls = 1;
     updates.hourlyUpdate = { answered: 1 };
-    
+
     // Check service level
     if (waitTime <= 60) { // 60 seconds service level
       updates.callsWithinServiceLevel = 1;
@@ -169,7 +169,7 @@ const handleQueueCallerLeave = (event, io, reason = 'answered') => {
     updates.abandonedCalls = 1;
     updates.hourlyUpdate = { abandoned: 1 };
   }
-  
+
   // Update wait time records
   const stats = getQueueStats(queueId);
   if (stats) {
@@ -180,9 +180,9 @@ const handleQueueCallerLeave = (event, io, reason = 'answered') => {
       updates.shortestWaitTime = waitTime;
     }
   }
-  
+
   const updatedStats = updateQueueStats(queueId, queueName, updates);
-  
+
   // Emit real-time update
   io.emit('queueStatsUpdate', {
     queueId,
@@ -196,16 +196,16 @@ const handleQueueCallerLeave = (event, io, reason = 'answered') => {
       }
     }
   });
-  
+
   console.log(`📊 Queue ${queueId}: Caller ${reason}, answer rate: ${updatedStats.answerRate}%`);
 };
 
 // Handle agent status changes in queue
 const handleQueueAgentStatus = (queueId, agentExtension, status, io) => {
   const queueName = global.queueNameMap?.[queueId] || queueId;
-  
+
   const updates = {};
-  
+
   // Update agent counts based on status
   switch (status) {
     case 'available':
@@ -225,9 +225,9 @@ const handleQueueAgentStatus = (queueId, agentExtension, status, io) => {
       updates.availableAgents = -1;
       break;
   }
-  
+
   const stats = updateQueueStats(queueId, queueName, updates);
-  
+
   // Emit agent status update for queue
   io.emit('queueAgentStatusUpdate', {
     queueId,
@@ -245,13 +245,13 @@ const handleQueueAgentStatus = (queueId, agentExtension, status, io) => {
 const getAllQueueStats = () => {
   const todayKey = getTodayKey();
   const allStats = [];
-  
+
   queueStatsCache.forEach((stats, key) => {
     if (key.includes(todayKey)) {
       allStats.push(stats);
     }
   });
-  
+
   return allStats.sort((a, b) => b.totalCalls - a.totalCalls);
 };
 
@@ -267,7 +267,7 @@ const emitAllQueueStats = (io) => {
       totalAnswered: allStats.reduce((sum, q) => sum + q.answeredCalls, 0),
       totalAbandoned: allStats.reduce((sum, q) => sum + q.abandonedCalls, 0),
       totalWaiting: allStats.reduce((sum, q) => sum + q.currentWaitingCallers, 0),
-      avgAnswerRate: allStats.length > 0 ? 
+      avgAnswerRate: allStats.length > 0 ?
         Math.round(allStats.reduce((sum, q) => sum + q.answerRate, 0) / allStats.length * 100) / 100 : 0
     }
   });
@@ -278,7 +278,7 @@ const persistQueueStats = async () => {
   const todayKey = getTodayKey();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   for (const [key, stats] of queueStatsCache.entries()) {
     if (key.includes(todayKey)) {
       try {
@@ -307,7 +307,7 @@ const setupQueueStatsListeners = (ami, io) => {
       initializeQueueStats(queue.queueId, queue.name);
     });
     console.log(`📊 Initialized stats for ${queues.length} queues`);
-    
+
     // Emit initial stats
     setTimeout(() => {
       emitAllQueueStats(io);
@@ -315,30 +315,30 @@ const setupQueueStatsListeners = (ami, io) => {
   }).catch(error => {
     console.error('❌ Error loading queues:', error);
   });
-  
+
   // Listen to queue events
   ami.on('QueueCallerJoin', (event) => {
     handleQueueCallerJoin(event, io);
   });
-  
+
   ami.on('QueueCallerLeave', (event) => {
     handleQueueCallerLeave(event, io, 'answered');
   });
-  
+
   ami.on('QueueCallerAbandon', (event) => {
     handleQueueCallerLeave(event, io, 'abandoned');
   });
-  
+
   // Emit stats every 5 seconds
   setInterval(() => {
     emitAllQueueStats(io);
   }, 5000);
-  
+
   // Persist to database every 5 minutes
   setInterval(() => {
     persistQueueStats();
   }, 5 * 60 * 1000);
-  
+
   console.log('📊 Queue statistics listeners setup complete');
 };
 

@@ -22,11 +22,15 @@ export default function QueueMembersDashboard() {
   const { isDarkMode } = useTheme();
   const [queueMembers, setQueueMembers] = useState<QueueMemberType[]>([]);
   const [selectedQueue, setSelectedQueue] = useState("All Queues");
+  const [wrapStatus, setWrapStatus] = useState<Record<string, any>>({});
   const { socket } = UseSocket();
 
   useEffect(() => {
+    if (!socket) {
+      return;
+    }
+
     const handler = (data: QueueMemberType[] | any) => {
-      console.log("queueMembers", data);
       if (Array.isArray(data)) {
         setQueueMembers(data);
       } else {
@@ -35,10 +39,31 @@ export default function QueueMembersDashboard() {
         setQueueMembers(flatArray);
       }
     };
-    socket?.on("queueMembers", handler);
+    socket.on("queueMembers", handler);
 
     return () => {
-      socket?.off("queueMembers", handler);
+      socket.off("queueMembers", handler);
+    };
+  }, [socket]);
+
+  // Listen for wrap-up status updates
+  useEffect(() => {
+    if (!socket) {
+      return;
+    }
+
+    const handleWrapStatus = (data: any) => {
+      // Store by agent extension
+      setWrapStatus(prev => ({
+        ...prev,
+        [data.agent]: data
+      }));
+    };
+
+    socket.on("agentWrapStatus", handleWrapStatus);
+
+    return () => {
+      socket.off("agentWrapStatus", handleWrapStatus);
     };
   }, [socket]);
 
@@ -116,6 +141,12 @@ export default function QueueMembersDashboard() {
           <div>
             <h2 className="text-2xl font-bold cc-text-accent">Queue Members</h2>
             <p className="cc-text-secondary text-sm">Agent status and availability</p>
+            {/* Debug info */}
+            {Object.keys(wrapStatus).length > 0 && (
+              <p className="text-xs text-purple-400 mt-1">
+                Wrap-up tracking: {Object.keys(wrapStatus).length} agent(s)
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-3 cc-glass px-4 py-2 rounded-xl">
@@ -146,6 +177,7 @@ export default function QueueMembersDashboard() {
               <th className="px-6 py-4 cc-text-accent font-bold text-sm tracking-wide">Status</th>
               <th className="px-6 py-4 text-center cc-text-accent font-bold text-sm tracking-wide">Paused</th>
               <th className="px-6 py-4 text-center cc-text-accent font-bold text-sm tracking-wide">Pause Reason</th>
+              <th className="px-6 py-4 text-center cc-text-accent font-bold text-sm tracking-wide">Wrap-Up</th>
               <th className="px-6 py-4 text-center cc-text-accent font-bold text-sm tracking-wide">Calls Taken</th>
               <th className="px-6 py-4 text-center cc-text-accent font-bold text-sm tracking-wide">In Call</th>
             </tr>
@@ -186,6 +218,23 @@ export default function QueueMembersDashboard() {
                     {agent.Paused === "1" ? (agent.PausedReason || 'No reason') : "-"}
                   </td>
                   <td className="px-6 py-5 text-center">
+                    {(() => {
+                      // Extract extension from agent name (e.g., "Local/1003@from-internal" -> "1003")
+                      const extensionMatch = agent.Name.match(/(\d+)/);
+                      const extension = extensionMatch ? extensionMatch[1] : agent.Name;
+                      const isInWrapUp = wrapStatus[extension]?.inWrapUp || wrapStatus[agent.Name]?.inWrapUp;
+                      
+                      return isInWrapUp ? (
+                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-500/20 text-purple-400 animate-pulse">
+                          <Clock className="w-3 h-3 animate-spin" />
+                          In Wrap-Up
+                        </span>
+                      ) : (
+                        <span className="cc-text-secondary text-sm">-</span>
+                      );
+                    })()}
+                  </td>
+                  <td className="px-6 py-5 text-center">
                     <span className="cc-text-accent font-bold text-lg">{agent.CallsTaken}</span>
                   </td>
                   <td className="px-6 py-5 text-center">
@@ -204,7 +253,7 @@ export default function QueueMembersDashboard() {
               ))
             ) : (
               <tr>
-                <td colSpan={8} className="px-6 py-16 text-center">
+                <td colSpan={9} className="px-6 py-16 text-center">
                   <div className="flex flex-col items-center space-y-4">
                     <div className="w-16 h-16 bg-yellow-400/10 rounded-full flex items-center justify-center">
                       <Users className="w-8 h-8 cc-text-accent opacity-50" />

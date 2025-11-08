@@ -10,7 +10,8 @@ const wrapUpTimeSchema = new mongoose.Schema({
   callEndTime: { type: Date, required: true },
   wrapStartTime: { type: Date },
   wrapEndTime: { type: Date },
-  wrapTimeSec: { type: Number, default: 0 }, // Total wrap-up time in seconds
+  wrapTimeSec: { type: Number, default: 0 }, // Total wrap-up time in seconds (from call end)
+  activeWrapTimeSec: { type: Number, default: 0 }, // Active wrap-up time (from pause confirmation)
   
   // Call information
   linkedId: { type: String },
@@ -21,7 +22,7 @@ const wrapUpTimeSchema = new mongoose.Schema({
   // Status
   status: { 
     type: String, 
-    enum: ['pending', 'completed', 'skipped'],
+    enum: ['pending', 'completed', 'skipped', 'incomplete'],
     default: 'pending'
   },
   

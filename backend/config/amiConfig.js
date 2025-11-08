@@ -66,8 +66,9 @@ const state = {
   activeBridges: {},
   recordedLinkedIds: {},
   agentStatus: {}, // Track real-time agent status
-  pendingWrap: {}, // Track wrap-up time: { "queueId:agentExtension": { callEnd, linkedId, queue, agent, ... } }
+  pendingWrap: {}, // Track wrap-up time: { "queueId:agentExtension": { callEndTime, linkedId, queue, agent, ... } }
   agentWrapStatus: {}, // Track current wrap status per agent: { "agentExtension": { inWrapUp: true, wrapStartTime, ... } }
+  wrapUpTimers: {}, // Track auto-unpause timers: { "queueId:agentExtension": timerId }
 };
 
 // On startup, load all ongoing shifts and pending ends into memory
@@ -749,7 +750,7 @@ async function handleAgentConnect(event) {
  */
 async function handleAgentRingNoAnswer(event) {
   const { MemberName, Interface, Queue, RingTime, CallerIDNum } = event;
-  
+
   // Extract extension from Interface
   const extensionMatch = Interface?.match(/Local\/(\d+)@/);
   const agentExtension = extensionMatch ? extensionMatch[1] : MemberName;
@@ -767,7 +768,7 @@ async function handleAgentRingNoAnswer(event) {
 
 /**
  * Optimized AgentComplete handler
- * Handles queue call completion and updates agent statistics
+ * Handles queue call completion and prepares wrap-up tracking (manual pause system)
  */
 async function handleAgentComplete(event, io) {
   const {
@@ -803,12 +804,13 @@ async function handleAgentComplete(event, io) {
     holdTime: holdTime
   }).catch(err => console.error('Error tracking agent call:', err));
 
-  // Start wrap-up time tracking
+  // PHASE 1: Record call end timestamp
   const key = `${Queue}:${agentExtension}`;
   const queueName = queueNameMap[Queue] || Queue;
-  
+  const callEndTime = Date.now();
+
   state.pendingWrap[key] = {
-    callEnd: Date.now(),
+    callEndTime: callEndTime,
     linkedId: DestLinkedid,
     queue: Queue,
     queueName: queueName,
@@ -817,27 +819,10 @@ async function handleAgentComplete(event, io) {
     callerId: CallerIDNum,
     callerName: CallerIDName,
     talkTime: talkTime,
+    interface: Interface,
   };
 
-  // Mark agent as in wrap-up
-  state.agentWrapStatus[agentExtension] = {
-    inWrapUp: true,
-    wrapStartTime: Date.now(),
-    queue: Queue,
-    queueName: queueName,
-  };
-
-  console.log(`⏱️ Wrap-up started for agent ${agentExtension} in queue ${Queue}`);
-
-  // Emit wrap-up status to frontend
-  io.emit('agentWrapStatus', {
-    agent: agentExtension,
-    agentName: MemberName,
-    queue: Queue,
-    queueName: queueName,
-    inWrapUp: true,
-    wrapStartTime: Date.now(),
-  });
+  console.log(`⏱️ Wrap-up tracking ready for agent ${agentExtension} in queue ${Queue} (waiting for manual pause)`);
 
   // Handle ongoing call state
   const call = state.ongoingCalls[DestLinkedid];
@@ -958,40 +943,58 @@ async function handleContactStatus(event, io) {
 }
 
 /**
- * Handle QueueMemberPause event - Agent pauses (starts wrap-up)
+ * Handle QueueMemberPause event - Confirms wrap-up start or handles manual pause
  */
 async function handleQueueMemberPause(event, io) {
+
   const { Queue, MemberName, Interface, Paused, PausedReason } = event;
-  
+  console.log(Paused)
+  console.log(Paused)
+  console.log(Paused)
+  console.log(Paused)
+  console.log(Paused)
+  console.log(Paused)
   // Extract extension from Interface
   const extensionMatch = Interface?.match(/Local\/(\d+)@/);
   const agentExtension = extensionMatch ? extensionMatch[1] : MemberName;
-  
+
   if (Paused === "1") {
     const key = `${Queue}:${agentExtension}`;
-    
-    // Check if there's a pending wrap-up for this agent
+
+    // PHASE 2 CONFIRMATION: Check if there's a pending wrap-up for this agent
     if (state.pendingWrap[key]) {
-      state.pendingWrap[key].wrapStart = Date.now();
-      
-      console.log(`⏸️ Agent ${agentExtension} paused in queue ${Queue} - Wrap-up in progress`);
-      
-      // Update wrap status
-      if (state.agentWrapStatus[agentExtension]) {
-        state.agentWrapStatus[agentExtension].pausedAt = Date.now();
-        state.agentWrapStatus[agentExtension].pauseReason = PausedReason || 'Wrap-up';
-      }
-      
-      // Emit pause event with wrap-up info
+      const wrapStartTime = Date.now();
+      state.pendingWrap[key].wrapStartTime = wrapStartTime;
+
+      // Move from pending to active
+      state.agentWrapStatus[agentExtension] = {
+        inWrapUp: true,
+        wrapStartTime: wrapStartTime,
+        callEndTime: state.pendingWrap[key].callEndTime,
+        queue: Queue,
+        queueName: state.pendingWrap[key].queueName,
+        pauseReason: PausedReason || 'Wrap-up',
+      };
+
+      console.log(`✅ Agent ${agentExtension} paused in queue ${Queue} - Wrap-up ACTIVE (auto-paused)`);
+
+      // Emit wrap-up status to frontend
       io.emit('agentWrapStatus', {
         agent: agentExtension,
+        agentName: state.pendingWrap[key].agentName,
         queue: Queue,
         queueName: state.pendingWrap[key].queueName,
         inWrapUp: true,
         paused: true,
         pauseReason: PausedReason || 'Wrap-up',
-        wrapStartTime: state.pendingWrap[key].wrapStart,
+        wrapStartTime: wrapStartTime,
+        callEndTime: state.pendingWrap[key].callEndTime,
       });
+
+
+    } else {
+      // This is a manual pause (not related to wrap-up)
+      console.log(`⏸️ Agent ${agentExtension} manually paused in queue ${Queue} (not wrap-up)`);
     }
   }
 }
@@ -1000,28 +1003,31 @@ async function handleQueueMemberPause(event, io) {
  * Handle QueueMemberPause event - Agent unpauses (completes wrap-up)
  */
 async function handleQueueMemberUnpause(event, io) {
-  console.log("Queue Member Paued")
-  console.log("Queue Member Paued")
-  console.log("Queue Member Paued")
-  console.log("Queue Member Paued")
-  console.log("Queue Member Paued")
-  console.log("Queue Member Paued")
   const { Queue, MemberName, Interface } = event;
-  
+
   // Extract extension from Interface
   const extensionMatch = Interface?.match(/Local\/(\d+)@/);
   const agentExtension = extensionMatch ? extensionMatch[1] : MemberName;
-  
+
   const key = `${Queue}:${agentExtension}`;
-  
-  // Check if there's a pending wrap-up for this agent
+
+  // PHASE 3: Check if there's an active wrap-up for this agent
   if (state.pendingWrap[key]) {
-    const wrapEnd = Date.now();
+    const wrapEndTime = Date.now();
     const wrapData = state.pendingWrap[key];
-    const wrapTimeSec = Math.round((wrapEnd - wrapData.callEnd) / 1000);
-    
-    console.log(`✅ Agent ${agentExtension} unpaused in queue ${Queue} - Wrap-up completed (${wrapTimeSec}s)`);
-    
+
+    // Calculate wrap-up time from call end (includes pause delay)
+    const totalWrapTimeSec = Math.round((wrapEndTime - wrapData.callEndTime) / 1000);
+
+    // Calculate active wrap-up time (from pause confirmation)
+    const activeWrapTimeSec = wrapData.wrapStartTime
+      ? Math.round((wrapEndTime - wrapData.wrapStartTime) / 1000)
+      : totalWrapTimeSec;
+
+    console.log(`✅ Agent ${agentExtension} unpaused in queue ${Queue} - Wrap-up COMPLETED`);
+    console.log(`   Total wrap-up time: ${totalWrapTimeSec}s (from call end)`);
+    console.log(`   Active wrap-up time: ${activeWrapTimeSec}s (from pause)`);
+
     // Save wrap-up time to database
     try {
       await WrapUpTime.create({
@@ -1029,51 +1035,58 @@ async function handleQueueMemberUnpause(event, io) {
         queueName: wrapData.queueName,
         agent: agentExtension,
         agentName: wrapData.agentName,
-        callEndTime: new Date(wrapData.callEnd),
-        wrapStartTime: wrapData.wrapStart ? new Date(wrapData.wrapStart) : new Date(wrapData.callEnd),
-        wrapEndTime: new Date(wrapEnd),
-        wrapTimeSec: wrapTimeSec,
+        callEndTime: new Date(wrapData.callEndTime),
+        wrapStartTime: wrapData.wrapStartTime ? new Date(wrapData.wrapStartTime) : new Date(wrapData.callEndTime),
+        wrapEndTime: new Date(wrapEndTime),
+        wrapTimeSec: totalWrapTimeSec, // Store total time
+        activeWrapTimeSec: activeWrapTimeSec, // Store active time
         linkedId: wrapData.linkedId,
         callerId: wrapData.callerId,
         callerName: wrapData.callerName,
         talkTime: wrapData.talkTime,
         status: 'completed',
       });
-      
-      console.log(`💾 Wrap-up time saved to database: ${wrapTimeSec}s`);
+
+      console.log(`💾 Wrap-up time saved to database: ${totalWrapTimeSec}s total, ${activeWrapTimeSec}s active`);
     } catch (error) {
-      console.error('Error saving wrap-up time:', error);
+      console.error('❌ Error saving wrap-up time:', error);
     }
-    
-    // Update agent's average wrap time
+
+    // Update agent's average wrap time (use total time for statistics)
     const { updateAgentWrapTime } = require('../controllers/agentControllers/realTimeAgent');
     if (updateAgentWrapTime) {
-      await updateAgentWrapTime(agentExtension, wrapTimeSec, io);
+      await updateAgentWrapTime(agentExtension, totalWrapTimeSec, io);
     }
-    
+
     // Emit wrap-up completion to frontend via Socket.IO
     io.emit('wrapupComplete', {
       queue: Queue,
       queueName: wrapData.queueName,
       agent: agentExtension,
       agentName: wrapData.agentName,
-      wrapTimeSec: wrapTimeSec,
+      wrapTimeSec: totalWrapTimeSec,
+      activeWrapTimeSec: activeWrapTimeSec,
       timestamp: new Date(),
       linkedId: wrapData.linkedId,
     });
-    
+
     // Clear wrap-up status
     delete state.pendingWrap[key];
     delete state.agentWrapStatus[agentExtension];
-    
-    // Emit status update
+
+    // Emit status update to frontend
     io.emit('agentWrapStatus', {
       agent: agentExtension,
       queue: Queue,
       queueName: wrapData.queueName,
       inWrapUp: false,
-      wrapTimeSec: wrapTimeSec,
+      wrapTimeSec: totalWrapTimeSec,
     });
+
+    console.log(`🎉 Wrap-up tracking completed for agent ${agentExtension} in queue ${Queue}`);
+  } else {
+    // This is a regular unpause (not related to wrap-up)
+    console.log(`▶️ Agent ${agentExtension} unpaused in queue ${Queue} (not wrap-up related)`);
   }
 }
 
@@ -1127,7 +1140,7 @@ async function setupAmiEventListeners(ami, io) {
   ami.on("QueueCallerJoin", (event) => handleQueueCallerJoin(event, io));
   ami.on("QueueCallerLeave", (event) => handleQueueCallerLeave(event, io));
   ami.on("QueueCallerAbandon", (event) => handleQueueCallerAbandon(event, io));
-  
+
   // Wrap-up time tracking events
   ami.on("QueueMemberPause", (event) => {
     // Check if this is an unpause event (Paused: 0)
@@ -1137,7 +1150,7 @@ async function setupAmiEventListeners(ami, io) {
       handleQueueMemberPause(event, io);
     }
   });
-  
+
   // Endpoint/Agent Status Events
   ami.on("EndpointList", handleEndpointList);
   ami.on("EndpointListComplete", (event) =>
