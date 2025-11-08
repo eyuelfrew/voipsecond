@@ -184,6 +184,38 @@ async function saveAgentStats(username) {
   }
 }
 
+/**
+ * Update agent's wrap-up time averages
+ * @param {string} username - Agent username/extension
+ * @param {number} wrapTimeSec - Wrap-up time in seconds
+ * @param {object} io - Socket.IO instance for real-time updates
+ */
+async function updateAgentWrapTime(username, wrapTimeSec, io) {
+  try {
+    const agent = await getOrCreateAgent(username);
+
+    // Update wrap time averages
+    agent.averageWrapTimeToday = updateAverage(
+      agent.averageWrapTimeToday,
+      agent.answeredCallsToday,
+      wrapTimeSec
+    );
+    agent.averageWrapTimeOverall = updateAverage(
+      agent.averageWrapTimeOverall,
+      agent.answeredCallsOverall,
+      wrapTimeSec
+    );
+
+    console.log(`📊 Updated wrap time for ${username}: Today avg ${agent.averageWrapTimeToday.toFixed(2)}s, Overall avg ${agent.averageWrapTimeOverall.toFixed(2)}s`);
+
+    // Save to database and emit updates
+    await saveAgentStats(username);
+    await emitAgentStatusOnly(io);
+  } catch (error) {
+    console.error(`Error updating wrap time for ${username}:`, error);
+  }
+}
+
 // Map device state to live status
 function mapDeviceStateToLiveStatus(deviceState) {
   switch (deviceState) {
@@ -467,12 +499,12 @@ async function emitAgentStatusOnly(io) {
             agent.deviceState === "Unavailable" ||
             agent.deviceState === "Offline" ||
             agent.deviceState === "OFFLINE"
-          ? "offline"
-          : agent.deviceState === "INUSE" || agent.deviceState === "InUse"
-          ? "busy"
-          : agent.deviceState === "RINGING" || agent.deviceState === "Ringing"
-          ? "ringing"
-          : "offline", // Default to offline for unknown states
+            ? "offline"
+            : agent.deviceState === "INUSE" || agent.deviceState === "InUse"
+              ? "busy"
+              : agent.deviceState === "RINGING" || agent.deviceState === "Ringing"
+                ? "ringing"
+                : "offline", // Default to offline for unknown states
       lastActivity: agent.lastActivity,
       contacts: agent.contacts || "",
       transport: agent.transport || "",
@@ -614,7 +646,7 @@ function setupAgentListeners(ami, io) {
   // Listen to AgentCalled events (agent is notified of incoming call) - Track total calls
   ami.on("AgentCalled", async (event) => {
     const { Interface, Queue, CallerIDNum, CallerIDName, Linkedid } = event;
-
+    console.log("Agent Called Event", event);
     // Extract username from Interface (e.g., "PJSIP/1006" -> "1006")
     if (!Interface || !Interface.startsWith("Local/")) return;
     const username = Interface.split("/")[1];
@@ -916,4 +948,5 @@ module.exports = {
   getOrCreateAgent,
   refreshAgentState,
   reloadAllAgents,
+  updateAgentWrapTime,
 };

@@ -13,7 +13,12 @@ const {
 
 } = require('../controllers/agentControllers/agentController');
 const { deleteExtension } = require('../controllers/agentControllers/deleteExtension'); // Import the delete function
-const { getAllAgents } = require('../controllers/agents');
+const {
+    getAllAgents,
+    getRealTimeAgentStatus,
+    triggerAgentStatusEmission,
+    refreshAgentCache,
+} = require('../controllers/agents');
 // const { verifyToken } = require('../controllers/authController');
 
 // Protect all agent routes
@@ -21,7 +26,6 @@ const { getAllAgents } = require('../controllers/agents');
 
 // Define agent routes here
 
-module.exports = router;
 // Register a new agent
 router.post("/register", createExtension);
 
@@ -43,6 +47,19 @@ router.get("/ex/:id", getAgentById);
 // // Update (modify) an agent
 // router.put("/:id", modifyAgent);
 router.get('/extension/real-time', getAllAgents);
+
+// Expose enriched real-time agent status (includes stats and lastActivity)
+// GET /api/agent/real-time/status
+router.get('/real-time/status', getRealTimeAgentStatus);
+
+
+
+// Manual endpoints for debugging/admins
+// POST /api/agent/real-time/emit  -> triggers a socket emission of current status
+router.post('/real-time/emit', triggerAgentStatusEmission);
+
+// POST /api/agent/real-time/refresh?forceReload=true -> refreshes agent cache
+router.post('/real-time/refresh', refreshAgentCache);
 
 // Helper function to send AMI action (fire and forget)
 function sendAMIAction(amiClient, action) {
@@ -232,5 +249,13 @@ router.get('/status/:agentId', async (req, res) => {
     }
 });
 
+// Get agent call statistics
+const { getAgentStats, getAllAgentsStats } = require('../controllers/agentControllers/callStatsController');
+router.get('/stats/:agentId', getAgentStats);
+router.get('/stats', getAllAgentsStats);
+
+// Get agent wrap-up time history
+const { getAgentWrapUpHistory } = require('../controllers/agentControllers/wrapUpController');
+router.get('/wrapup/:agentExtension', getAgentWrapUpHistory);
 
 module.exports = router;

@@ -4,6 +4,7 @@ const ini = require("ini");
 const { exec } = require("child_process");
 // AMI is now available globally
 const Extension = require("../models/extension");
+const Agent = require("../models/agent");
 const e = require("express");
 // const hashPassword = require('../utils/hashPassword');
 // const axios = require('axios');
@@ -364,6 +365,60 @@ const getAgentsFromDatabase = async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 };
+
+// Get agent status from the Agent database collection (REST-friendly)
+const getAgentStatusFromDB = asyncHandler(async (req, res) => {
+  try {
+    // Load agents (stats/pause info) from Agent collection
+    const AgentModel = require('../models/agent');
+    const agents = await AgentModel.find({}).lean();
+
+    // Load extension display names to enrich response
+    const extensions = await Extension.find({}, { userExtension: 1, displayName: 1 }).lean();
+    const extMap = {};
+    extensions.forEach((e) => {
+      extMap[e.userExtension] = e.displayName || null;
+    });
+
+    const payload = agents.map((a) => ({
+      username: a.username,
+      name: a.name || extMap[a.username] || `Agent ${a.username}`,
+      email: a.email || null,
+      isPaused: a.isPaused,
+      pauseReason: a.pauseReason,
+      pausedAt: a.pausedAt,
+
+      // Daily stats
+      dailyStats: {
+        totalCalls: a.totalCallsToday,
+        answeredCalls: a.answeredCallsToday,
+        missedCalls: a.missedCallsToday,
+        averageTalkTime: a.averageTalkTimeToday,
+        averageWrapTime: a.averageWrapTimeToday,
+        averageHoldTime: a.averageHoldTimeToday,
+        averageRingTime: a.averageRingTimeToday,
+        longestIdleTime: a.longestIdleTimeToday,
+      },
+
+      // Overall stats
+      overallStats: {
+        totalCalls: a.totalCallsOverall,
+        answeredCalls: a.answeredCallsOverall,
+        missedCalls: a.missedCallsOverall,
+        averageTalkTime: a.averageTalkTimeOverall,
+        averageWrapTime: a.averageWrapTimeOverall,
+        averageHoldTime: a.averageHoldTimeOverall,
+        averageRingTime: a.averageRingTimeOverall,
+        longestIdleTime: a.longestIdleTimeOverall,
+      },
+    }));
+
+    res.json({ success: true, agents: payload, total: payload.length });
+  } catch (error) {
+    console.error('Error fetching agent status from DB:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 // Get real-time agent status from AMI state
 const getRealTimeAgentStatus = async (req, res) => {

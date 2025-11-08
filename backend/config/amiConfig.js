@@ -1,6 +1,7 @@
 // /ami/handler.js (Example file path)
 const CallLog = require("../models/callLog.js");
 const Queue = require("../models/queue.js");
+const WrapUpTime = require("../models/wrapUpTime.js");
 const fs = require("fs");
 const path = require("path");
 const Shift = require("../models/shiftModel");
@@ -65,6 +66,8 @@ const state = {
   activeBridges: {},
   recordedLinkedIds: {},
   agentStatus: {}, // Track real-time agent status
+  pendingWrap: {}, // Track wrap-up time: { "queueId:agentExtension": { callEnd, linkedId, queue, agent, ... } }
+  agentWrapStatus: {}, // Track current wrap status per agent: { "agentExtension": { inWrapUp: true, wrapStartTime, ... } }
 };
 
 // On startup, load all ongoing shifts and pending ends into memory
@@ -691,16 +694,87 @@ function handleQueueCallerAbandon(event, io) {
 }
 
 /**
+ * Handles the 'AgentCalled' event when an agent receives a call
+ * @param {object} event - The AMI event object.
+ */
+async function handleAgentCalled(event) {
+  const { MemberName, Interface, Queue, CallerIDNum, CallerIDName } = event;
+
+  // Extract extension from Interface (e.g., "Local/1003@from-internal" -> "1003")
+  const extensionMatch = Interface.match(/Local\/(\d+)@/);
+  const agentExtension = extensionMatch ? extensionMatch[1] : MemberName;
+
+  console.log(`📞 AgentCalled: Agent ${agentExtension} receiving call from ${CallerIDNum} in queue ${Queue}`);
+
+  // Track that agent received a call
+  const { trackAgentCall } = require('../controllers/agentControllers/callStatsController');
+  await trackAgentCall(agentExtension, 'received', {
+    queue: Queue,
+    callerId: CallerIDNum,
+    callerName: CallerIDName
+  });
+}
+
+/**
+ * Handles the 'AgentConnect' event when an agent answers a call
+ * @param {object} event - The AMI event object.
+ */
+async function handleAgentConnect(event) {
+  const { MemberName, Interface, Queue, HoldTime, RingTime } = event;
+
+  // Extract extension from Interface
+  const extensionMatch = Interface.match(/Local\/(\d+)@/);
+  const agentExtension = extensionMatch ? extensionMatch[1] : MemberName;
+
+  console.log(`✅ AgentConnect: Agent ${agentExtension} answered call in queue ${Queue}`);
+
+  // Track that agent answered a call
+  const { trackAgentCall } = require('../controllers/agentControllers/callStatsController');
+  await trackAgentCall(agentExtension, 'answered', {
+    queue: Queue,
+    holdTime: parseInt(HoldTime) || 0,
+    ringTime: parseInt(RingTime) || 0
+  });
+}
+
+/**
  * Handles the 'AgentComplete' event when a queue call ends.
  * Uses DestLinkedid to remove the ongoing call and emit updated list.
  * @param {object} event - The AMI event object.
  * @param {object} io - The Socket.IO server instance.
  */
-function handleAgentComplete(event, io) {
+/**
+ * Handles the 'AgentRingNoAnswer' event when an agent doesn't answer a call
+ * @param {object} event - The AMI event object.
+ */
+async function handleAgentRingNoAnswer(event) {
+  const { MemberName, Interface, Queue, RingTime, CallerIDNum } = event;
+  
+  // Extract extension from Interface
+  const extensionMatch = Interface?.match(/Local\/(\d+)@/);
+  const agentExtension = extensionMatch ? extensionMatch[1] : MemberName;
+
+  console.log(`📵 AgentRingNoAnswer: Agent ${agentExtension} missed call from ${CallerIDNum} in queue ${Queue} (Rang for ${RingTime}s)`);
+
+  // Track missed call
+  const { trackAgentCall } = require('../controllers/agentControllers/callStatsController');
+  trackAgentCall(agentExtension, 'missed', {
+    queue: Queue,
+    ringTime: parseInt(RingTime) || 0,
+    callerId: CallerIDNum
+  }).catch(err => console.error('Error tracking missed call:', err));
+}
+
+/**
+ * Optimized AgentComplete handler
+ * Handles queue call completion and updates agent statistics
+ */
+async function handleAgentComplete(event, io) {
   const {
     DestLinkedid,
     Queue,
     MemberName,
+    Interface,
     HoldTime,
     TalkTime,
     Reason,
@@ -708,54 +782,100 @@ function handleAgentComplete(event, io) {
     CallerIDName,
   } = event;
 
+  // Parse times once
+  const holdTime = parseInt(HoldTime) || 0;
+  const talkTime = parseInt(TalkTime) || 0;
+  const totalDuration = holdTime + talkTime;
+
+  // Extract extension from Interface (optimized regex)
+  const extensionMatch = Interface?.match(/Local\/(\d+)@/);
+  const agentExtension = extensionMatch ? extensionMatch[1] : MemberName;
+
   console.log(
-    `🎯 AgentComplete: Queue call ended for ${CallerIDNum} in queue ${Queue}`
+    `🎯 AgentComplete: ${agentExtension} completed call from ${CallerIDNum} in queue ${Queue} (Talk: ${talkTime}s, Hold: ${holdTime}s)`
   );
 
-  // Remove the ongoing call using DestLinkedid
-  if (state.ongoingCalls[DestLinkedid]) {
-    const call = state.ongoingCalls[DestLinkedid];
-    const totalDuration = parseInt(HoldTime) + parseInt(TalkTime);
+  // Update agent statistics (non-blocking)
+  const { trackAgentCall } = require('../controllers/agentControllers/callStatsController');
+  trackAgentCall(agentExtension, 'completed', {
+    queue: Queue,
+    talkTime: talkTime,
+    holdTime: holdTime
+  }).catch(err => console.error('Error tracking agent call:', err));
 
-    console.log(
-      `👋 Queue call ${DestLinkedid} completed. Hold: ${HoldTime}s, Talk: ${TalkTime}s, Total: ${totalDuration}s`
-    );
+  // Start wrap-up time tracking
+  const key = `${Queue}:${agentExtension}`;
+  const queueName = queueNameMap[Queue] || Queue;
+  
+  state.pendingWrap[key] = {
+    callEnd: Date.now(),
+    linkedId: DestLinkedid,
+    queue: Queue,
+    queueName: queueName,
+    agent: agentExtension,
+    agentName: MemberName,
+    callerId: CallerIDNum,
+    callerName: CallerIDName,
+    talkTime: talkTime,
+  };
 
-    // Update call log with queue completion data
+  // Mark agent as in wrap-up
+  state.agentWrapStatus[agentExtension] = {
+    inWrapUp: true,
+    wrapStartTime: Date.now(),
+    queue: Queue,
+    queueName: queueName,
+  };
+
+  console.log(`⏱️ Wrap-up started for agent ${agentExtension} in queue ${Queue}`);
+
+  // Emit wrap-up status to frontend
+  io.emit('agentWrapStatus', {
+    agent: agentExtension,
+    agentName: MemberName,
+    queue: Queue,
+    queueName: queueName,
+    inWrapUp: true,
+    wrapStartTime: Date.now(),
+  });
+
+  // Handle ongoing call state
+  const call = state.ongoingCalls[DestLinkedid];
+
+  if (call) {
+    // Update call log with completion data
     updateCallLog(DestLinkedid, {
       endTime: new Date(),
       duration: totalDuration,
       status: "completed",
-      holdTime: parseInt(HoldTime),
-      waitTime: parseInt(HoldTime), // Hold time is essentially wait time in queue
+      holdTime: holdTime,
+      waitTime: holdTime,
       queue: Queue,
       agentName: MemberName,
+      agentExtension: agentExtension,
       hangupReason: Reason,
     });
 
-    // Remove call from ongoing calls state
+    // Remove from ongoing calls
     delete state.ongoingCalls[DestLinkedid];
 
-    // Emit call ended event with queue-specific details
+    // Emit call ended event
     io.emit("callEnded", {
       ...call,
       linkedId: DestLinkedid,
       endTime: Date.now(),
       duration: totalDuration,
-      holdTime: parseInt(HoldTime),
-      talkTime: parseInt(TalkTime),
+      holdTime: holdTime,
+      talkTime: talkTime,
       queue: Queue,
       agent: MemberName,
+      agentExtension: agentExtension,
       reason: Reason,
       finalStatus: "completed",
     });
 
-    // Emit updated ongoing calls list to all clients
+    // Emit updated ongoing calls list
     emitOngoingCallsStatus(io);
-  } else {
-    console.log(
-      `⚠️ AgentComplete event for ${DestLinkedid} but call not found in ongoing calls`
-    );
   }
 }
 
@@ -837,6 +957,126 @@ async function handleContactStatus(event, io) {
   }
 }
 
+/**
+ * Handle QueueMemberPause event - Agent pauses (starts wrap-up)
+ */
+async function handleQueueMemberPause(event, io) {
+  const { Queue, MemberName, Interface, Paused, PausedReason } = event;
+  
+  // Extract extension from Interface
+  const extensionMatch = Interface?.match(/Local\/(\d+)@/);
+  const agentExtension = extensionMatch ? extensionMatch[1] : MemberName;
+  
+  if (Paused === "1") {
+    const key = `${Queue}:${agentExtension}`;
+    
+    // Check if there's a pending wrap-up for this agent
+    if (state.pendingWrap[key]) {
+      state.pendingWrap[key].wrapStart = Date.now();
+      
+      console.log(`⏸️ Agent ${agentExtension} paused in queue ${Queue} - Wrap-up in progress`);
+      
+      // Update wrap status
+      if (state.agentWrapStatus[agentExtension]) {
+        state.agentWrapStatus[agentExtension].pausedAt = Date.now();
+        state.agentWrapStatus[agentExtension].pauseReason = PausedReason || 'Wrap-up';
+      }
+      
+      // Emit pause event with wrap-up info
+      io.emit('agentWrapStatus', {
+        agent: agentExtension,
+        queue: Queue,
+        queueName: state.pendingWrap[key].queueName,
+        inWrapUp: true,
+        paused: true,
+        pauseReason: PausedReason || 'Wrap-up',
+        wrapStartTime: state.pendingWrap[key].wrapStart,
+      });
+    }
+  }
+}
+
+/**
+ * Handle QueueMemberPause event - Agent unpauses (completes wrap-up)
+ */
+async function handleQueueMemberUnpause(event, io) {
+  console.log("Queue Member Paued")
+  console.log("Queue Member Paued")
+  console.log("Queue Member Paued")
+  console.log("Queue Member Paued")
+  console.log("Queue Member Paued")
+  console.log("Queue Member Paued")
+  const { Queue, MemberName, Interface } = event;
+  
+  // Extract extension from Interface
+  const extensionMatch = Interface?.match(/Local\/(\d+)@/);
+  const agentExtension = extensionMatch ? extensionMatch[1] : MemberName;
+  
+  const key = `${Queue}:${agentExtension}`;
+  
+  // Check if there's a pending wrap-up for this agent
+  if (state.pendingWrap[key]) {
+    const wrapEnd = Date.now();
+    const wrapData = state.pendingWrap[key];
+    const wrapTimeSec = Math.round((wrapEnd - wrapData.callEnd) / 1000);
+    
+    console.log(`✅ Agent ${agentExtension} unpaused in queue ${Queue} - Wrap-up completed (${wrapTimeSec}s)`);
+    
+    // Save wrap-up time to database
+    try {
+      await WrapUpTime.create({
+        queue: Queue,
+        queueName: wrapData.queueName,
+        agent: agentExtension,
+        agentName: wrapData.agentName,
+        callEndTime: new Date(wrapData.callEnd),
+        wrapStartTime: wrapData.wrapStart ? new Date(wrapData.wrapStart) : new Date(wrapData.callEnd),
+        wrapEndTime: new Date(wrapEnd),
+        wrapTimeSec: wrapTimeSec,
+        linkedId: wrapData.linkedId,
+        callerId: wrapData.callerId,
+        callerName: wrapData.callerName,
+        talkTime: wrapData.talkTime,
+        status: 'completed',
+      });
+      
+      console.log(`💾 Wrap-up time saved to database: ${wrapTimeSec}s`);
+    } catch (error) {
+      console.error('Error saving wrap-up time:', error);
+    }
+    
+    // Update agent's average wrap time
+    const { updateAgentWrapTime } = require('../controllers/agentControllers/realTimeAgent');
+    if (updateAgentWrapTime) {
+      await updateAgentWrapTime(agentExtension, wrapTimeSec, io);
+    }
+    
+    // Emit wrap-up completion to frontend via Socket.IO
+    io.emit('wrapupComplete', {
+      queue: Queue,
+      queueName: wrapData.queueName,
+      agent: agentExtension,
+      agentName: wrapData.agentName,
+      wrapTimeSec: wrapTimeSec,
+      timestamp: new Date(),
+      linkedId: wrapData.linkedId,
+    });
+    
+    // Clear wrap-up status
+    delete state.pendingWrap[key];
+    delete state.agentWrapStatus[agentExtension];
+    
+    // Emit status update
+    io.emit('agentWrapStatus', {
+      agent: agentExtension,
+      queue: Queue,
+      queueName: wrapData.queueName,
+      inWrapUp: false,
+      wrapTimeSec: wrapTimeSec,
+    });
+  }
+}
+
 // --- MAIN SETUP FUNCTION ---
 
 /**
@@ -869,7 +1109,12 @@ async function setupAmiEventListeners(ami, io) {
   ami.on("BridgeEnter", (event) => handleBridgeEnter(event, io, ami));
   ami.on("BridgeDestroy", handleBridgeDestroy);
 
+  // Agent call tracking events
+  ami.on("AgentCalled", handleAgentCalled);
+  ami.on("AgentConnect", handleAgentConnect);
+  ami.on("AgentRingNoAnswer", handleAgentRingNoAnswer);
   ami.on("AgentComplete", (event) => handleAgentComplete(event, io));
+
   ami.on("DialBegin", (event) => handleDialBegin(event, io));
   ami.on("Hangup", (event) => handleHangup(event, io));
   ami.on("Hold", (event) => handleHold(event, io));
@@ -882,6 +1127,17 @@ async function setupAmiEventListeners(ami, io) {
   ami.on("QueueCallerJoin", (event) => handleQueueCallerJoin(event, io));
   ami.on("QueueCallerLeave", (event) => handleQueueCallerLeave(event, io));
   ami.on("QueueCallerAbandon", (event) => handleQueueCallerAbandon(event, io));
+  
+  // Wrap-up time tracking events
+  ami.on("QueueMemberPause", (event) => {
+    // Check if this is an unpause event (Paused: 0)
+    if (event.Paused === "0") {
+      handleQueueMemberUnpause(event, io);
+    } else {
+      handleQueueMemberPause(event, io);
+    }
+  });
+  
   // Endpoint/Agent Status Events
   ami.on("EndpointList", handleEndpointList);
   ami.on("EndpointListComplete", (event) =>
