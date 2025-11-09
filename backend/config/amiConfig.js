@@ -599,6 +599,14 @@ function handleQueueMember(event) {
   }
 }
 
+/**
+ * Handles the 'QueueMemberStatus' event from AMI
+ * @param {object} event - The AMI event object containing member status information.
+ */
+function handleQueueMemberStatus(event) {
+  console.log("QueueMemberStatus Event Data:", event);
+}
+
 function handleQueueStatusComplete(io) {
   io.emit("queueUpdate", state.queueData);
   emitQueueMembersStatus(io);
@@ -1135,6 +1143,7 @@ async function setupAmiEventListeners(ami, io) {
 
   ami.on("QueueParams", handleQueueParams);
   ami.on("QueueMember", handleQueueMember);
+  ami.on("QueueMemberStatus", handleQueueMemberStatus);
   ami.on("QueueStatus", handleQueueStatus);
   ami.on("QueueStatusComplete", () => handleQueueStatusComplete(io));
   ami.on("QueueCallerJoin", (event) => handleQueueCallerJoin(event, io));

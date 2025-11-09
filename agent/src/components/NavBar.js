@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Wifi, LogOut, Pause, Play, WifiOff, RefreshCw, Sun, Moon } from 'lucide-react';
+import { Wifi, LogOut, Pause, Play, WifiOff, RefreshCw, Sun, Moon, Clock, LogIn } from 'lucide-react';
 import useStore from '../store/store';
 import PauseModal from './PauseModal';
 import { useSIP } from './SIPProvider';
 import { baseUrl } from '../baseUrl';
 import { useTheme } from '../contexts/ThemeContext';
+import { useShift } from '../contexts/ShiftContext';
 
 const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
     const agent = useStore((state) => state.agent);
     const sip = useSIP();
     const { theme, toggleTheme } = useTheme();
+    const { shiftStatus, shiftTimer, clockIn, clockOut, formatTime } = useShift();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isPauseModalOpen, setIsPauseModalOpen] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
@@ -128,6 +130,22 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
         }
     };
 
+    // Start shift
+    const handleStartShift = async () => {
+        const result = await clockIn();
+        if (!result.success) {
+            alert(result.error || 'Failed to start shift');
+        }
+    };
+
+    // End shift
+    const handleEndShift = async () => {
+        const result = await clockOut();
+        if (!result.success) {
+            alert(result.error || 'Failed to end shift');
+        }
+    };
+
     return (
         <>
             <nav className="sticky top-0 z-50 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-sm border-b border-gray-100 dark:border-gray-800 px-6 py-4 flex items-center justify-between transition-colors duration-200">
@@ -140,6 +158,32 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
 
                 {/* Right Side: Status and Profile */}
                 <div className="flex items-center gap-4">
+                    {/* Shift Timer/Control */}
+                    {shiftStatus === 'active' ? (
+                        <div className="flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/30 border-2 border-green-500 rounded-lg">
+                            <Clock className="w-4 h-4 text-green-600 dark:text-green-400 animate-pulse" />
+                            <span className="font-mono text-sm font-bold text-green-700 dark:text-green-400">
+                                {formatTime(shiftTimer)}
+                            </span>
+                            <button
+                                onClick={handleEndShift}
+                                className="ml-2 px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded transition-all"
+                                title="End Shift"
+                            >
+                                End
+                            </button>
+                        </div>
+                    ) : shiftStatus === 'not_started' ? (
+                        <button
+                            onClick={handleStartShift}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white font-semibold rounded-lg transition-all shadow-lg"
+                            title="Start Shift"
+                        >
+                            <LogIn className="w-4 h-4" />
+                            <span className="text-sm">Start Shift</span>
+                        </button>
+                    ) : null}
+
                     {/* Theme Toggle */}
                     <button
                         onClick={toggleTheme}

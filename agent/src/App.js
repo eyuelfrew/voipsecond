@@ -6,11 +6,11 @@ import Login from './components/Login';
 import Layout from './components/Layout';
 import { SIPProvider } from './components/SIPProvider';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ShiftProvider } from './contexts/ShiftContext';
 import CallHistory from './pages/CallHistory';
 import Analytics from './pages/Analytics';
 import PhoneNumbers from './pages/PhoneNumbers';
 import Settings from './pages/Settings';
-import Performance from './pages/Performance';
 import ShiftManagement from './pages/ShiftManagement';
 import CustomerTimeline from './pages/CustomerTimeline';
 import QualityMonitoring from './pages/QualityMonitoring';
@@ -20,9 +20,10 @@ import './App.css';
 function App() {
   return (
     <ThemeProvider>
-      <Router>
-        <SIPProvider>
-          <div className="App">
+      <ShiftProvider>
+        <Router>
+          <SIPProvider>
+            <div className="App">
           <Routes>
             <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
@@ -77,16 +78,6 @@ function App() {
               } 
             />
             <Route 
-              path="/performance" 
-              element={
-                <RequireAuth>
-                  <Layout>
-                    <Performance />
-                  </Layout>
-                </RequireAuth>
-              } 
-            />
-            <Route 
               path="/shift-management" 
               element={
                 <RequireAuth>
@@ -131,6 +122,7 @@ function App() {
         </div>
       </SIPProvider>
     </Router>
+      </ShiftProvider>
     </ThemeProvider>
   );
 }

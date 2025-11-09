@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useState, useContext, useEffect } from "react";
-import { Home, Users, ListOrdered, LineChart, LogOut, BarChart3, Menu, ChevronLeft, ChevronDown, MessageCircle, Mic, Upload } from "lucide-react";
+import { Home, Users, ListOrdered, LineChart, LogOut, BarChart3, Menu, ChevronLeft, ChevronDown, MessageCircle, Mic, Upload, Clock } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 
@@ -46,9 +46,12 @@ const Sidebar = () => {
       ],
     },
     {
-      path: "/agents",
       name: "Agents",
       icon: <Users />,
+      submenus: [
+        { path: "/agents", name: "Agent List", icon: <Users /> },
+        { path: "/agent-shifts", name: "Agent Shifts", icon: <Clock /> },
+      ],
     },
   ];
 

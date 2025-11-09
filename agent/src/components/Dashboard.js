@@ -155,12 +155,6 @@ const AgentPerformanceDashboard = ({ agent }) => {
             <p className="text-primary-100 dark:text-primary-200">Here's your performance overview for today</p>
           </div>
           <div className="flex items-center space-x-3">
-            {/* Last Updated Info */}
-            <div className="flex items-center space-x-2 bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium">Live Updates</span>
-            </div>
-
             {/* Refresh Button */}
             <button
               onClick={() => fetchStats(true)}
@@ -403,7 +397,7 @@ const Dashboard = () => {
 
   return (
     <>
-      <div className="flex h-[calc(100vh-68px)]  text-gray-900">
+      <div className="flex h-[calc(100vh-68px)] text-gray-900 dark:text-gray-100">
         <main className="flex-1 overflow-y-auto px-8 py-6">
           <div className="max-w-5xl mx-auto flex flex-col space-y-8">
             {/* Top action buttons for dialogs */}
@@ -443,8 +437,8 @@ const Dashboard = () => {
             {/* Knowledge Base Dialog */}
             {showKBPopup && (
               <div className="fixed inset-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center animate-fadeIn">
-                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl h-[90vh] overflow-y-auto relative p-8 flex flex-col">
-                  <button className="absolute top-6 right-6 text-gray-400 hover:text-gray-700 transition" onClick={() => setShowKBPopup(false)}>
+                <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-3xl h-[90vh] overflow-y-auto relative p-8 flex flex-col border border-gray-200 dark:border-gray-700">
+                  <button className="absolute top-6 right-6 text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition" onClick={() => setShowKBPopup(false)}>
                     <X size={32} />
                   </button>
                   <KnowledgeBaseSearch />
@@ -454,8 +448,8 @@ const Dashboard = () => {
             {/* Canned Answers Dialog */}
             {showCannedPopup && (
               <div className="fixed inset-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center animate-fadeIn">
-                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl h-[80vh] overflow-y-auto relative p-8 flex flex-col">
-                  <button className="absolute top-6 right-6 text-gray-400 hover:text-gray-700 transition" onClick={() => setShowCannedPopup(false)}>
+                <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl h-[80vh] overflow-y-auto relative p-8 flex flex-col border border-gray-200 dark:border-gray-700">
+                  <button className="absolute top-6 right-6 text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition" onClick={() => setShowCannedPopup(false)}>
                     <X size={32} />
                   </button>
                   <CannedResponseSearch />

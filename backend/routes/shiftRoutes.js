@@ -1,17 +1,32 @@
 const express = require('express');
 const router = express.Router();
 const {
-  startShift,
-  endShift,
+  clockIn,
+  clockOut,
+  startBreak,
+  endBreak,
+  getTodayShift,
   getAgentShifts,
-  updateShiftReason,
+  getShiftStats,
+  getActiveShifts,
+  getAllTodayShifts,
+  getShiftSummary,
 } = require('../controllers/shiftController');
 
-router.post('/start', startShift);
-router.post('/end', endShift);
-router.get('/agent/:agentId', getAgentShifts);
+// Shift management (Agent)
+router.post('/clock-in', clockIn);
+router.post('/clock-out', clockOut);
+router.post('/start-break', startBreak);
+router.post('/end-break', endBreak);
 
-// Add reason update endpoint here
-router.put('/:shiftId/reason', updateShiftReason);
+// Get shift data (Agent)
+router.get('/today/:agentId', getTodayShift);
+router.get('/agent/:agentId', getAgentShifts);
+router.get('/stats/:agentId', getShiftStats);
+
+// Admin/Supervisor endpoints
+router.get('/active', getActiveShifts);           // Get all currently active shifts
+router.get('/all-today', getAllTodayShifts);      // Get all shifts for today
+router.get('/summary', getShiftSummary);          // Get shift summary grouped by agent
 
 module.exports = router;
