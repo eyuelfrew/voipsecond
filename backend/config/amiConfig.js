@@ -941,12 +941,6 @@ async function handleContactStatus(event, io) {
     // Emit the enriched agent status
     emitAgentStatus(io);
 
-    // Start/end shift based on status using extension number
-    if (status === "online") {
-      await startAgentShiftByExtension(EndpointName);
-    } else if (status === "offline") {
-      await endAgentShiftByExtension(EndpointName, reason);
-    }
   }
 }
 
