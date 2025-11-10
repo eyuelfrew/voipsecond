@@ -6,6 +6,7 @@ import CallersTracking from "./CallersTracking";
 import CallStatus from "../components/CallStatus";
 import { useTheme } from "../context/ThemeContext";
 import { Phone, Users, Clock, TrendingUp, Headphones } from "lucide-react";
+import ShiftTracker from "../components/ShiftTracker";
 
 
 interface ActiveCall {
@@ -125,6 +126,8 @@ export default function LiveCalls() {
 
       {/* Main Dashboard Content */}
       <div className="relative z-10 flex flex-col space-y-6 px-6 pb-6">
+        <ShiftTracker />
+
         <div className="cc-glass rounded-xl p-6">
           <CallersTracking />
         </div>

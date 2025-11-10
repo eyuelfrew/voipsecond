@@ -26,6 +26,7 @@ import LoginPage from "./auth/Login";
 import { useAuth } from "./context/AuthContext";
 import QueueStatistics from "./pages/QueueStatistics";
 import AgentShifts from "./pages/AgentShifts";
+import { ShiftProvider } from "./context/ShiftContext";
 
 // Loading component to display while checking authentication
 const Loading = () => {
@@ -78,43 +79,45 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      {/* 1. Login page - this route stands alone */}
-      <Route path="/login" element={<LoginPage />} />
+    <ShiftProvider>
+      <Routes>
+        {/* 1. Login page - this route stands alone */}
+        <Route path="/login" element={<LoginPage />} />
 
-      {/* 2. All other routes that share the TopNav and Sidebar layout */}
-      <Route path="/" element={<MainLayout />}>
-        <Route index element={<HomePage />} />
-        <Route path="report" element={<Report />} />
-        <Route path="dashboard" element={<LiveCalls />} />
-        <Route path="ivr-menus" element={<IVRMenus />} />
-        <Route path="ivr-menu/create" element={<IVRMenuForm />} />
-        <Route path="ivr-menu/edit/:id" element={<IVRMenuForm />} />
+        {/* 2. All other routes that share the TopNav and Sidebar layout */}
+        <Route path="/" element={<MainLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="report" element={<Report />} />
+          <Route path="dashboard" element={<LiveCalls />} />
+          <Route path="ivr-menus" element={<IVRMenus />} />
+          <Route path="ivr-menu/create" element={<IVRMenuForm />} />
+          <Route path="ivr-menu/edit/:id" element={<IVRMenuForm />} />
 
-        <Route path="system-recordings" element={<SystemRecordingsList />} />
-        <Route path="system-recordings-upload" element={<SystemRecordingUpload />} />
-        
-        <Route path="announcements" element={<AnnouncementsList />} />
-        <Route path="announcements/create" element={<AnnouncementForm />} />
-        <Route path="announcements/edit/:id" element={<AnnouncementForm />} />
+          <Route path="system-recordings" element={<SystemRecordingsList />} />
+          <Route path="system-recordings-upload" element={<SystemRecordingUpload />} />
+          
+          <Route path="announcements" element={<AnnouncementsList />} />
+          <Route path="announcements/create" element={<AnnouncementForm />} />
+          <Route path="announcements/edit/:id" element={<AnnouncementForm />} />
 
-        <Route path="call-history" element={<CallHistory />} />
+          <Route path="call-history" element={<CallHistory />} />
 
-        <Route path="new-misc-application" element={<MiscApplicationForm />} />
-        <Route path="misc-applications" element={<MiscApplicationList />} />
+          <Route path="new-misc-application" element={<MiscApplicationForm />} />
+          <Route path="misc-applications" element={<MiscApplicationList />} />
 
-        <Route path="agent/dev" element={<AgentPage />} />
-        <Route path="agent/dev/:id" element={<AgentPage />} />
-        <Route path="agents" element={<Agents />} />
-        <Route path="agents/list" element={<AgentList />} />
+          <Route path="agent/dev" element={<AgentPage />} />
+          <Route path="agent/dev/:id" element={<AgentPage />} />
+          <Route path="agents" element={<Agents />} />
+          <Route path="agents/list" element={<AgentList />} />
 
-        <Route path="queue-list" element={<QueueList />} />
-        <Route path="queues/edit/:id" element={<QueuePage />} />
-        <Route path="queue/dev" element={<QueuePage />} />
-        <Route path="queue-statistics" element={<QueueStatistics />} />
-        
-        <Route path="agent-shifts" element={<AgentShifts />} />
-      </Route>
-    </Routes>
+          <Route path="queue-list" element={<QueueList />} />
+          <Route path="queues/edit/:id" element={<QueuePage />} />
+          <Route path="queue/dev" element={<QueuePage />} />
+          <Route path="queue-statistics" element={<QueueStatistics />} />
+          
+          <Route path="agent-shifts" element={<AgentShifts />} />
+        </Route>
+      </Routes>
+    </ShiftProvider>
   );
 }

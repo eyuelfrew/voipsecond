@@ -11,6 +11,7 @@ const {
   getActiveShifts,
   getAllTodayShifts,
   getShiftSummary,
+  deleteAllShifts,
 } = require('../controllers/shiftController');
 
 // Shift management (Agent)
@@ -28,5 +29,8 @@ router.get('/stats/:agentId', getShiftStats);
 router.get('/active', getActiveShifts);           // Get all currently active shifts
 router.get('/all-today', getAllTodayShifts);      // Get all shifts for today
 router.get('/summary', getShiftSummary);          // Get shift summary grouped by agent
+
+// Admin endpoint to delete all shifts
+router.delete('/all', deleteAllShifts);           // Delete all shifts (admin only)
 
 module.exports = router;

@@ -1,4 +1,4 @@
-import  { useState, useEffect } from 'react';
+import  { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Phone, Bell, User, RefreshCw } from 'lucide-react';
@@ -37,6 +37,8 @@ const AgentPerformanceDashboard = ({ agent }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
+  
+  const previousUsernameRef = useRef(null);
 
   // Fetch stats function (can be called manually or automatically)
   const fetchStats = async (isManualRefresh = false) => {
@@ -100,11 +102,10 @@ const AgentPerformanceDashboard = ({ agent }) => {
   };
 
   useEffect(() => {
-    fetchStats();
-    // Refresh stats every 10 seconds for real-time updates
-    const interval = setInterval(() => fetchStats(false), 10000);
-    return () => clearInterval(interval);
-  }, [agent?.id, agent?._id, agent?.username]);
+    if (agent?.username) {
+      fetchStats();
+    }
+  }, []); // Run only once when component mounts
 
   const formatTime = (seconds) => {
     if (!seconds) return '0s';

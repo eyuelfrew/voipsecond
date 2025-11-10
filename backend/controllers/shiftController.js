@@ -6,7 +6,10 @@ const asyncHandler = require('express-async-handler');
 // @access  Private
 const clockIn = asyncHandler(async (req, res) => {
   const { agentId } = req.body;
-
+  console.log(agentId)
+  console.log(agentId)
+  console.log(agentId)
+  console.log(agentId)
   if (!agentId) {
     res.status(400);
     throw new Error('Agent ID is required');
@@ -93,7 +96,10 @@ const clockOut = asyncHandler(async (req, res) => {
 // @access  Private
 const startBreak = asyncHandler(async (req, res) => {
   const { agentId, breakType } = req.body;
-
+  console.log(agentId)
+  console.log(agentId)
+  console.log(agentId)
+  console.log(agentId)
   if (!agentId || !breakType) {
     res.status(400);
     throw new Error('Agent ID and break type are required');
@@ -132,7 +138,10 @@ const startBreak = asyncHandler(async (req, res) => {
 // @access  Private
 const endBreak = asyncHandler(async (req, res) => {
   const { agentId } = req.body;
-
+  console.log(agentId);
+  console.log(agentId);
+  console.log(agentId);
+  console.log(agentId);
   if (!agentId) {
     res.status(400);
     throw new Error('Agent ID is required');
@@ -147,7 +156,7 @@ const endBreak = asyncHandler(async (req, res) => {
     startTime: { $gte: today },
     status: 'on_break'
   });
-
+  console.log(shift)
   if (!shift) {
     return res.status(404).json({ 
       success: false, 
@@ -318,6 +327,32 @@ const getShiftSummary = asyncHandler(async (req, res) => {
   res.json({ success: true, summary, totalShifts: shifts.length });
 });
 
+// @desc    Delete all shifts (admin only)
+// @route   DELETE /api/shifts/all
+// @access  Private (Admin)
+const deleteAllShifts = asyncHandler(async (req, res) => {
+  try {
+    // Check if user is admin (you may want to customize this check based on your auth system)
+    // This is a basic check - in production, verify user role properly
+    // For now, we'll allow the request to proceed but you could verify req.user.role === 'admin'
+    console.log('🗑️  Admin action: Delete all shifts requested by user');
+    
+    const result = await Shift.deleteMany({});
+    
+    res.json({ 
+      success: true, 
+      message: `${result.deletedCount} shifts deleted successfully` 
+    });
+  } catch (error) {
+    console.error('❌ Error deleting all shifts:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to delete shifts',
+      details: error.message 
+    });
+  }
+});
+
 module.exports = {
   clockIn,
   clockOut,
@@ -329,4 +364,5 @@ module.exports = {
   getActiveShifts,
   getAllTodayShifts,
   getShiftSummary,
+  deleteAllShifts,
 };

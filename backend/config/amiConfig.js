@@ -956,12 +956,6 @@ async function handleContactStatus(event, io) {
 async function handleQueueMemberPause(event, io) {
 
   const { Queue, MemberName, Interface, Paused, PausedReason } = event;
-  console.log(Paused)
-  console.log(Paused)
-  console.log(Paused)
-  console.log(Paused)
-  console.log(Paused)
-  console.log(Paused)
   // Extract extension from Interface
   const extensionMatch = Interface?.match(/Local\/(\d+)@/);
   const agentExtension = extensionMatch ? extensionMatch[1] : MemberName;

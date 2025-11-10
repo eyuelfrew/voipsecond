@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Wifi, LogOut, Pause, Play, WifiOff, RefreshCw, Sun, Moon, Clock, LogIn } from 'lucide-react';
 import useStore from '../store/store';
 import PauseModal from './PauseModal';
@@ -17,32 +17,66 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
     const [isPaused, setIsPaused] = useState(false);
     const [pauseReason, setPauseReason] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
+    
+    const previousUsernameRef = useRef(null);
 
     // Check agent pause status on component mount
     useEffect(() => {
-        const checkPauseStatus = async () => {
-            if (!agent?.username) return;
+        const currentUsername = agent?.username;
+        const previousUsername = previousUsernameRef.current;
+        
+        // Only fetch if username has actually changed (not on every render)
+        if (currentUsername && currentUsername !== previousUsername) {
+            previousUsernameRef.current = currentUsername;
+            
+            const checkPauseStatus = async () => {
+                if (!currentUsername) return;
 
-            try {
-                const response = await fetch(`${baseUrl}/agent/status/${agent.username}`, {
-                    credentials: 'include'
-                });
+                try {
+                    const response = await fetch(`${baseUrl}/agent/status/${currentUsername}`, {
+                        credentials: 'include'
+                    });
 
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success) {
-                        setIsPaused(data.isPaused);
-                        setPauseReason(data.pauseReason || '');
-                        setAgentStatus(data.isPaused ? 'Paused' : 'Available');
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success) {
+                            setIsPaused(data.isPaused);
+                            setPauseReason(data.pauseReason || '');
+                            setAgentStatus(data.isPaused ? 'Paused' : 'Available');
+                        }
                     }
+                } catch (error) {
+                    console.error('❌ Error checking pause status:', error);
                 }
-            } catch (error) {
-                console.error('❌ Error checking pause status:', error);
-            }
-        };
+            };
 
-        checkPauseStatus();
-    }, [agent?.username, setAgentStatus]);
+            checkPauseStatus();
+        } else if (previousUsername === null && currentUsername) {
+            // First time setting the username
+            previousUsernameRef.current = currentUsername;
+            
+            const checkPauseStatus = async () => {
+                try {
+                    const response = await fetch(`${baseUrl}/agent/status/${currentUsername}`, {
+                        credentials: 'include'
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success) {
+                            setIsPaused(data.isPaused);
+                            setPauseReason(data.pauseReason || '');
+                            setAgentStatus(data.isPaused ? 'Paused' : 'Available');
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ Error checking pause status:', error);
+                }
+            };
+
+            checkPauseStatus();
+        }
+    }, [agent?.username]); // Only watch for username changes, but use ref to prevent repeated calls
 
     // Get first two letters of agent's name for avatar
     const getInitials = (name) => {

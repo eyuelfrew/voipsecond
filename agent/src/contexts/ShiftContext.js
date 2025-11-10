@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { baseUrl } from '../baseUrl';
 import useStore from '../store/store';
 
@@ -21,12 +21,36 @@ export const ShiftProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Ref to track previous agent ID
+  const previousAgentIdRef = useRef(null);
+
+  // Get agent ID - support both _id and id
+  const getAgentId = () => {
+    if (!agent) return null;
+    const agentId = agent._id || agent.id;
+    console.log('🔍 ShiftContext - Agent ID:', agentId, 'Full agent:', agent);
+    return agentId;
+  };
+
   // Fetch today's shift on mount and when agent changes
   useEffect(() => {
-    if (agent?._id || agent?.id) {
+    const currentAgentId = getAgentId();
+    const previousAgentId = previousAgentIdRef.current;
+
+    // Only fetch if agent ID has actually changed (not on every render)
+    if (currentAgentId && currentAgentId !== previousAgentId) {
+      previousAgentIdRef.current = currentAgentId;
+      console.log('✅ ShiftContext - Fetching shift for agent:', currentAgentId);
       fetchTodayShift();
+    } else if (previousAgentId === null && currentAgentId) {
+      // First time setting the agent ID
+      previousAgentIdRef.current = currentAgentId;
+      console.log('✅ ShiftContext - Fetching shift for agent:', currentAgentId);
+      fetchTodayShift();
+    } else if (!currentAgentId) {
+      console.log('⚠️ ShiftContext - No agent ID found');
     }
-  }, [agent?._id, agent?.id]);
+  }, [agent?._id, agent?.id]); // Still need to watch for changes in agent object
 
   // Update timers every second
   useEffect(() => {
@@ -50,24 +74,39 @@ export const ShiftProvider = ({ children }) => {
   }, [shiftData]);
 
   const fetchTodayShift = async () => {
+    const agentId = getAgentId();
+    if (!agentId) {
+      console.error('❌ Cannot fetch shift - no agent ID');
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await fetch(`${baseUrl}/shifts/today/${agent._id || agent.id}`, {
+      console.log(`📡 Fetching shift from: ${baseUrl}/shifts/today/${agentId}`);
+      const response = await fetch(`${baseUrl}/shifts/today/${agentId}`, {
         credentials: 'include'
       });
-      
+
+      console.log('📥 Shift response status:', response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('📦 Shift data received:', data);
+
         if (data.success && data.shift) {
           setShiftData(data.shift);
           setShiftStatus(data.shift.status);
+          console.log('✅ Shift loaded:', data.shift.status);
         } else {
           setShiftData(null);
           setShiftStatus('not_started');
+          console.log('ℹ️ No active shift found');
         }
+      } else {
+        console.error('❌ Shift fetch failed:', response.statusText);
       }
     } catch (err) {
-      console.error('Error fetching shift:', err);
+      console.error('❌ Error fetching shift:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -75,28 +114,41 @@ export const ShiftProvider = ({ children }) => {
   };
 
   const clockIn = async () => {
+    const agentId = getAgentId();
+    if (!agentId) {
+      const error = 'Cannot clock in - no agent ID found';
+      console.error('❌', error);
+      return { success: false, error };
+    }
+
     try {
       setLoading(true);
       setError(null);
+      console.log('🕐 Clocking in agent:', agentId);
+
       const response = await fetch(`${baseUrl}/shifts/clock-in`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ agentId: agent._id || agent.id })
+        body: JSON.stringify({ agentId })
       });
 
       const data = await response.json();
-      
+      console.log('📥 Clock-in response:', data);
+
       if (response.ok && data.success) {
         setShiftData(data.shift);
         setShiftStatus('active');
+        console.log('✅ Clocked in successfully');
         return { success: true, shift: data.shift };
       } else {
-        setError(data.error || 'Failed to clock in');
-        return { success: false, error: data.error };
+        const error = data.error || 'Failed to clock in';
+        console.error('❌ Clock-in failed:', error);
+        setError(error);
+        return { success: false, error };
       }
     } catch (err) {
-      console.error('Error clocking in:', err);
+      console.error('❌ Error clocking in:', err);
       setError(err.message);
       return { success: false, error: err.message };
     } finally {
@@ -105,29 +157,42 @@ export const ShiftProvider = ({ children }) => {
   };
 
   const clockOut = async () => {
+    const agentId = getAgentId();
+    if (!agentId) {
+      const error = 'Cannot clock out - no agent ID found';
+      console.error('❌', error);
+      return { success: false, error };
+    }
+
     try {
       setLoading(true);
       setError(null);
+      console.log('🕐 Clocking out agent:', agentId);
+
       const response = await fetch(`${baseUrl}/shifts/clock-out`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ agentId: agent._id || agent.id })
+        body: JSON.stringify({ agentId })
       });
 
       const data = await response.json();
-      
+      console.log('📥 Clock-out response:', data);
+
       if (response.ok && data.success) {
         setShiftData(data.shift);
         setShiftStatus('ended');
         setShiftTimer(0);
+        console.log('✅ Clocked out successfully');
         return { success: true, shift: data.shift };
       } else {
-        setError(data.error || 'Failed to clock out');
-        return { success: false, error: data.error };
+        const error = data.error || 'Failed to clock out';
+        console.error('❌ Clock-out failed:', error);
+        setError(error);
+        return { success: false, error };
       }
     } catch (err) {
-      console.error('Error clocking out:', err);
+      console.error('❌ Error clocking out:', err);
       setError(err.message);
       return { success: false, error: err.message };
     } finally {
@@ -136,31 +201,41 @@ export const ShiftProvider = ({ children }) => {
   };
 
   const startBreak = async (breakType = 'short') => {
+    const agentId = getAgentId();
+    if (!agentId) {
+      const error = 'Cannot start break - no agent ID found';
+      console.error('❌', error);
+      return { success: false, error };
+    }
+
     try {
       setLoading(true);
       setError(null);
+      console.log('☕ Starting break for agent:', agentId, 'Type:', breakType);
+
       const response = await fetch(`${baseUrl}/shifts/start-break`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ 
-          agentId: agent._id || agent.id,
-          breakType 
-        })
+        body: JSON.stringify({ agentId, breakType })
       });
 
       const data = await response.json();
-      
+      console.log('📥 Start break response:', data);
+
       if (response.ok && data.success) {
         setShiftData(data.shift);
         setShiftStatus('on_break');
+        console.log('✅ Break started successfully');
         return { success: true, shift: data.shift };
       } else {
-        setError(data.error || 'Failed to start break');
-        return { success: false, error: data.error };
+        const error = data.error || 'Failed to start break';
+        console.error('❌ Start break failed:', error);
+        setError(error);
+        return { success: false, error };
       }
     } catch (err) {
-      console.error('Error starting break:', err);
+      console.error('❌ Error starting break:', err);
       setError(err.message);
       return { success: false, error: err.message };
     } finally {
@@ -169,29 +244,42 @@ export const ShiftProvider = ({ children }) => {
   };
 
   const endBreak = async () => {
+    const agentId = getAgentId();
+    if (!agentId) {
+      const error = 'Cannot end break - no agent ID found';
+      console.error('❌', error);
+      return { success: false, error };
+    }
+
     try {
       setLoading(true);
       setError(null);
+      console.log('☕ Ending break for agent:', agentId);
+
       const response = await fetch(`${baseUrl}/shifts/end-break`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ agentId: agent._id || agent.id })
+        body: JSON.stringify({ agentId })
       });
 
       const data = await response.json();
-      
+      console.log('📥 End break response:', data);
+
       if (response.ok && data.success) {
         setShiftData(data.shift);
         setShiftStatus('active');
         setBreakTimer(0);
+        console.log('✅ Break ended successfully');
         return { success: true, shift: data.shift };
       } else {
-        setError(data.error || 'Failed to end break');
-        return { success: false, error: data.error };
+        const error = data.error || 'Failed to end break';
+        console.error('❌ End break failed:', error);
+        setError(error);
+        return { success: false, error };
       }
     } catch (err) {
-      console.error('Error ending break:', err);
+      console.error('❌ Error ending break:', err);
       setError(err.message);
       return { success: false, error: err.message };
     } finally {

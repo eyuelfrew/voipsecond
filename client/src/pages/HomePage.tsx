@@ -72,9 +72,6 @@ const HomePage = () => {
           {/* Main Heading */}
           <h1 className="text-5xl md:text-7xl font-bold cc-text-accent mb-6 animate-fade-in">
             Call Center
-            <span className="block bg-gradient-to-r from-cc-yellow-400 to-cc-yellow-600 bg-clip-text text-transparent">
-              Command Center
-            </span>
           </h1>
 
           {/* Subtitle */}
