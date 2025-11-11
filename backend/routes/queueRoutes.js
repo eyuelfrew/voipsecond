@@ -1,5 +1,5 @@
 const express = require("express");
-const { createQueue, getAllQueues, getQueueById,  deleteQueue } = require("../controllers/queueControllers/queueController");
+const { createQueue, getAllQueues, getQueueById, deleteQueue } = require("../controllers/queueControllers/queueController");
 const { updateQueue } = require("../controllers/queueControllers/updateQueue");
 // const queueControllers = require("../controllers/queue");
 const router = express.Router();

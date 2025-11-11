@@ -1,6 +1,7 @@
 // /ami/handler.js (Example file path)
 const CallLog = require("../models/callLog.js");
 const Queue = require("../models/queue.js");
+const QueueStatistics = require("../models/queueStatistics.js");
 const WrapUpTime = require("../models/wrapUpTime.js");
 const fs = require("fs");
 const path = require("path");
@@ -604,7 +605,7 @@ function handleQueueMember(event) {
  * @param {object} event - The AMI event object containing member status information.
  */
 function handleQueueMemberStatus(event) {
-  console.log("QueueMemberStatus Event Data:", event);
+  // console.log("QueueMemberStatus Event Data:", event);
 }
 
 function handleQueueStatusComplete(io) {
@@ -613,11 +614,6 @@ function handleQueueStatusComplete(io) {
 }
 
 function handleQueueCallerJoin(event, io) {
-  console.log(event);
-  console.log(event);
-  console.log(event);
-  // console.log("Queue Mapping:", queueNameMap);
-  // console.log("Queue Caller Join Event:", event);
   const { Queue, Uniqueid, CallerIDNum, Position, Linkedid } = event;
 
   const alreadyExists = state.queueCallers.some((c) => c.id === Uniqueid);
@@ -675,8 +671,8 @@ function handleQueueCallerLeave(event, io) {
   emitQueueCallersStatus(io);
 }
 
-function handleQueueCallerAbandon(event, io) {
-  const { Uniqueid, Linkedid, Queue } = event;
+async function handleQueueCallerAbandon(event, io) {
+  const { Uniqueid, Linkedid, Queue: queueId } = event;
 
   // Find the caller to get wait time before removing
   const caller = state.queueCallers.find((c) => c.id === Uniqueid);
@@ -695,6 +691,87 @@ function handleQueueCallerAbandon(event, io) {
     console.log(
       `📞 Caller ${caller.caller_id} abandoned queue ${caller.queueId} after waiting ${waitTime}s`
     );
+
+    // Update queue statistics for abandoned call
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const currentHour = new Date().getHours();
+      const queueName = queueNameMap[queueId] || queueId;
+
+      // Find or create today's statistics for this queue
+      let stats = await QueueStatistics.findOne({
+        queueId: queueId,
+        date: today
+      });
+
+      if (!stats) {
+        stats = new QueueStatistics({
+          queueId: queueId,
+          queueName: queueName,
+          date: today
+        });
+      }
+
+      // Update overall statistics
+      stats.totalCalls += 1;
+      stats.abandonedCalls += 1;
+      stats.totalWaitTime += waitTime;
+
+      // Update average wait time
+      if (stats.totalCalls > 0) {
+        stats.averageWaitTime = stats.totalWaitTime / stats.totalCalls;
+      }
+
+      // Update longest/shortest wait time
+      if (waitTime > stats.longestWaitTime) {
+        stats.longestWaitTime = waitTime;
+      }
+      if (stats.shortestWaitTime === null || waitTime < stats.shortestWaitTime) {
+        stats.shortestWaitTime = waitTime;
+      }
+
+      // Update hourly statistics using Map (more reliable)
+      const hourKey = currentHour.toString();
+
+      // Get or initialize hourly stats for this hour
+      let hourlyData = stats.hourlyStats.get(hourKey) || {
+        calls: 0,
+        answered: 0,
+        abandoned: 0,
+        totalWaitTime: 0,
+        totalTalkTime: 0,
+        avgWaitTime: 0,
+        avgTalkTime: 0
+      };
+
+      // Update hourly data
+      hourlyData.calls += 1;
+      hourlyData.abandoned += 1;
+      hourlyData.totalWaitTime += waitTime;
+
+      // Recalculate hourly average wait time
+      if (hourlyData.calls > 0) {
+        hourlyData.avgWaitTime = hourlyData.totalWaitTime / hourlyData.calls;
+      }
+
+      // Save back to Map
+      stats.hourlyStats.set(hourKey, hourlyData);
+
+      // Calculate abandonment rate
+      if (stats.totalCalls > 0) {
+        const abandonmentRate = (stats.abandonedCalls / stats.totalCalls) * 100;
+        console.log(`📊 Queue ${queueName} abandonment rate: ${abandonmentRate.toFixed(2)}%`);
+      }
+
+      stats.lastUpdated = new Date();
+      await stats.save();
+
+      console.log(`✅ Updated queue statistics for ${queueName}: +1 abandoned call (total: ${stats.abandonedCalls})`);
+    } catch (error) {
+      console.error('❌ Error updating queue statistics for abandoned call:', error);
+    }
   }
 
   // Filter out caller by ID from the array
@@ -712,8 +789,6 @@ async function handleAgentCalled(event) {
   // Extract extension from Interface (e.g., "Local/1003@from-internal" -> "1003")
   const extensionMatch = Interface.match(/Local\/(\d+)@/);
   const agentExtension = extensionMatch ? extensionMatch[1] : MemberName;
-
-  console.log(`📞 AgentCalled: Agent ${agentExtension} receiving call from ${CallerIDNum} in queue ${Queue}`);
 
   // Track that agent received a call
   const { trackAgentCall } = require('../controllers/agentControllers/callStatsController');
@@ -1136,8 +1211,8 @@ async function setupAmiEventListeners(ami, io) {
   ami.on("QueueStatusComplete", () => handleQueueStatusComplete(io));
   ami.on("QueueCallerJoin", (event) => handleQueueCallerJoin(event, io));
   ami.on("QueueCallerLeave", (event) => handleQueueCallerLeave(event, io));
-  ami.on("QueueCallerAbandon", (event) => handleQueueCallerAbandon(event, io));
-
+  ami.on("QueueCallerAbandon", async (event) => await handleQueueCallerAbandon(event, io));
+  ami.on("AgentDump",(event)=>{console.log(event)})
   // Wrap-up time tracking events
   ami.on("QueueMemberPause", (event) => {
     // Check if this is an unpause event (Paused: 0)

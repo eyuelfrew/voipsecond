@@ -7,7 +7,7 @@ const connectDB = require("./config/db");
 const cors = require("cors");
 const fs = require("fs");
 const agentRoutes = require("./routes/agent");
-const queueRoutes = require("./routes/queueRoutes");
+const queueRoutes = require("./routes/queue");
 const reportRoutes = require("./routes/report");
 const ivrRoutes = require('./routes/ivrRoutes');
 const recordingRoutes = require('./routes/recordingRoutes');
@@ -83,6 +83,10 @@ app.use("/api/misc", miscApplicationRoute);
 
 // Shift Routes
 app.use('/api/shifts', shiftRoutes);
+
+// Queue Statistics Routes
+const queueStatisticsRoutes = require('./routes/queueStatisticsRoutes');
+app.use('/api/queue-statistics', queueStatisticsRoutes);
 
 // Ticket Routes
 app.use('/api/tickets', ticketRoutes);

@@ -646,7 +646,6 @@ function setupAgentListeners(ami, io) {
   // Listen to AgentCalled events (agent is notified of incoming call) - Track total calls
   ami.on("AgentCalled", async (event) => {
     const { Interface, Queue, CallerIDNum, CallerIDName, Linkedid } = event;
-    console.log("Agent Called Event", event);
     // Extract username from Interface (e.g., "PJSIP/1006" -> "1006")
     if (!Interface || !Interface.startsWith("Local/")) return;
     const username = Interface.split("/")[1];

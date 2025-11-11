@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { UseSocket } from '../context/SocketContext';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Link } from 'react-router-dom';
+import { useTheme } from '../context/ThemeContext';
+import baseUrl from '../util/baseUrl';
 
 interface QueueStats {
+  _id: string;
   queueId: string;
   queueName: string;
   date: string;
@@ -10,38 +12,43 @@ interface QueueStats {
   answeredCalls: number;
   abandonedCalls: number;
   missedCalls: number;
-  currentWaitingCallers: number;
+  totalWaitTime: number;
+  totalTalkTime: number;
+  totalHoldTime: number;
   averageWaitTime: number;
   averageTalkTime: number;
   averageHoldTime: number;
   longestWaitTime: number;
   shortestWaitTime: number;
+  serviceLevelTarget: number;
+  callsWithinServiceLevel: number;
   serviceLevelPercentage: number;
-  answerRate: number;
-  abandonmentRate: number;
-  activeAgents: number;
-  availableAgents: number;
-  busyAgents: number;
-  hourlyStats: Array<{
-    hour: number;
+  peakWaitingCallers: number;
+  peakCallVolume: number;
+  peakCallVolumeHour: number;
+  dumpedCalls: number;
+  totalAgentTime: number;
+  agentUtilization: number;
+  hourlyStats: Map<string, {
     calls: number;
     answered: number;
     abandoned: number;
+    totalWaitTime: number;
+    totalTalkTime: number;
     avgWaitTime: number;
     avgTalkTime: number;
-    waitingCallers: number;
   }>;
+  firstCallResponseTime: number;
+  callResolutionRate: number;
+  transferRate: number;
   lastUpdated: string;
+  isComplete: boolean;
+  // Virtual fields
+  answerRate?: number;
+  abandonmentRate?: number;
 }
 
-interface QueueSummary {
-  totalQueues: number;
-  totalCalls: number;
-  totalAnswered: number;
-  totalAbandoned: number;
-  totalWaiting: number;
-  avgAnswerRate: number;
-}
+
 
 // Simple Icons as SVG components
 const UsersIcon = () => (
@@ -50,27 +57,9 @@ const UsersIcon = () => (
   </svg>
 );
 
-const PhoneIcon = () => (
+const TrashIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-  </svg>
-);
-
-const TrendingUpIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-  </svg>
-);
-
-const TrendingDownIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
-  </svg>
-);
-
-const ClockIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
   </svg>
 );
 
@@ -80,11 +69,7 @@ const TargetIcon = () => (
   </svg>
 );
 
-const CalendarIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-  </svg>
-);
+
 
 const ChevronDownIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -93,84 +78,128 @@ const ChevronDownIcon = () => (
 );
 
 const QueueStatistics: React.FC = () => {
+  const { isDarkMode } = useTheme();
   const [queueStats, setQueueStats] = useState<QueueStats[]>([]);
-  const [summary, setSummary] = useState<QueueSummary | null>(null);
   const [selectedQueue, setSelectedQueue] = useState<string>('all');
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [viewMode, setViewMode] = useState<'realtime' | 'historical'>('realtime');
-  const [activeTab, setActiveTab] = useState<string>('overview');
+  const [dateRange, setDateRange] = useState<'today' | 'week' | 'month' | 'custom'>('today');
+  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [endDate, setEndDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [showQueueSelect, setShowQueueSelect] = useState(false);
-  const [showViewModeSelect, setShowViewModeSelect] = useState(false);
+  const [showDateRangeSelect, setShowDateRangeSelect] = useState(false);
+  const [availableQueues, setAvailableQueues] = useState<Array<{ queueId: string, queueName: string }>>([]);
 
-  // Colors for charts
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
-  
-  // Get socket from context
-  const { socket } = UseSocket();
+
 
   useEffect(() => {
-    if (!socket) return;
-
-    // Listen for real-time queue statistics
-    const handleAllQueueStats = (data: { queues: QueueStats[], summary: QueueSummary }) => {
-      setQueueStats(data.queues);
-      setSummary(data.summary);
-      setLoading(false);
-    };
-
-    const handleQueueStatsUpdate = (data: { queueId: string, stats: QueueStats }) => {
-      setQueueStats(prev => {
-        const updated = [...prev];
-        const index = updated.findIndex(q => q.queueId === data.queueId);
-        if (index >= 0) {
-          updated[index] = { ...updated[index], ...data.stats };
-        } else {
-          updated.push(data.stats);
-        }
-        return updated;
-      });
-    };
-
-    socket.on('allQueueStats', handleAllQueueStats);
-    socket.on('queueStatsUpdate', handleQueueStatsUpdate);
-
-    // Request initial data
-    socket.emit('getAllQueueStats');
-
-    return () => {
-      socket.off('allQueueStats', handleAllQueueStats);
-      socket.off('queueStatsUpdate', handleQueueStatsUpdate);
-    };
+    fetchAvailableQueues();
+    fetchQueueStatistics();
   }, []);
 
-  // Fetch historical data when date or queue changes
   useEffect(() => {
-    if (viewMode === 'historical') {
-      fetchHistoricalData();
-    }
-  }, [selectedDate, selectedQueue, viewMode]);
+    fetchQueueStatistics();
+  }, [selectedQueue, dateRange, startDate, endDate]);
 
-  const fetchHistoricalData = async () => {
-    setLoading(true);
+  const fetchAvailableQueues = async () => {
     try {
-      const dateStr = selectedDate.toISOString().split('T')[0];
-      const endpoint = selectedQueue === 'all' 
-        ? `/api/queues/statistics/all?startDate=${dateStr}&endDate=${dateStr}`
-        : `/api/queues/${selectedQueue}/statistics?startDate=${dateStr}&endDate=${dateStr}`;
-      
-      const response = await fetch(endpoint);
-      const data = await response.json();
-      
-      if (data.success) {
-        setQueueStats(Array.isArray(data.data) ? data.data : [data.data]);
+      console.log('📡 Fetching available queues...');
+      const response = await fetch(`${baseUrl}/api/queue`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('📥 Available queues:', data);
+        setAvailableQueues(data.queues || data || []);
       }
     } catch (error) {
-      console.error('Error fetching historical data:', error);
+      console.error('❌ Error fetching queues:', error);
+    }
+  };
+
+  const fetchQueueStatistics = async (isAutoRefresh = false) => {
+    try {
+      if (!isAutoRefresh) setLoading(true);
+      else setRefreshing(true);
+      setError(null);
+
+      console.log('📡 Fetching queue statistics...');
+      console.log('📊 Parameters:', { selectedQueue, dateRange, startDate, endDate });
+
+      let apiUrl = `${baseUrl}/api/queue-statistics`;
+      const params = new URLSearchParams();
+
+      // Set date range
+      const today = new Date();
+      let queryStartDate = startDate;
+      let queryEndDate = endDate;
+
+      switch (dateRange) {
+        case 'today':
+          queryStartDate = new Date(today);
+          queryStartDate.setHours(0, 0, 0, 0);
+          queryEndDate = new Date(today);
+          queryEndDate.setHours(23, 59, 59, 999);
+          break;
+        case 'week':
+          queryStartDate = new Date(today);
+          queryStartDate.setDate(today.getDate() - 7);
+          queryStartDate.setHours(0, 0, 0, 0);
+          queryEndDate = new Date(today);
+          queryEndDate.setHours(23, 59, 59, 999);
+          break;
+        case 'month':
+          queryStartDate = new Date(today);
+          queryStartDate.setDate(today.getDate() - 30);
+          queryStartDate.setHours(0, 0, 0, 0);
+          queryEndDate = new Date(today);
+          queryEndDate.setHours(23, 59, 59, 999);
+          break;
+      }
+
+      params.append('startDate', queryStartDate.toISOString());
+      params.append('endDate', queryEndDate.toISOString());
+
+      if (selectedQueue !== 'all') {
+        apiUrl += `/${selectedQueue}`;
+      }
+
+      const response = await fetch(`${apiUrl}?${params.toString()}`);
+      console.log('📡 API URL:', `${apiUrl}?${params.toString()}`);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch statistics: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('📥 Queue statistics data:', data);
+
+      if (data.success) {
+        const stats = Array.isArray(data.data) ? data.data : [data.data].filter(Boolean);
+
+        // Process stats to add calculated fields
+        const processedStats = stats.map((stat: QueueStats) => ({
+          ...stat,
+          answerRate: stat.totalCalls > 0 ? (stat.answeredCalls / stat.totalCalls * 100) : 0,
+          abandonmentRate: stat.totalCalls > 0 ? (stat.abandonedCalls / stat.totalCalls * 100) : 0,
+        }));
+
+        setQueueStats(processedStats);
+
+        console.log('✅ Queue statistics loaded successfully');
+      } else {
+        throw new Error(data.message || 'Failed to fetch statistics');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching queue statistics:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch statistics');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    await fetchQueueStatistics();
   };
 
   const getFilteredStats = () => {
@@ -184,8 +213,7 @@ const QueueStatistics: React.FC = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-//   const formatPercentage = (value: number) => `${value.toFixed(1)}%`;
-  const formatPercentage = (value: number) => `${value}%`;
+  const formatPercentage = (value: number) => `${Math.round(value || 0)}%`;
 
   const getStatusColor = (rate: number, type: 'answer' | 'abandon' | 'service') => {
     if (type === 'answer') {
@@ -197,148 +225,131 @@ const QueueStatistics: React.FC = () => {
     }
   };
 
-  const prepareHourlyData = (stats: QueueStats[]) => {
-    if (stats.length === 0) return [];
-    
-    const hourlyData = Array.from({ length: 24 }, (_, hour) => ({
-      hour: `${hour}:00`,
-      calls: 0,
-      answered: 0,
-      abandoned: 0,
-      avgWaitTime: 0,
-      waitingCallers: 0
-    }));
-
-    stats.forEach(queue => {
-      queue.hourlyStats.forEach((hourStat, index) => {
-        hourlyData[index].calls += hourStat.calls;
-        hourlyData[index].answered += hourStat.answered;
-        hourlyData[index].abandoned += hourStat.abandoned;
-        hourlyData[index].avgWaitTime += hourStat.avgWaitTime;
-        hourlyData[index].waitingCallers += hourStat.waitingCallers;
-      });
-    });
-
-    return hourlyData;
-  };
-
-  const preparePieData = (stats: QueueStats[]) => {
-    const totalAnswered = stats.reduce((sum, q) => sum + q.answeredCalls, 0);
-    const totalAbandoned = stats.reduce((sum, q) => sum + q.abandonedCalls, 0);
-    const totalMissed = stats.reduce((sum, q) => sum + q.missedCalls, 0);
-
-    return [
-      { name: 'Answered', value: totalAnswered, color: '#00C49F' },
-      { name: 'Abandoned', value: totalAbandoned, color: '#FF8042' },
-      { name: 'Missed', value: totalMissed, color: '#FFBB28' }
-    ];
-  };
-
   const filteredStats = getFilteredStats();
-  const hourlyData = prepareHourlyData(filteredStats);
-  const pieData = preparePieData(filteredStats);
 
-//   if () {
-//     return (
-//       <div className="flex items-center justify-center h-64">
-//         <div className="text-lg">Loading queue statistics...</div>
-//       </div>
-//     );
-//   }
+  //   if () {
+  //     return (
+  //       <div className="flex items-center justify-center h-64">
+  //         <div className="text-lg">Loading queue statistics...</div>
+  //       </div>
+  //     );
+  //   }
 
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Queue Statistics</h1>
-        <div className="flex gap-4 items-center">
-          {/* View Mode Select */}
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
+            <TargetIcon />
+          </div>
+          <div>
+            <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              Queue Statistics
+            </h1>
+            <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Monitor queue performance and analytics
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-3 items-center">
+          {/* Date Range Select */}
           <div className="relative">
             <button
-              onClick={() => setShowViewModeSelect(!showViewModeSelect)}
-              className="w-40 px-3 py-2 text-left bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between"
+              onClick={() => setShowDateRangeSelect(!showDateRangeSelect)}
+              className={`w-32 px-3 py-2 text-left border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between ${isDarkMode
+                ? 'bg-gray-800 border-gray-700 text-white'
+                : 'bg-white border-gray-300 text-gray-900'
+                }`}
             >
-              <span className="capitalize">{viewMode}</span>
+              <span className="capitalize">{dateRange}</span>
               <ChevronDownIcon />
             </button>
-            {showViewModeSelect && (
-              <div className="absolute z-10 w-40 mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
-                <button
-                  onClick={() => {
-                    setViewMode('realtime');
-                    setShowViewModeSelect(false);
-                  }}
-                  className="w-full px-3 py-2 text-left hover:bg-gray-100"
-                >
-                  Real-time
-                </button>
-                <button
-                  onClick={() => {
-                    setViewMode('historical');
-                    setShowViewModeSelect(false);
-                  }}
-                  className="w-full px-3 py-2 text-left hover:bg-gray-100"
-                >
-                  Historical
-                </button>
+            {showDateRangeSelect && (
+              <div className={`absolute z-10 w-32 mt-1 border rounded-md shadow-lg ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'
+                }`}>
+                {['today', 'week', 'month', 'custom'].map((range) => (
+                  <button
+                    key={range}
+                    onClick={() => {
+                      setDateRange(range as any);
+                      setShowDateRangeSelect(false);
+                    }}
+                    className={`w-full px-3 py-2 text-left capitalize ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-gray-900'
+                      }`}
+                  >
+                    {range}
+                  </button>
+                ))}
               </div>
             )}
           </div>
 
-          {/* Date Picker for Historical Mode */}
-          {viewMode === 'historical' && (
-            <div className="relative">
-              <button
-                onClick={() => setShowDatePicker(!showDatePicker)}
-                className="w-40 px-3 py-2 text-left bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center"
-              >
-                <CalendarIcon />
-                <span className="ml-2">{selectedDate.toLocaleDateString()}</span>
-              </button>
-              {showDatePicker && (
-                <div className="absolute z-10 mt-1 bg-white border border-gray-300 rounded-md shadow-lg p-4">
-                  <input
-                    type="date"
-                    value={selectedDate.toISOString().split('T')[0]}
-                    onChange={(e) => {
-                      setSelectedDate(new Date(e.target.value));
-                      setShowDatePicker(false);
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              )}
-            </div>
+          {/* Custom Date Range */}
+          {dateRange === 'custom' && (
+            <>
+              <input
+                type="date"
+                value={startDate.toISOString().split('T')[0]}
+                onChange={(e) => setStartDate(new Date(e.target.value))}
+                className={`px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode
+                  ? 'bg-gray-800 border-gray-700 text-white'
+                  : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+              />
+              <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>to</span>
+              <input
+                type="date"
+                value={endDate.toISOString().split('T')[0]}
+                onChange={(e) => setEndDate(new Date(e.target.value))}
+                className={`px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode
+                  ? 'bg-gray-800 border-gray-700 text-white'
+                  : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+              />
+            </>
           )}
 
           {/* Queue Select */}
           <div className="relative">
             <button
               onClick={() => setShowQueueSelect(!showQueueSelect)}
-              className="w-48 px-3 py-2 text-left bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between"
+              className={`w-48 px-3 py-2 text-left border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between ${isDarkMode
+                ? 'bg-gray-800 border-gray-700 text-white'
+                : 'bg-white border-gray-300 text-gray-900'
+                }`}
             >
-              <span>{selectedQueue === 'all' ? 'All Queues' : queueStats.find(q => q.queueId === selectedQueue)?.queueName || selectedQueue}</span>
+              <span>
+                {selectedQueue === 'all'
+                  ? 'All Queues'
+                  : availableQueues.find(q => q.queueId === selectedQueue)?.queueName || selectedQueue
+                }
+              </span>
               <ChevronDownIcon />
             </button>
             {showQueueSelect && (
-              <div className="absolute z-10 w-48 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+              <div className={`absolute z-10 w-48 mt-1 border rounded-md shadow-lg max-h-60 overflow-y-auto ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'
+                }`}>
                 <button
                   onClick={() => {
                     setSelectedQueue('all');
                     setShowQueueSelect(false);
                   }}
-                  className="w-full px-3 py-2 text-left hover:bg-gray-100"
+                  className={`w-full px-3 py-2 text-left ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-gray-900'
+                    }`}
                 >
                   All Queues
                 </button>
-                {queueStats.map(queue => (
+                {availableQueues.map(queue => (
                   <button
                     key={queue.queueId}
                     onClick={() => {
                       setSelectedQueue(queue.queueId);
                       setShowQueueSelect(false);
                     }}
-                    className="w-full px-3 py-2 text-left hover:bg-gray-100"
+                    className={`w-full px-3 py-2 text-left ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-gray-900'
+                      }`}
                   >
                     {queue.queueName}
                   </button>
@@ -346,338 +357,181 @@ const QueueStatistics: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Refresh Button */}
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className={`px-4 py-2 border rounded-md transition-colors ${refreshing
+              ? 'opacity-50 cursor-not-allowed'
+              : isDarkMode
+                ? 'hover:bg-gray-700'
+                : 'hover:bg-gray-50'
+              } ${isDarkMode
+                ? 'bg-gray-800 border-gray-700 text-white'
+                : 'bg-white border-gray-300 text-gray-900'
+              }`}
+          >
+            <svg className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center space-x-2">
-              <div className="text-blue-500">
-                <UsersIcon />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Total Queues</p>
-                <p className="text-2xl font-bold">{summary.totalQueues}</p>
-              </div>
-            </div>
-          </div>
+      {/* Error Alert */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-3">
+          <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-red-800 dark:text-red-400">{error}</p>
+          <button
+            onClick={handleRefresh}
+            className="ml-auto px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center space-x-2">
-              <div className="text-green-500">
-                <PhoneIcon />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Total Calls</p>
-                <p className="text-2xl font-bold">{summary.totalCalls}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center space-x-2">
-              <div className="text-green-500">
-                <TrendingUpIcon />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Answered</p>
-                <p className="text-2xl font-bold">{summary.totalAnswered}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center space-x-2">
-              <div className="text-red-500">
-                <TrendingDownIcon />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Abandoned</p>
-                <p className="text-2xl font-bold">{summary.totalAbandoned}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center space-x-2">
-              <div className="text-yellow-500">
-                <ClockIcon />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Waiting</p>
-                <p className="text-2xl font-bold">{summary.totalWaiting}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center space-x-2">
-              <div className="text-blue-500">
-                <TargetIcon />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Avg Answer Rate</p>
-                <p className="text-2xl font-bold">{formatPercentage(summary.avgAnswerRate)}</p>
-              </div>
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <div className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              Loading queue statistics...
             </div>
           </div>
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="bg-white rounded-lg shadow">
-        {/* Tab Navigation */}
-        <div className="border-b border-gray-200">
-          <nav className="flex space-x-8 px-6">
-            {['overview', 'performance', 'trends', 'agents'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm capitalize ${
-                  activeTab === tab
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </nav>
+
+
+      {/* Queue Statistics Table */}
+      <div className={`rounded-lg shadow ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+        <div className={`px-6 py-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+          <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+            Queue Performance Overview
+          </h2>
+          <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            Click on a queue name to view detailed analytics
+          </p>
         </div>
 
-        {/* Tab Content */}
-        <div className="p-6">
-          {/* Overview Tab */}
-          {activeTab === 'overview' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Call Distribution Pie Chart */}
-                <div className="bg-white border border-gray-200 rounded-lg">
-                  <div className="px-6 py-4 border-b border-gray-200">
-                    <h3 className="text-lg font-medium text-gray-900">Call Distribution</h3>
-                  </div>
-                  <div className="p-6">
-                    <ResponsiveContainer width="100%" height={300}>
-                      <PieChart>
-                        <Pie
-                          data={pieData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name} ${(percent || 10 * 100).toFixed(0)}%`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {pieData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                {/* Hourly Call Volume */}
-                <div className="bg-white border border-gray-200 rounded-lg">
-                  <div className="px-6 py-4 border-b border-gray-200">
-                    <h3 className="text-lg font-medium text-gray-900">Hourly Call Volume</h3>
-                  </div>
-                  <div className="p-6">
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={hourlyData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="hour" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="calls" fill="#8884d8" name="Total Calls" />
-                        <Bar dataKey="answered" fill="#82ca9d" name="Answered" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </div>
-
-              {/* Queue Details Table */}
-              <div className="bg-white border border-gray-200 rounded-lg">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-medium text-gray-900">Queue Details</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Queue</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Calls</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Answer Rate</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Abandon Rate</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Wait Time</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service Level</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waiting</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agents</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredStats.map((queue) => (
-                        <tr key={queue.queueId} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{queue.queueName}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{queue.totalCalls}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full text-white ${getStatusColor(queue.answerRate, 'answer')}`}>
-                              {formatPercentage(queue.answerRate)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full text-white ${getStatusColor(queue.abandonmentRate, 'abandon')}`}>
-                              {formatPercentage(queue.abandonmentRate)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatTime(queue.averageWaitTime)}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full text-white ${getStatusColor(queue.serviceLevelPercentage, 'service')}`}>
-                              {formatPercentage(queue.serviceLevelPercentage)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="font-semibold text-orange-600">
-                              {queue.currentWaitingCallers}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <div>
-                              <div>Active: {queue.activeAgents}</div>
-                              <div>Available: {queue.availableAgents}</div>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Performance Tab */}
-          {activeTab === 'performance' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white border border-gray-200 rounded-lg">
-                  <div className="px-6 py-4 border-b border-gray-200">
-                    <h3 className="text-lg font-medium text-gray-900">Wait Time Trends</h3>
-                  </div>
-                  <div className="p-6">
-                    <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={hourlyData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="hour" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Line type="monotone" dataKey="avgWaitTime" stroke="#8884d8" name="Avg Wait Time (s)" />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                <div className="bg-white border border-gray-200 rounded-lg">
-                  <div className="px-6 py-4 border-b border-gray-200">
-                    <h3 className="text-lg font-medium text-gray-900">Service Level Performance</h3>
-                  </div>
-                  <div className="p-6">
-                    <div className="space-y-4">
-                      {filteredStats.map((queue) => (
-                        <div key={queue.queueId} className="space-y-2">
-                          <div className="flex justify-between">
-                            <span className="font-medium">{queue.queueName}</span>
-                            <span>{formatPercentage(queue.serviceLevelPercentage)}</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                              className={`h-2 rounded-full ${getStatusColor(queue.serviceLevelPercentage, 'service')}`}
-                              style={{ width: `${Math.min(queue.serviceLevelPercentage, 100)}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      ))}
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+              <tr>
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+                  Queue Name
+                </th>
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+                  Total Calls
+                </th>
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+                  Answered
+                </th>
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+                  Abandoned
+                </th>
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+                  Answer Rate
+                </th>
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+                  Avg Wait Time
+                </th>
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+                  Service Level
+                </th>
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+                  Dumped
+                </th>
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className={`divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
+              {filteredStats.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center">
+                      <TargetIcon />
+                      <h3 className={`mt-2 text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                        No queue statistics found
+                      </h3>
+                      <p className={`mt-1 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        Try generating test data or check your date range selection.
+                      </p>
                     </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Trends Tab */}
-          {activeTab === 'trends' && (
-            <div className="bg-white border border-gray-200 rounded-lg">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">Call Volume vs Answer Rate</h3>
-              </div>
-              <div className="p-6">
-                <ResponsiveContainer width="100%" height={400}>
-                  <LineChart data={hourlyData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="hour" />
-                    <YAxis yAxisId="left" />
-                    <YAxis yAxisId="right" orientation="right" />
-                    <Tooltip />
-                    <Legend />
-                    <Bar yAxisId="left" dataKey="calls" fill="#8884d8" name="Total Calls" />
-                    <Line yAxisId="right" type="monotone" dataKey="answered" stroke="#82ca9d" name="Answered Calls" />
-                    <Line yAxisId="right" type="monotone" dataKey="abandoned" stroke="#ff7300" name="Abandoned Calls" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
-
-          {/* Agents Tab */}
-          {activeTab === 'agents' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {filteredStats.map((queue) => (
-                <div key={queue.queueId} className="bg-white border border-gray-200 rounded-lg">
-                  <div className="px-6 py-4 border-b border-gray-200">
-                    <h3 className="text-lg font-medium text-gray-900">{queue.queueName}</h3>
-                  </div>
-                  <div className="p-6">
-                    <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <span>Active Agents:</span>
-                        <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
-                          {queue.activeAgents}
-                        </span>
+                  </td>
+                </tr>
+              ) : (
+                filteredStats.map((queue) => (
+                  <tr key={queue.queueId} className={`hover:${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} transition-colors`}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Link
+                        to={`/queue-details/${queue.queueId}`}
+                        className={`text-sm font-medium hover:underline ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'}`}
+                      >
+                        {queue.queueName}
+                      </Link>
+                      <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        ID: {queue.queueId}
                       </div>
-                      <div className="flex justify-between">
-                        <span>Available:</span>
-                        <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                          {queue.availableAgents}
-                        </span>
+                    </td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                      {queue.totalCalls}
+                    </td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                      <div className="flex items-center">
+                        <span className="text-green-600 mr-1">✓</span>
+                        {queue.answeredCalls}
                       </div>
-                      <div className="flex justify-between">
-                        <span>Busy:</span>
-                        <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
-                          {queue.busyAgents}
-                        </span>
+                    </td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                      <div className="flex items-center">
+                        <span className="text-red-600 mr-1">✗</span>
+                        {queue.abandonedCalls}
                       </div>
-                      <div className="flex justify-between">
-                        <span>Utilization:</span>
-                        <span className="font-semibold">
-                          {queue.activeAgents > 0 ? 
-                            formatPercentage((queue.busyAgents / queue.activeAgents) * 100) : 
-                            '0%'
-                          }
-                        </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full text-white ${getStatusColor(queue.answerRate || 0, 'answer')}`}>
+                        {formatPercentage(queue.answerRate || 0)}
+                      </span>
+                    </td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                      {formatTime(queue.averageWaitTime || 0)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full text-white ${getStatusColor(queue.serviceLevelPercentage || 0, 'service')}`}>
+                        {formatPercentage(queue.serviceLevelPercentage || 0)}
+                      </span>
+                    </td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                      <div className="flex items-center">
+                        <TrashIcon />
+                        <span className="ml-1">{queue.dumpedCalls || 0}</span>
                       </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <Link
+                        to={`/queue-details/${queue.queueId}`}
+                        className={`inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md transition-colors ${isDarkMode
+                          ? 'text-blue-400 bg-blue-900/20 hover:bg-blue-900/40'
+                          : 'text-blue-600 bg-blue-100 hover:bg-blue-200'
+                          }`}
+                      >
+                        View Details
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

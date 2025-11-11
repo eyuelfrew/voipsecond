@@ -74,9 +74,10 @@ const generateAndWriteDialplan = async () => {
       combinedDialplan += agentBindings;
     }
 
-    // Add Queue section
+    // Add Queue section to [from-internal] context as requested (only place to avoid duplication)
     if (queueBindings.trim().length > 0) {
-      combinedDialplan += '\n; --- Queue Dialplan ---\n';
+      combinedDialplan += '\n[from-internal]\n';
+      combinedDialplan += '; --- Queue Dialplan ---\n';
       combinedDialplan += queueBindings;
     }
 
