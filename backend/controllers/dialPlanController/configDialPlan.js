@@ -50,11 +50,15 @@ const generateAndWriteDialplan = async () => {
     const { miscAppBindings, miscAppContext } = generateMiscApplicationDialplan(allMiscApps, allRecordings);
     const chanSpyDialplan = generateChanSpyDialplan();
 
+    console.log('DEBUG: Queue bindings generated:', queueBindings.substring(0, 200) + '...');
+
     // Start with the main custom context and add dynamic and static content
     combinedDialplan += '[from-internal-custom]\n';
     combinedDialplan += ';*******************************************************************************\n';
     combinedDialplan += '; AUTO-GENERATED DIALPLAN By INSA-PBX - DO NOT EDIT MANUALLY                             *\n';
     combinedDialplan += ';*******************************************************************************\n';
+    
+    console.log('DEBUG: Starting [from-internal-custom] context');
 
     // Add Announcements section
     if (announcementBindings.trim().length > 0) {
@@ -74,17 +78,18 @@ const generateAndWriteDialplan = async () => {
       combinedDialplan += agentBindings;
     }
 
-    // Add Queue section to [from-internal] context as requested (only place to avoid duplication)
-    if (queueBindings.trim().length > 0) {
-      combinedDialplan += '\n[from-internal]\n';
-      combinedDialplan += '; --- Queue Dialplan ---\n';
-      combinedDialplan += queueBindings;
-    }
-
     // Add Misc Application section
     if (miscAppBindings.trim().length > 0) {
       combinedDialplan += '\n; --- Miscellaneous Applications (Feature Codes) ---\n';
       combinedDialplan += miscAppBindings;
+    }
+
+    // Add Queue section to [from-internal] context ONLY (to avoid duplication)
+    if (queueBindings.trim().length > 0) {
+      console.log('DEBUG: Adding queue bindings to [from-internal] context');
+      combinedDialplan += '\n[from-internal]\n';
+      combinedDialplan += '; --- Queue Dialplan ---\n';
+      combinedDialplan += queueBindings;
     }
 
     // Add the include directives for the ChanSpy contexts
@@ -118,6 +123,9 @@ const generateAndWriteDialplan = async () => {
     const configPath = '/etc/asterisk/extensions_custom.conf';
 
     // Write the combined configuration to the file
+    console.log('DEBUG: Final dialplan length:', combinedDialplan.length);
+    console.log('DEBUG: Final dialplan preview:', combinedDialplan.substring(0, 1000) + '...');
+    
     await writeFileWithSudo(configPath, combinedDialplan.trim());
     console.log('extensions_custom.conf regenerated successfully.');
 
@@ -131,4 +139,82 @@ const generateAndWriteDialplan = async () => {
   }
 };
 
-module.exports = { generateAndWriteDialplan };
+// Test function to generate dialplan without writing to file
+const generateDialplanPreview = async () => {
+  try {
+    // Fetch all necessary data from the database
+    const allIVRs = await IVRMenu.find({});
+    const allRecordings = await audioRecording.find({});
+    const allQueues = await Queue.find({});
+    const allExtensions = await Extension.find({});
+    const allMiscApps = await MiscApplication.find({});
+    const allAnnouncements = await Announcement.find({});
+
+    // Generate dialplan for each section
+    const { ivrConfigSections, ivrBindings } = generateIvrDialplan(allIVRs, allRecordings);
+    const { announcementConfigSections, announcementBindings } = generateAnnouncementDialplan(allAnnouncements, allRecordings);
+    const agentBindings = generateAgentDialplan(allExtensions);
+    const { queueBindings, queueContexts } = generateQueueDialplan(allQueues);
+    const { miscAppBindings, miscAppContext } = generateMiscApplicationDialplan(allMiscApps, allRecordings);
+    const chanSpyDialplan = generateChanSpyDialplan();
+
+    let combinedDialplan = '';
+
+    // Start with the main custom context and add dynamic and static content
+    combinedDialplan += '[from-internal-custom]\n';
+    combinedDialplan += ';*******************************************************************************\n';
+    combinedDialplan += '; AUTO-GENERATED DIALPLAN By INSA-PBX - DO NOT EDIT MANUALLY                             *\n';
+    combinedDialplan += ';*******************************************************************************\n';
+
+    // Add Announcements section
+    if (announcementBindings.trim().length > 0) {
+      combinedDialplan += '\n; --- Announcements ---\n';
+      combinedDialplan += announcementBindings;
+    }
+
+    // Add IVR section
+    if (ivrBindings.trim().length > 0) {
+      combinedDialplan += '\n; --- IVR (Interactive Voice Response) Menus ---\n';
+      combinedDialplan += ivrBindings;
+    }
+
+    // Add Agent (Extension) section
+    if (agentBindings.trim().length > 0) {
+      combinedDialplan += '\n; --- Agent (Extension) Dialplan ---\n';
+      combinedDialplan += agentBindings;
+    }
+
+    // Add Misc Application section
+    if (miscAppBindings.trim().length > 0) {
+      combinedDialplan += '\n; --- Miscellaneous Applications (Feature Codes) ---\n';
+      combinedDialplan += miscAppBindings;
+    }
+
+    // Add Queue section to [from-internal] context ONLY (to avoid duplication)
+    if (queueBindings.trim().length > 0) {
+      combinedDialplan += '\n[from-internal]\n';
+      combinedDialplan += '; --- Queue Dialplan ---\n';
+      combinedDialplan += queueBindings;
+    }
+
+    return {
+      success: true,
+      dialplan: combinedDialplan,
+      sections: {
+        queueBindings: queueBindings,
+        queueContexts: queueContexts,
+        agentBindings: agentBindings,
+        ivrBindings: ivrBindings,
+        announcementBindings: announcementBindings,
+        miscAppBindings: miscAppBindings
+      }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+module.exports = { generateAndWriteDialplan, generateDialplanPreview };

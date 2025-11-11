@@ -1,4 +1,4 @@
-const { generateAndWriteDialplan } = require('./dialPlanController/configDialPlan');
+const { generateAndWriteDialplan, generateDialplanPreview } = require('./dialPlanController/configDialPlan');
 
 // POST /api/apply-config
 // Regenerates and reloads the Asterisk queue config for all queues
@@ -13,4 +13,16 @@ const applyConfig = async (req, res) => {
   }
 };
 
-module.exports = { applyConfig };
+// GET /api/apply-config/preview
+// Preview the generated dialplan without writing to file
+const previewDialplan = async (req, res) => {
+  try {
+    const result = await generateDialplanPreview();
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('Error generating dialplan preview:', error);
+    res.status(500).json({ status: 500, error: 'Failed to generate dialplan preview', details: error.message });
+  }
+};
+
+module.exports = { applyConfig, previewDialplan };

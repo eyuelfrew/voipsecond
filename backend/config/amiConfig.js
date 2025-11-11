@@ -1212,7 +1212,7 @@ async function setupAmiEventListeners(ami, io) {
   ami.on("QueueCallerJoin", (event) => handleQueueCallerJoin(event, io));
   ami.on("QueueCallerLeave", (event) => handleQueueCallerLeave(event, io));
   ami.on("QueueCallerAbandon", async (event) => await handleQueueCallerAbandon(event, io));
-  ami.on("AgentDump",(event)=>{console.log(event)})
+  ami.on("AgentDump", (event) => { console.log(event) })
   // Wrap-up time tracking events
   ami.on("QueueMemberPause", (event) => {
     // Check if this is an unpause event (Paused: 0)
