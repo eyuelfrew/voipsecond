@@ -6,6 +6,25 @@ const { generateAsteriskQueueConfig, reloadAsteriskQueues } = require('./queueCo
 const { loadQueueNamesMap } = require('../../config/amiConfig');
 const execPromise = util.promisify(exec);
 
+// Helper function to map skipBusyAgents form values to ringinuse config values
+const mapSkipBusyAgentsToRinginuse = (skipBusyAgentsValue) => {
+  const value = String(skipBusyAgentsValue || 'yes').toLowerCase();
+  
+  // Form value mapping:
+  // "yes" -> ringinuse=yes
+  // "no" -> ringinuse=no  
+  // "yes(ringinuse=no)" -> ringinuse=no
+  // "queue calls only" -> ringinuse=no
+  
+  if (value === 'yes') {
+    return 'yes';
+  } else if (value === 'no' || value.includes('ringinuse=no') || value.includes('queue calls only')) {
+    return 'no';
+  } else {
+    return 'yes'; // default fallback
+  }
+};
+
 // Main: Create Queue and regenerate all Queues in config
 const createQueue = async (req, res) => {
   try {
@@ -15,6 +34,14 @@ const createQueue = async (req, res) => {
       timingAgentOptions,
       capacityOptions
     } = req.body;
+
+    // Debug: Log the received options
+    console.log('🔍 DEBUG - Received generalSettings:', JSON.stringify(generalSettings, null, 2));
+    console.log('🔍 DEBUG - Received capacityOptions:', JSON.stringify(capacityOptions, null, 2));
+    console.log('🔍 DEBUG - skipBusyAgents value:', generalSettings?.skipBusyAgents);
+    console.log('🔍 DEBUG - skipBusyAgents type:', typeof generalSettings?.skipBusyAgents);
+    console.log('🔍 DEBUG - Mapped ringinuse value:', mapSkipBusyAgentsToRinginuse(generalSettings?.skipBusyAgents));
+    console.log('🔍 DEBUG - joinEmpty value:', capacityOptions?.joinEmpty);
 
     const name = generalSettings?.queueName;
     const queueNumber = generalSettings?.queueNumber; // This will be used for queueId
@@ -41,8 +68,8 @@ const createQueue = async (req, res) => {
       autopausebusy: (timingAgentOptions?.autoPauseOnBusy || 'no').toLowerCase(), // Fixed: Ensure string before toLowerCase()
       autopausedelay: timingAgentOptions?.autoPauseDelay || 0,
       autopauseunavail: (timingAgentOptions?.autoPauseOnUnavailable || 'no').toLowerCase(), // Fixed: Ensure string before toLowerCase()
-      joinempty: (capacityOptions?.joinEmpty || 'yes').toLowerCase(), // Fixed: Ensure string before toLowerCase()
-      leavewhenempty: (capacityOptions?.leaveEmpty || 'no').toLowerCase(), // Fixed: Ensure string before toLowerCase()
+      joinempty: capacityOptions?.joinEmpty ? String(capacityOptions.joinEmpty).toLowerCase() : 'yes',
+      leavewhenempty: capacityOptions?.leaveEmpty ? String(capacityOptions.leaveEmpty).toLowerCase() : 'no',
       maxlen: capacityOptions?.maxCallers || 0, // Ensure this is a number
       memberdelay: parseInt(timingAgentOptions?.memberDelay) || 0, // Convert to number
       minAnnounceFrequency: generalSettings?.minAnnounceFrequency || 15,
@@ -55,7 +82,7 @@ const createQueue = async (req, res) => {
       queueYouAreNext: generalSettings?.queueYouAreNext || 'silence/1',
       reportholdtime: (timingAgentOptions?.reportHoldTime || 'no').toLowerCase(), // Fixed: Ensure string before toLowerCase()
       retry: parseInt(timingAgentOptions?.retry) || 5, // Convert to number
-      ringinuse: ((generalSettings?.skipBusyAgents || 'no').toLowerCase() === 'yes' ? 'no' : 'yes'), // Fixed: Ensure string before toLowerCase()
+      ringinuse: mapSkipBusyAgentsToRinginuse(generalSettings?.skipBusyAgents),
       servicelevel: generalSettings?.servicelevel || 60,
       strategy: (generalSettings?.ringStrategy || 'ringall').toLowerCase(), // Fixed: Ensure string before toLowerCase()
       timeout: parseInt(timingAgentOptions?.agentTimeout) || 15, // Convert to number
@@ -114,6 +141,10 @@ const createQueue = async (req, res) => {
         penaltyMembersLimit: capacityOptions?.penaltyMembersLimit || 'Honor Penalties'
       }
     });
+    // Debug: Log the final values being saved
+    console.log('🔍 DEBUG CREATE - Final joinempty value being saved:', newQueue.joinempty);
+    console.log('🔍 DEBUG CREATE - Final ringinuse value being saved:', newQueue.ringinuse);
+
     await newQueue.save();
     // 3. Load the queue names map to ensure we have the latest queue names for the ami event listeners
     // This is important to ensure that the AMI event listeners have the latest queue names available
@@ -197,7 +228,7 @@ const deleteQueue = async (req, res) => {
 const getAllQueues = async (req, res) => {
   try {
     const queues = await Queue.find({});
-    res.status(200).json( queues );
+    res.status(200).json(queues);
   } catch (error) {
     console.error('Error fetching queues:', error);
     res.status(500).json({ status: 500, error: 'Failed to fetch queues', details: error.message });
@@ -213,7 +244,7 @@ const getQueueById = async (req, res) => {
     if (!queue) {
       return res.status(404).json({ status: 404, error: 'Queue not found' });
     }
-    res.status(200).json(queue );
+    res.status(200).json(queue);
   } catch (error) {
     console.error('Error fetching queue by ID:', error);
     res.status(500).json({ status: 500, error: 'Failed to fetch queue', details: error.message });

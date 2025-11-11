@@ -152,7 +152,7 @@ const errorResponse = (res, code, msg) => res.status(code).json({ message: msg }
 // --- Controller Functions ---
 
 // Create a new queue (config + MongoDB + reload)
-const createQueue = asyncHandler(async (req, res) => {
+const createQueue = asyncHandler(async (req, res) => {console.log(res.body)
   const { queueId, members = [], ...rest } = req.body;
   if (!queueId) return errorResponse(res, 400, 'queueId is required.');
   const existing = await Queue.findOne({ queueId });
