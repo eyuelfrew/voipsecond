@@ -25,9 +25,15 @@ const generateAsteriskQueueConfig = (queue) => {
   config += `min-announce-frequency=${queue.minAnnounceFrequency || 15}\n`;
   config += `penaltymemberslimit=${queue.penaltymemberslimit || 0}\n`;
   config += `periodic-announce-frequency=${queue.periodicAnnounceFrequency || 0}\n`;
+  if (queue.periodicAnnounce && queue.periodicAnnounce !== '') {
+    config += `periodic-announce=${queue.periodicAnnounce}\n`;
+  }
   config += `queue-callswaiting=${queue.queueCallsWaiting || 'silence/1'}\n`;
   config += `queue-thereare=${queue.queueThereAre || 'silence/1'}\n`;
   config += `queue-youarenext=${queue.queueYouAreNext || 'silence/1'}\n`;
+  if (queue.musicOnHold && queue.musicOnHold !== 'default') {
+    config += `musicclass=${queue.musicOnHold}\n`;
+  }
   config += `reportholdtime=${queue.reportholdtime || 'no'}\n`;
   config += `retry=${queue.retry || 5}\n`;
   config += `ringinuse=${queue.ringinuse || 'yes'}\n`;

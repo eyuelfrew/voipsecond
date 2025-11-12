@@ -1,5 +1,6 @@
 const QueueStatistics = require('../../models/queueStatistics');
 const Queue = require('../../models/queue');
+const CallQualityMetrics = require('../../models/callQualityMetrics');
 
 // In-memory cache for real-time queue statistics
 const queueStatsCache = new Map();
@@ -39,6 +40,16 @@ const initializeQueueStats = (queueId, queueName) => {
       callsWithinServiceLevel: 0,
       serviceLevelTarget: 60,
 
+      // Call quality metrics
+      totalQualityAssessments: 0,
+      totalMosScore: 0,
+      avgMosScore: null,
+      totalJitter: 0,
+      avgJitter: null,
+      totalPacketLoss: 0,
+      avgPacketLoss: null,
+      qualityIssuesCount: 0,
+
       // Current state
       activeAgents: 0,
       availableAgents: 0,
@@ -52,7 +63,10 @@ const initializeQueueStats = (queueId, queueName) => {
         abandoned: 0,
         avgWaitTime: 0,
         avgTalkTime: 0,
-        waitingCallers: 0
+        waitingCallers: 0,
+        avgJitter: 0,
+        avgPacketLoss: 0,
+        qualityIssues: 0
       })),
 
       lastUpdated: new Date()
@@ -80,7 +94,11 @@ const updateQueueStats = (queueId, queueName, updates) => {
       // Update hourly stats
       const hourlyData = updates[key];
       Object.keys(hourlyData).forEach(hourlyKey => {
-        stats.hourlyStats[currentHour][hourlyKey] += hourlyData[hourlyKey];
+        if (typeof stats.hourlyStats[currentHour][hourlyKey] === 'number') {
+          stats.hourlyStats[currentHour][hourlyKey] += hourlyData[hourlyKey];
+        } else {
+          stats.hourlyStats[currentHour][hourlyKey] = hourlyData[hourlyKey];
+        }
       });
     } else if (typeof updates[key] === 'number') {
       stats[key] += updates[key];
@@ -102,6 +120,13 @@ const updateQueueStats = (queueId, queueName, updates) => {
 
   stats.answerRate = stats.totalCalls > 0 ? Math.round((stats.answeredCalls / stats.totalCalls) * 100 * 100) / 100 : 0;
   stats.abandonmentRate = stats.totalCalls > 0 ? Math.round((stats.abandonedCalls / stats.totalCalls) * 100 * 100) / 100 : 0;
+
+  // Calculate average quality metrics if available
+  if (stats.totalQualityAssessments > 0) {
+    stats.avgMosScore = Math.round((stats.totalMosScore / stats.totalQualityAssessments) * 100) / 100;
+    stats.avgJitter = Math.round((stats.totalJitter / stats.totalQualityAssessments) * 100) / 100;
+    stats.avgPacketLoss = Math.round((stats.totalPacketLoss / stats.totalQualityAssessments) * 100) / 100;
+  }
 
   stats.lastUpdated = new Date();
 
@@ -342,6 +367,30 @@ const setupQueueStatsListeners = (ami, io) => {
   console.log('📊 Queue statistics listeners setup complete');
 };
 
+// Function to update queue statistics with call quality metrics
+const updateQueueQualityMetrics = async (callLog, qualityMetrics) => {
+  if (!callLog || !qualityMetrics || !callLog.queue) return;
+
+  const { queue } = callLog;
+  const queueName = callLog.queueName || queue;
+
+  // Update real-time stats with quality metrics
+  const updates = {
+    totalQualityAssessments: 1,
+    totalMosScore: qualityMetrics.mosScore || 0,
+    totalJitter: qualityMetrics.jitter || 0,
+    totalPacketLoss: qualityMetrics.packetLoss || 0,
+    qualityIssuesCount: qualityMetrics.hasQualityIssues ? 1 : 0,
+    hourlyUpdate: {
+      avgJitter: qualityMetrics.jitter || 0,
+      avgPacketLoss: qualityMetrics.packetLoss || 0,
+      qualityIssues: qualityMetrics.hasQualityIssues ? 1 : 0
+    }
+  };
+
+  updateQueueStats(queue, queueName, updates);
+};
+
 module.exports = {
   setupQueueStatsListeners,
   getQueueStats,
@@ -349,5 +398,6 @@ module.exports = {
   updateQueueStats,
   handleQueueAgentStatus,
   emitAllQueueStats,
-  persistQueueStats
+  persistQueueStats,
+  updateQueueQualityMetrics
 };

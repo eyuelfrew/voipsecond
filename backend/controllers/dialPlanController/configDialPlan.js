@@ -46,7 +46,7 @@ const generateAndWriteDialplan = async () => {
     const { ivrConfigSections, ivrBindings } = generateIvrDialplan(allIVRs, allRecordings);
     const { announcementConfigSections, announcementBindings } = generateAnnouncementDialplan(allAnnouncements, allRecordings);
     const agentBindings = generateAgentDialplan(allExtensions);
-    const { queueBindings, queueContexts } = generateQueueDialplan(allQueues);
+    const { queueBindings, queueContexts } = generateQueueDialplan(allQueues, allRecordings);
     const { miscAppBindings, miscAppContext } = generateMiscApplicationDialplan(allMiscApps, allRecordings);
     const chanSpyDialplan = generateChanSpyDialplan();
 
@@ -154,7 +154,7 @@ const generateDialplanPreview = async () => {
     const { ivrConfigSections, ivrBindings } = generateIvrDialplan(allIVRs, allRecordings);
     const { announcementConfigSections, announcementBindings } = generateAnnouncementDialplan(allAnnouncements, allRecordings);
     const agentBindings = generateAgentDialplan(allExtensions);
-    const { queueBindings, queueContexts } = generateQueueDialplan(allQueues);
+    const { queueBindings, queueContexts } = generateQueueDialplan(allQueues, allRecordings);
     const { miscAppBindings, miscAppContext } = generateMiscApplicationDialplan(allMiscApps, allRecordings);
     const chanSpyDialplan = generateChanSpyDialplan();
 

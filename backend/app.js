@@ -111,6 +111,18 @@ app.use("/api/auth", authRoutes); // Register the new auth route
 app.use('/api/contacts', contactRoutes);
 app.use('/api/canned-responses', cannedResponseRoutes);
 app.use('/api/announcements', announcementRoutes);
+
+// Call Quality Metrics Routes
+const callQualityMetricsRoutes = require('./routes/callQualityMetricsRoutes');
+app.use('/api/call-quality', callQualityMetricsRoutes);
+
+// Call Analytics Routes
+const callAnalyticsRoutes = require('./routes/callAnalyticsRoutes');
+app.use('/api/report/call-analytics', callAnalyticsRoutes);
+
+// Advanced Call Analytics Routes
+const advancedCallAnalyticsRoutes = require('./routes/advancedCallAnalyticsRoutes');
+app.use('/api/call-analytics', advancedCallAnalyticsRoutes);
 // =========================
 // Export App
 // =========================

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
   QueueFormData,
   announcementOptions,
@@ -6,10 +7,21 @@ import {
   ringerVolumeOverrideOptions,
   ringStrategyOptions,
   musicOnHoldOptions,
-  joinAnnouncementOptions,
-  failOverDestinationOptions
 } from '../../types/queueTypes';
 import { HelpCircle } from 'lucide-react';
+
+const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+
+interface Recording {
+  _id: string;
+  name: string;
+  description?: string;
+  audioFiles: Array<{
+    _id: string;
+    originalName: string;
+    path: string;
+  }>;
+}
 
 // Reusable component for form rows with modern theming
 const FormRow: React.FC<{ label: string; tooltip?: string; children: React.ReactNode }> = React.memo(({ label, tooltip, children }) => (
@@ -262,6 +274,36 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = React.memo((
     handleCallRecordingChange,
     handleMarkCallsAnsweredElsewhereChange,
   }) => {
+  
+  // State for recordings
+  const [recordings, setRecordings] = useState<Recording[]>([]);
+  const [loadingRecordings, setLoadingRecordings] = useState(true);
+
+  // Fetch recordings from API
+  useEffect(() => {
+    const fetchRecordings = async () => {
+      try {
+        setLoadingRecordings(true);
+        const response = await axios.get(`${backendUrl}/api/audio/recordings`);
+        console.log('📥 Fetched recordings for General Settings:', response.data);
+        
+        // Handle different response formats
+        const recordingsData = Array.isArray(response.data) 
+          ? response.data 
+          : response.data.data || response.data.recordings || [];
+        
+        setRecordings(recordingsData);
+      } catch (err) {
+        console.error('❌ Error fetching recordings:', err);
+        setRecordings([]);
+      } finally {
+        setLoadingRecordings(false);
+      }
+    };
+
+    fetchRecordings();
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-3 mb-8">
@@ -456,16 +498,26 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = React.memo((
 
       {/* Join Announcement */}
       <FormRow label="Join Announcement" tooltip="An announcement played to the caller when they join the queue.">
-        <select
-          name="joinAnnouncement"
-          value={formData.joinAnnouncement}
-          onChange={handleChange}
-          className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
-        >
-          {joinAnnouncementOptions.map(option => (
-            <option key={option.value} value={option.value}>{option.label}</option>
-          ))}
-        </select>
+        {loadingRecordings ? (
+          <div className="flex items-center space-x-2 px-4 py-3">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-cc-yellow-400"></div>
+            <span className="text-sm cc-text-secondary">Loading recordings...</span>
+          </div>
+        ) : (
+          <select
+            name="joinAnnouncement"
+            value={formData.joinAnnouncement}
+            onChange={handleChange}
+            className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
+          >
+            <option value="None">None</option>
+            {recordings.map(recording => (
+              <option key={recording._id} value={recording._id}>
+                {recording.name}
+              </option>
+            ))}
+          </select>
+        )}
       </FormRow>
 
       {/* Call Recording */}
@@ -485,17 +537,27 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = React.memo((
       </FormRow>
 
       {/* Fail Over Destination */}
-      <FormRow label="Fail Over Destination" tooltip="Where to send calls if no agents are available or max wait time is reached.">
-        <select
-          name="failOverDestination"
-          value={formData.failOverDestination}
-          onChange={handleChange}
-          className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
-        >
-          {failOverDestinationOptions.map(option => (
-            <option key={option.value} value={option.value}>{option.label}</option>
-          ))}
-        </select>
+      <FormRow label="Fail Over Destination" tooltip="Recording to play when no agents are available or max wait time is reached.">
+        {loadingRecordings ? (
+          <div className="flex items-center space-x-2 px-4 py-3">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-cc-yellow-400"></div>
+            <span className="text-sm cc-text-secondary">Loading recordings...</span>
+          </div>
+        ) : (
+          <select
+            name="failOverDestination"
+            value={formData.failOverDestination}
+            onChange={handleChange}
+            className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
+          >
+            <option value="None">None</option>
+            {recordings.map(recording => (
+              <option key={recording._id} value={recording._id}>
+                {recording.name}
+              </option>
+            ))}
+          </select>
+        )}
       </FormRow>
     </div>
   );

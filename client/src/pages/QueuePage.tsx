@@ -69,6 +69,14 @@ const QueueForm: React.FC = () => {
   const [modalMessage, setModalMessage] = useState<string>('');
   const [modalType, setModalType] = useState<'success' | 'error'>('success');
 
+  // State for Caller Announcements
+  const [callerAnnouncementsData, setCallerAnnouncementsData] = useState({
+    periodicAnnounce: '',
+    queueYouAreNext: 'silence/1',
+    queueThereAre: 'silence/1',
+    queueCallsWaiting: 'silence/1',
+    musicOnHold: 'default',
+  });
 
   // State for active tab
   const [activeTab, setActiveTab] = useState<string>('General Settings');
@@ -187,6 +195,15 @@ const QueueForm: React.FC = () => {
             penaltyMembersLimit: fetchedQueue.capacityOptions?.penaltyMembersLimit || 'Honor Penalties',
           });
 
+          // Populate callerAnnouncementsData
+          setCallerAnnouncementsData({
+            periodicAnnounce: fetchedQueue.periodicAnnounce || fetchedQueue.generalSettings?.periodicAnnounce || '',
+            queueYouAreNext: fetchedQueue.queueYouAreNext || fetchedQueue.generalSettings?.queueYouAreNext || 'silence/1',
+            queueThereAre: fetchedQueue.queueThereAre || fetchedQueue.generalSettings?.queueThereAre || 'silence/1',
+            queueCallsWaiting: fetchedQueue.queueCallsWaiting || fetchedQueue.generalSettings?.queueCallsWaiting || 'silence/1',
+            musicOnHold: fetchedQueue.musicOnHold || fetchedQueue.generalSettings?.musicOnHold || 'default',
+          });
+
         } catch (error) {
           console.error('Error fetching queue data:', error);
           setMessage('Failed to load queue data.');
@@ -263,7 +280,10 @@ const QueueForm: React.FC = () => {
     setMessageType(null);
 
     const payload = {
-      generalSettings: formData,
+      generalSettings: {
+        ...formData,
+        ...callerAnnouncementsData, // Include caller announcements in general settings
+      },
       queueAgents: selectedQueueAgents,
       timingAgentOptions: timingAgentFormData,
       capacityOptions: capacityFormData,
@@ -494,7 +514,10 @@ const QueueForm: React.FC = () => {
             )}
 
             {activeTab === 'Caller Announcements' && (
-              <CallerAnnouncements />
+              <CallerAnnouncements 
+                formData={callerAnnouncementsData}
+                onChange={(field, value) => setCallerAnnouncementsData(prev => ({ ...prev, [field]: value }))}
+              />
             )}
 
             {activeTab === 'Advanced Options' && (

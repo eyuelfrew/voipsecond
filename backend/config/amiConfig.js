@@ -3,6 +3,7 @@ const CallLog = require("../models/callLog.js");
 const Queue = require("../models/queue.js");
 const QueueStatistics = require("../models/queueStatistics.js");
 const WrapUpTime = require("../models/wrapUpTime.js");
+const CallQualityMetrics = require("../models/callQualityMetrics.js");
 const fs = require("fs");
 const path = require("path");
 const Shift = require("../models/shiftModel");
@@ -437,6 +438,7 @@ function handleBridgeEnter(event, io, ami) {
       },
       { upsert: true }
     );
+
   }
 }
 
@@ -947,6 +949,176 @@ async function handleAgentComplete(event, io) {
   }
 }
 
+// --- RTP STATISTICS HANDLERS FOR CALL QUALITY ---
+
+/**
+ * Handles the 'RTPStat' event from AMI to gather call quality metrics
+ * @param {object} event - The AMI event object containing RTP statistics
+ */
+async function handleRTPStat(event) {
+  try {
+    if (!event) {
+      console.error('❌ Invalid RTPStat event: event is null or undefined');
+      return;
+    }
+
+    const {
+      Channel,
+      LocalAddress,
+      LocalPort,
+      RemoteAddress,
+      RemotePort,
+      LocalLoss,
+      RemoteLoss,
+      LocalJitter,
+      RemoteJitter,
+      LocalPackets,
+      RemotePackets,
+      LocalRTT,
+      RemoteRTT,
+      DroppedFrames,
+      OOOFrames,
+      RxJitter,
+      TxJitter,
+      LocalCount,
+      RemoteCount,
+      Accountcode,
+      Linkedid
+    } = event;
+
+    // Extract linked ID from channel name if needed
+    const linkedId = Linkedid || extractLinkedIdFromChannel(Channel);
+    
+    if (!linkedId) {
+      console.warn('⚠️ Could not extract linkedId from RTPStat event:', event.Channel);
+      return;
+    }
+
+    // Validate required numeric values
+    const localPackets = parseFloat(LocalPackets) || 0;
+    const remotePackets = parseFloat(RemotePackets) || 0;
+    const localLoss = parseFloat(LocalLoss) || 0;
+    const remoteLoss = parseFloat(RemoteLoss) || 0;
+    const localJitter = parseFloat(LocalJitter) || 0;
+    const remoteJitter = parseFloat(RemoteJitter) || 0;
+    const localRtt = parseFloat(LocalRTT) || 0;
+    const remoteRtt = parseFloat(RemoteRTT) || 0;
+
+    // Calculate quality metrics
+    const localLossRate = localPackets > 0 ? (localLoss / localPackets) * 100 : 0;
+    const remoteLossRate = remotePackets > 0 ? (remoteLoss / remotePackets) * 100 : 0;
+    const avgLossRate = (localLossRate + remoteLossRate) / 2;
+    
+    const avgJitter = (localJitter + remoteJitter) / 2;
+    const avgRtt = Math.max(localRtt, remoteRtt);
+    
+    // Calculate MOS (Mean Opinion Score) based on ITU-T G.107 recommendation
+    const mosScore = calculateMOS(avgLossRate, avgJitter, avgRtt);
+
+    // Find the existing call log to link quality metrics
+    const callLog = await CallLog.findOne({ linkedId });
+
+    if (callLog) {
+      // Update or create call quality metrics
+      const qualityMetrics = await CallQualityMetrics.findOneAndUpdate(
+        { callLogId: callLog._id },
+        {
+          callLogId: callLog._id,
+          jitter: avgJitter,
+          packetLoss: avgLossRate,
+          rtt: avgRtt,
+          averageJitter: avgJitter,
+          maxJitter: Math.max(localJitter, remoteJitter),
+          packetLossRate: avgLossRate,
+          averageLatency: avgRtt,
+          maxLatency: avgRtt,
+          qualityScore: mosScore * 20, // MOS to 0-100 scale
+          mosScore: mosScore,
+          hasQualityIssues: avgLossRate > 2 || avgJitter > 30 || avgRtt > 100,
+          qualityIssues: [
+            ...(avgLossRate > 2 ? ['packet_loss'] : []),
+            ...(avgJitter > 30 ? ['jitter'] : []),
+            ...(avgRtt > 100 ? ['latency'] : [])
+          ]
+        },
+        { upsert: true, new: true }
+      );
+
+      console.log(`📊 RTP Stats for ${linkedId}: Jitter=${avgJitter.toFixed(2)}ms, Loss=${avgLossRate.toFixed(2)}%, RTT=${avgRtt.toFixed(2)}ms, MOS=${mosScore.toFixed(2)}`);
+
+      // Update real-time queue statistics with quality metrics
+      try {
+        const { updateQueueQualityMetrics } = require('../controllers/queueControllers/realTimeQueueStats');
+        await updateQueueQualityMetrics(callLog, qualityMetrics);
+      } catch (queueUpdateError) {
+        console.error('❌ Error updating real-time queue quality metrics:', queueUpdateError);
+      }
+    } else {
+      console.warn('⚠️ No call log found for linkedId:', linkedId);
+    }
+  } catch (error) {
+    console.error('❌ Error handling RTP statistics:', error);
+    console.error('Event details:', event ? { Channel: event.Channel, Linkedid: event.Linkedid } : 'No event data');
+  }
+}
+
+/**
+ * Extract linked ID from channel name
+ * @param {string} channel - Channel name from AMI event
+ * @returns {string} Linked ID extracted from channel
+ */
+function extractLinkedIdFromChannel(channel) {
+  if (!channel) return null;
+  
+  // Example: PJSIP/trunks-0000001a;1678901234.123 -> extract linkedId
+  const match = channel.match(/\.(\d+)$|;(\d+)$/);
+  return match ? match[1] || match[2] : null;
+}
+
+/**
+ * Calculate MOS (Mean Opinion Score) based on network quality metrics
+ * @param {number} packetLoss - Packet loss percentage
+ * @param {number} jitter - Jitter in milliseconds
+ * @param {number} rtt - Round-trip time in milliseconds
+ * @returns {number} MOS score (1.0 to 5.0)
+ */
+function calculateMOS(packetLoss, jitter, rtt) {
+  try {
+    // Convert RTT to delay (half of RTT) and add codec delay (assumed 20ms)
+    const delay = Math.min(rtt / 2 + 20, 200);
+    
+    // Calculate effective latency (in milliseconds)
+    const effectiveLatency = delay + (jitter * 2);
+    
+    // Calculate R-factor based on ITU-T G.107
+    let R = 0;
+    if (effectiveLatency < 160) {
+      R = 93.2 - (effectiveLatency / 40);
+    } else {
+      R = 93.2 - ((effectiveLatency - 120) / 10);
+    }
+    
+    // Factor in packet loss (subtract 2.5 per percentage point of packet loss above 0.5%)
+    if (packetLoss > 0.5) {
+      R -= (packetLoss - 0.5) * 2.5;
+    }
+    
+    // Ensure R-factor stays within reasonable bounds
+    R = Math.max(0, Math.min(100, R));
+    
+    // Convert R-factor to MOS
+    let mos = 1.0 + (0.035 * R) + (R * (R - 60) * (100 - R) * 7) / 1000000;
+    
+    // Ensure MOS is within bounds
+    mos = Math.max(1.0, Math.min(5.0, mos));
+    
+    return mos;
+  } catch (error) {
+    console.error('❌ Error calculating MOS score:', error);
+    return 3.5; // Return "good" quality if calculation fails
+  }
+}
+
 // --- ENDPOINT & AGENT STATUS HANDLERS ---
 
 function handleEndpointList(event) {
@@ -1212,6 +1384,7 @@ async function setupAmiEventListeners(ami, io) {
   ami.on("QueueCallerJoin", (event) => handleQueueCallerJoin(event, io));
   ami.on("QueueCallerLeave", (event) => handleQueueCallerLeave(event, io));
   ami.on("QueueCallerAbandon", async (event) => await handleQueueCallerAbandon(event, io));
+  ami.on("RTPStat", (event) => handleRTPStat(event));
   ami.on("AgentDump", (event) => { console.log(event) })
   // Wrap-up time tracking events
   ami.on("QueueMemberPause", (event) => {

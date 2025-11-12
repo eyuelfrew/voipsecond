@@ -77,9 +77,11 @@ const createQueue = async (req, res) => {
       // If 'Honor Penalties' needs specific numeric mapping, adjust here.
       penaltymemberslimit: (capacityOptions?.penaltyMembersLimit === 'Honor Penalties' ? 0 : parseInt(capacityOptions?.penaltyMembersLimit)) || 0,
       periodicAnnounceFrequency: generalSettings?.periodicAnnounceFrequency || 0,
+      periodicAnnounce: generalSettings?.periodicAnnounce || '',
       queueCallsWaiting: generalSettings?.queueCallsWaiting || 'silence/1',
       queueThereAre: generalSettings?.queueThereAre || 'silence/1',
       queueYouAreNext: generalSettings?.queueYouAreNext || 'silence/1',
+      musicOnHold: generalSettings?.musicOnHold || 'default',
       reportholdtime: (timingAgentOptions?.reportHoldTime || 'no').toLowerCase(), // Fixed: Ensure string before toLowerCase()
       retry: parseInt(timingAgentOptions?.retry) || 5, // Convert to number
       ringinuse: mapSkipBusyAgentsToRinginuse(generalSettings?.skipBusyAgents),

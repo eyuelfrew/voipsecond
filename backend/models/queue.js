@@ -20,9 +20,11 @@ const queueSchema = new mongoose.Schema({
   minAnnounceFrequency: { type: Number, default: 15 },
   penaltymemberslimit: { type: Number, default: 0 },
   periodicAnnounceFrequency: { type: Number, default: 0 },
+  periodicAnnounce: { type: String, default: '' }, // Path to periodic announcement recording
   queueCallsWaiting: { type: String, default: 'silence/1' },
   queueThereAre: { type: String, default: 'silence/1' },
   queueYouAreNext: { type: String, default: 'silence/1' },
+  musicOnHold: { type: String, default: 'default' }, // Music on hold class or recording
   reportholdtime: { type: String, default: 'no' },
   retry: { type: Number, default: 5 },
   ringinuse: { type: String, default: 'yes' },
