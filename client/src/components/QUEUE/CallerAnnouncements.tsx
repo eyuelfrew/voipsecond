@@ -17,13 +17,25 @@ interface Recording {
 
 interface CallerAnnouncementsProps {
   formData: {
+    // Periodic Announcement
     periodicAnnounce?: string;
+    periodicAnnounceFrequency?: number;
+    
+    // Caller Position Announcements
+    announceFrequency?: number;
+    minAnnounceFrequency?: number;
+    announcePosition?: string;
+    announceHoldtime?: string;
+    
+    // Queue Position Messages
     queueYouAreNext?: string;
     queueThereAre?: string;
     queueCallsWaiting?: string;
+    
+    // Music on Hold
     musicOnHold?: string;
   };
-  onChange: (field: string, value: string) => void;
+  onChange: (field: string, value: string | number) => void;
 }
 
 const CallerAnnouncements: React.FC<CallerAnnouncementsProps> = ({ formData, onChange }) => {
@@ -109,27 +121,135 @@ const CallerAnnouncements: React.FC<CallerAnnouncementsProps> = ({ formData, onC
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Periodic Announcement */}
-          <div>
-            <label className={labelClass}>
-              Periodic Announcement
-              <span className={`ml-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                (Played periodically to waiting callers)
-              </span>
-            </label>
-            <select
-              value={formData.periodicAnnounce || 'none'}
-              onChange={(e) => handleRecordingChange('periodicAnnounce', e.target.value)}
-              className={inputClass}
-            >
-              <option value="none">None</option>
-              <option value="silence/1">Silence</option>
-              {recordings.map((recording) => (
-                <option key={recording._id} value={recording._id}>
-                  {recording.name}
-                </option>
-              ))}
-            </select>
+          {/* Caller Position Section */}
+          <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+            <h4 className={`font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              📢 Caller Position Announcements
+            </h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Announce Frequency */}
+              <div>
+                <label className={labelClass}>
+                  Announce Frequency (seconds)
+                  <span className={`ml-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    (How often to announce position, 0 = disabled)
+                  </span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.announceFrequency || 0}
+                  onChange={(e) => onChange('announceFrequency', parseInt(e.target.value) || 0)}
+                  className={inputClass}
+                  placeholder="0"
+                />
+              </div>
+
+              {/* Minimum Announcement Interval */}
+              <div>
+                <label className={labelClass}>
+                  Minimum Announcement Interval (seconds)
+                  <span className={`ml-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    (Minimum time between announcements)
+                  </span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.minAnnounceFrequency || 15}
+                  onChange={(e) => onChange('minAnnounceFrequency', parseInt(e.target.value) || 15)}
+                  className={inputClass}
+                  placeholder="15"
+                />
+              </div>
+
+              {/* Announce Position */}
+              <div>
+                <label className={labelClass}>
+                  Announce Position
+                  <span className={`ml-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    (Tell caller their position in queue)
+                  </span>
+                </label>
+                <select
+                  value={formData.announcePosition || 'no'}
+                  onChange={(e) => onChange('announcePosition', e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+              </div>
+
+              {/* Announce Hold Time */}
+              <div>
+                <label className={labelClass}>
+                  Announce Hold Time
+                  <span className={`ml-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    (Tell caller estimated wait time)
+                  </span>
+                </label>
+                <select
+                  value={formData.announceHoldtime || 'no'}
+                  onChange={(e) => onChange('announceHoldtime', e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                  <option value="once">Once</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Periodic Announcement Section */}
+          <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+            <h4 className={`font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              🔁 Periodic Announcement
+            </h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Periodic Announcement Recording */}
+              <div>
+                <label className={labelClass}>
+                  Periodic Announcement Recording
+                  <span className={`ml-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    (Played periodically to waiting callers)
+                  </span>
+                </label>
+                <select
+                  value={formData.periodicAnnounce || 'none'}
+                  onChange={(e) => handleRecordingChange('periodicAnnounce', e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="none">None</option>
+                  {recordings.map((recording) => (
+                    <option key={recording._id} value={recording._id}>
+                      {recording.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Periodic Announcement Frequency */}
+              <div>
+                <label className={labelClass}>
+                  Periodic Announcement Frequency (seconds)
+                  <span className={`ml-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    (How often to play the announcement, 0 = disabled)
+                  </span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.periodicAnnounceFrequency || 0}
+                  onChange={(e) => onChange('periodicAnnounceFrequency', parseInt(e.target.value) || 0)}
+                  className={inputClass}
+                  placeholder="0"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Queue Position Announcements */}

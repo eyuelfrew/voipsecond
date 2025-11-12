@@ -71,10 +71,22 @@ const QueueForm: React.FC = () => {
 
   // State for Caller Announcements
   const [callerAnnouncementsData, setCallerAnnouncementsData] = useState({
+    // Periodic Announcement
     periodicAnnounce: '',
+    periodicAnnounceFrequency: 0,
+    
+    // Caller Position Announcements
+    announceFrequency: 0,
+    minAnnounceFrequency: 15,
+    announcePosition: 'no',
+    announceHoldtime: 'no',
+    
+    // Queue Position Messages
     queueYouAreNext: 'silence/1',
     queueThereAre: 'silence/1',
     queueCallsWaiting: 'silence/1',
+    
+    // Music on Hold
     musicOnHold: 'default',
   });
 
@@ -198,6 +210,11 @@ const QueueForm: React.FC = () => {
           // Populate callerAnnouncementsData
           setCallerAnnouncementsData({
             periodicAnnounce: fetchedQueue.periodicAnnounce || fetchedQueue.generalSettings?.periodicAnnounce || '',
+            periodicAnnounceFrequency: fetchedQueue.periodicAnnounceFrequency || fetchedQueue.generalSettings?.periodicAnnounceFrequency || 0,
+            announceFrequency: fetchedQueue.announceFrequency || fetchedQueue.generalSettings?.announceFrequency || 0,
+            minAnnounceFrequency: fetchedQueue.minAnnounceFrequency || fetchedQueue.generalSettings?.minAnnounceFrequency || 15,
+            announcePosition: fetchedQueue.announcePosition || fetchedQueue.generalSettings?.announcePosition || 'no',
+            announceHoldtime: fetchedQueue.announceHoldtime || fetchedQueue.generalSettings?.announceHoldtime || 'no',
             queueYouAreNext: fetchedQueue.queueYouAreNext || fetchedQueue.generalSettings?.queueYouAreNext || 'silence/1',
             queueThereAre: fetchedQueue.queueThereAre || fetchedQueue.generalSettings?.queueThereAre || 'silence/1',
             queueCallsWaiting: fetchedQueue.queueCallsWaiting || fetchedQueue.generalSettings?.queueCallsWaiting || 'silence/1',

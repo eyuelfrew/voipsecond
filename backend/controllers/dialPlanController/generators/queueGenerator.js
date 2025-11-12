@@ -37,7 +37,6 @@ const generateQueueDialplan = (allQueues, allRecordings = []) => {
   // Generate queue extension bindings for [from-internal]
   allQueues.forEach(queue => {
     const queueId = queue.queueId;
-    const queueName = queue.name || 'Queue';
 
     // Get join announcement (if configured) and convert to file path
     const joinAnnouncementId = queue.joinAnnouncement || queue.generalSettings?.joinAnnouncement;
@@ -56,7 +55,14 @@ const generateQueueDialplan = (allQueues, allRecordings = []) => {
     const maxWaitTime = queue.timingAgentOptions?.maxWaitTime;
     const hasMaxWait = maxWaitTime && maxWaitTime !== 'Unlimited' && maxWaitTime !== '' && !isNaN(maxWaitTime);
 
-    // Start queue dialplan
+    // Get call recording setting
+    const callRecording = queue.generalSettings?.callRecording || 'dontcare';
+
+    // Get call confirm setting
+    const callConfirm = queue.generalSettings?.callConfirm || 'No';
+    const hasCallConfirm = callConfirm === 'Yes';
+
+    // Start queue dialplan - FreePBX style
     queueBindings += `exten => ${queueId},1,Gosub(macro-user-callerid,s,1())\n`;
     queueBindings += `same => n,Set(__MCQUEUE=\${EXTEN})\n`;
     queueBindings += `same => n,Answer\n`;
@@ -69,6 +75,34 @@ const generateQueueDialplan = (allQueues, allRecordings = []) => {
     if (hasJoinMsg) {
       queueBindings += `same => n,Set(QJOINMSG=${joinAnnouncement})\n`;
     }
+
+    // Set queue options (t = allow transfer, R = ring instead of MOH for agents)
+    queueBindings += `same => n,Set(QRINGOPTS=R)\n`;
+    queueBindings += `same => n(qoptions),Set(QOPTIONS=t\${QRINGOPTS})\n`;
+
+    // Call recording check
+    queueBindings += `same => n,Gosub(sub-record-check,s,1(q,${queueId},${callRecording}))\n`;
+    queueBindings += `same => n,Set(__SIGNORE=TRUE)\n`;
+
+    // Call confirm handling
+    if (hasCallConfirm) {
+      queueBindings += `same => n,Set(__QC_CONFIRM=1)\n`;
+      queueBindings += `same => n,GotoIf($[$["\${QC_CONFIRM}"="1"]]?QVQANNOUNCE:NOQVQANNOUNCE)\n`;
+      queueBindings += `same => n(QVQANNOUNCE),Set(__FORCE_CONFIRM=\${CHANNEL})\n`;
+      queueBindings += `same => n,Set(SHARED(ANSWER_STATUS)=NOANSWER)\n`;
+      queueBindings += `same => n,Set(__CALLCONFIRMCID=\${CALLERID(number)})\n`;
+      queueBindings += `same => n,Set(__ALT_CONFIRM_MSG=default)\n`;
+      queueBindings += `same => n(NOQVQANNOUNCE),NoOp()\n`;
+    } else {
+      queueBindings += `same => n,Set(__QC_CONFIRM=0)\n`;
+    }
+
+    // Play join message if configured
+    if (hasJoinMsg) {
+      queueBindings += `same => n,ExecIf($["\${QJOINMSG}"!=""]?Playback(\${QJOINMSG}))\n`;
+    }
+
+    queueBindings += `same => n,QueueLog(${queueId},\${UNIQUEID},NONE,DID,\${FROM_DID})\n`;
 
     // Set music on hold
     queueBindings += `same => n,Set(QMOH=${moh})\n`;
@@ -83,26 +117,21 @@ const generateQueueDialplan = (allQueues, allRecordings = []) => {
     queueBindings += `same => n,Set(QUEUENUM=${queueId})\n`;
     queueBindings += `same => n,Set(QUEUEJOINTIME=\${EPOCH})\n`;
 
-    // Play join message if configured and no free agents
-    if (hasJoinMsg) {
-      queueBindings += `same => n,ExecIf($["\${QJOINMSG}"!="" && \${QUEUE_MEMBER(${queueId},free)}<1]?Playback(\${QJOINMSG}))\n`;
-    }
-
-    queueBindings += `same => n,QueueLog(${queueId},\${UNIQUEID},NONE,DID,\${FROM_DID})\n`;
-
-    // Call the queue with options
-    const queueOptions = 't'; // Basic options (allow transfer)
+    // Call the queue with full options
     if (hasMaxWait) {
-      queueBindings += `same => n(qcall),Queue(${queueId},${queueOptions},,,,\${QMAXWAIT})\n`;
+      queueBindings += `same => n(qcall),Queue(${queueId},\${QOPTIONS},,,\${QMAXWAIT})\n`;
     } else {
-      queueBindings += `same => n(qcall),Queue(${queueId},${queueOptions})\n`;
+      queueBindings += `same => n(qcall),Queue(${queueId},\${QOPTIONS})\n`;
     }
 
+    // After queue handling - same structure as working dialplan
     queueBindings += `same => n,Gosub(macro-blkvm-clr,s,1())\n`;
+    queueBindings += `same => n,Gosub(sub-record-cancel,s,1())\n`;
     queueBindings += `same => n,Set(__NODEST=)\n`;
     queueBindings += `same => n,Set(_QUEUE_PRIO=0)\n`;
+    queueBindings += `same => n,Set(QRINGOPTS=)\n`;
 
-    // Fail over destination - play recording and hangup
+    // Post-queue destination - use failover destination for failed/timeout calls
     if (hasFailover) {
       queueBindings += `same => n(gotodest),Playback(${failoverDest})\n`;
       queueBindings += `same => n,Hangup()\n`;
@@ -134,7 +163,7 @@ const generateQueueDialplan = (allQueues, allRecordings = []) => {
     queueContexts += `same => n,ExecIf($["\${MOHCLASS}"!=""]?Set(CHANNEL(musicclass)=\${MOHCLASS}))\n`;
     queueContexts += `same => n,Set(QUEUEJOINTIME=\${EPOCH})\n`;
     queueContexts += `same => n,QueueLog(${queueId},\${UNIQUEID},NONE,DID,\${FROM_DID})\n`;
-    queueContexts += `same => n,Queue(${queueId},t,,,${timeout})\n`;
+    queueContexts += `same => n(qcall),Queue(${queueId},\${QOPTIONS},,,${timeout})\n`;
     queueContexts += `same => n,Gosub(macro-blkvm-clr,s,1())\n`;
     queueContexts += `same => n,Set(__NODEST=)\n`;
     queueContexts += `same => n,Goto(from-did-direct,${failoverExt},1)\n`;

@@ -76,6 +76,10 @@ const createQueue = async (req, res) => {
       // penaltymemberslimit: capacityOptions?.penaltyMembersLimit || 0, // This field is a Number in schema but string in JSON. Defaulting to 0.
       // If 'Honor Penalties' needs specific numeric mapping, adjust here.
       penaltymemberslimit: (capacityOptions?.penaltyMembersLimit === 'Honor Penalties' ? 0 : parseInt(capacityOptions?.penaltyMembersLimit)) || 0,
+      announceFrequency: generalSettings?.announceFrequency || 0,
+      minAnnounceFrequency: generalSettings?.minAnnounceFrequency || 15,
+      announcePosition: (generalSettings?.announcePosition || 'no').toLowerCase(),
+      announceHoldtime: (generalSettings?.announceHoldtime || 'no').toLowerCase(),
       periodicAnnounceFrequency: generalSettings?.periodicAnnounceFrequency || 0,
       periodicAnnounce: generalSettings?.periodicAnnounce || '',
       queueCallsWaiting: generalSettings?.queueCallsWaiting || 'silence/1',
