@@ -11,14 +11,27 @@ const getRecordingPath = (recordingId, allRecordings) => {
     return '';
   }
 
+
   const recording = allRecordings.find(r => r._id.toString() === recordingId.toString());
-  if (recording && recording.audioFiles && recording.audioFiles.length > 0) {
-    // Get the first audio file and remove extension
-    const fileName = recording.audioFiles[0].originalName.replace(/\.[^/.]+$/, '');
-    return `custom/${fileName}`;
+
+  if (recording) {
+
+
+    if (recording.audioFiles && recording.audioFiles.length > 0) {
+      // Get the first audio file and remove extension
+      const originalName = recording.audioFiles[0].originalName;
+      const fileName = originalName.replace(/\.[^/.]+$/, '');
+      const fullPath = `custom/${fileName}`;
+
+      return fullPath;
+    } else {
+      console.log('⚠️ DEBUG - Recording has no audio files');
+    }
+  } else {
+    console.log('❌ DEBUG - Recording not found in allRecordings array');
+    console.log('🔍 DEBUG - Available recording IDs:', allRecordings.map(r => r._id.toString()).join(', '));
   }
 
-  // If not found, return the original value (might already be a path)
   return recordingId;
 };
 
@@ -150,7 +163,7 @@ const generateQueueDialplan = (allQueues, allRecordings = []) => {
     const queueId = queue.queueId;
     const queueName = queue.name || 'Queue';
     const timeout = queue.timeout || 30;
-    const failoverExt = queue.failoverExt || '1003';
+    const failoverExt = queue.failoverExt || '';
 
     queueContexts += `exten => ${queueId},1,NoOp(Processing Custom Queue: ${queueName} - ID: ${queueId})\n`;
     queueContexts += `same => n,Gosub(macro-user-callerid,s,1())\n`;

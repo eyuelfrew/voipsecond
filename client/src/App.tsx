@@ -25,6 +25,7 @@ import AgentList from "./pages/AgentList";
 import LoginPage from "./auth/Login";
 import { useAuth } from "./context/AuthContext";
 import QueueStatistics from "./pages/QueueStatistics";
+import QueueDetails from "./pages/QueueDetails";
 import AgentShifts from "./pages/AgentShifts";
 import { ShiftProvider } from "./context/ShiftContext";
 
@@ -114,6 +115,7 @@ export default function App() {
           <Route path="queues/edit/:id" element={<QueuePage />} />
           <Route path="queue/dev" element={<QueuePage />} />
           <Route path="queue-statistics" element={<QueueStatistics />} />
+          <Route path="queue-details/:queueId" element={<QueueDetails />} />
           
           <Route path="agent-shifts" element={<AgentShifts />} />
         </Route>

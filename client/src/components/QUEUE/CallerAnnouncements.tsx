@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useTheme } from '../../context/ThemeContext';
+import { HelpCircle } from 'lucide-react';
 
 const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
@@ -38,8 +38,27 @@ interface CallerAnnouncementsProps {
   onChange: (field: string, value: string | number) => void;
 }
 
+// Reusable component for form rows with modern theming
+const FormRow: React.FC<{ label: string; tooltip?: string; children: React.ReactNode }> = React.memo(({ label, tooltip, children }) => (
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 py-6 border-b cc-border last:border-b-0">
+    <div className="flex items-center space-x-2">
+      <label className="text-sm font-semibold cc-text-primary">{label}</label>
+      {tooltip && (
+        <div className="group relative">
+          <HelpCircle className="h-4 w-4 cc-text-secondary cursor-help" />
+          <div className="absolute left-0 top-6 w-64 p-3 cc-glass rounded-lg shadow-xl opacity-0 group-hover:opacity-100 cc-transition pointer-events-none z-10">
+            <p className="text-xs cc-text-secondary">{tooltip}</p>
+          </div>
+        </div>
+      )}
+    </div>
+    <div className="lg:col-span-2">
+      {children}
+    </div>
+  </div>
+));
+
 const CallerAnnouncements: React.FC<CallerAnnouncementsProps> = ({ formData, onChange }) => {
-  const { isDarkMode } = useTheme();
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,243 +106,213 @@ const CallerAnnouncements: React.FC<CallerAnnouncementsProps> = ({ formData, onC
     return recordingId;
   };
 
+  // Helper to get recording ID from path (for display)
+  const getRecordingIdFromPath = (filePath: string): string => {
+    if (!filePath || filePath === 'none' || filePath === 'silence/1') {
+      return 'silence/1';
+    }
+    
+    // If it's already an ID (MongoDB ObjectId is 24 chars), return it
+    const isObjectId = filePath.length === 24 && !filePath.includes('/');
+    if (isObjectId) {
+      return filePath;
+    }
+    
+    // If it's a path like "custom/filename", find the matching recording
+    const fileName = filePath.replace('custom/', '');
+    const recording = recordings.find(r => 
+      r.audioFiles && r.audioFiles.some(f => 
+        f.originalName.replace(/\.[^/.]+$/, '') === fileName
+      )
+    );
+    
+    return recording ? recording._id : 'silence/1';
+  };
+
   const handleRecordingChange = (field: string, recordingId: string) => {
     const path = getRecordingPath(recordingId);
     onChange(field, path);
   };
 
-  const inputClass = `w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${isDarkMode
-    ? 'bg-gray-700 border-gray-600 text-white'
-    : 'bg-white border-gray-300 text-gray-900'
-    }`;
-
-  const labelClass = `block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'
-    }`;
-
   return (
-    <div className={`p-6 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg`}>
-      <h3 className={`text-2xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-        Caller Announcements
-      </h3>
+    <div className="space-y-6">
+      <div className="flex items-center space-x-3 mb-8">
+        <div className="w-8 h-8 bg-cc-yellow-400/20 rounded-lg flex items-center justify-center">
+          <span className="text-lg">📢</span>
+        </div>
+        <h2 className="text-2xl font-bold cc-text-accent">Caller Announcements</h2>
+      </div>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-          {error}
+        <div className="mb-4 p-4 cc-glass border border-red-500/20 bg-red-500/5 rounded-xl">
+          <span className="text-red-400">{error}</span>
         </div>
       )}
 
       {loading ? (
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-          <span className={`ml-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cc-yellow-400"></div>
+          <span className="ml-3 cc-text-secondary">
             Loading recordings...
           </span>
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Caller Position Section */}
-          <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-            <h4 className={`font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              📢 Caller Position Announcements
-            </h4>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Announce Frequency */}
-              <div>
-                <label className={labelClass}>
-                  Announce Frequency (seconds)
-                  <span className={`ml-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    (How often to announce position, 0 = disabled)
-                  </span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.announceFrequency || 0}
-                  onChange={(e) => onChange('announceFrequency', parseInt(e.target.value) || 0)}
-                  className={inputClass}
-                  placeholder="0"
-                />
-              </div>
+          {/* Caller Position Announcements */}
+          <FormRow 
+            label="Announce Frequency" 
+            tooltip="How often to announce position to callers (in seconds). Set to 0 to disable."
+          >
+            <input
+              type="number"
+              min="0"
+              value={formData.announceFrequency || 0}
+              onChange={(e) => onChange('announceFrequency', parseInt(e.target.value) || 0)}
+              className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
+              placeholder="0"
+            />
+          </FormRow>
 
-              {/* Minimum Announcement Interval */}
-              <div>
-                <label className={labelClass}>
-                  Minimum Announcement Interval (seconds)
-                  <span className={`ml-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    (Minimum time between announcements)
-                  </span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.minAnnounceFrequency || 15}
-                  onChange={(e) => onChange('minAnnounceFrequency', parseInt(e.target.value) || 15)}
-                  className={inputClass}
-                  placeholder="15"
-                />
-              </div>
+          <FormRow 
+            label="Min Announce Frequency" 
+            tooltip="Minimum time between announcements (in seconds)."
+          >
+            <input
+              type="number"
+              min="0"
+              value={formData.minAnnounceFrequency || 15}
+              onChange={(e) => onChange('minAnnounceFrequency', parseInt(e.target.value) || 15)}
+              className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
+              placeholder="15"
+            />
+          </FormRow>
 
-              {/* Announce Position */}
-              <div>
-                <label className={labelClass}>
-                  Announce Position
-                  <span className={`ml-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    (Tell caller their position in queue)
-                  </span>
-                </label>
-                <select
-                  value={formData.announcePosition || 'no'}
-                  onChange={(e) => onChange('announcePosition', e.target.value)}
-                  className={inputClass}
-                >
-                  <option value="yes">Yes</option>
-                  <option value="no">No</option>
-                </select>
-              </div>
+          <FormRow 
+            label="Announce Position" 
+            tooltip="Tell callers their position in the queue."
+          >
+            <select
+              value={formData.announcePosition || 'no'}
+              onChange={(e) => onChange('announcePosition', e.target.value)}
+              className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
+            >
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </FormRow>
 
-              {/* Announce Hold Time */}
-              <div>
-                <label className={labelClass}>
-                  Announce Hold Time
-                  <span className={`ml-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    (Tell caller estimated wait time)
-                  </span>
-                </label>
-                <select
-                  value={formData.announceHoldtime || 'no'}
-                  onChange={(e) => onChange('announceHoldtime', e.target.value)}
-                  className={inputClass}
-                >
-                  <option value="yes">Yes</option>
-                  <option value="no">No</option>
-                  <option value="once">Once</option>
-                </select>
-              </div>
-            </div>
-          </div>
+          <FormRow 
+            label="Announce Hold Time" 
+            tooltip="Tell callers their estimated wait time."
+          >
+            <select
+              value={formData.announceHoldtime || 'no'}
+              onChange={(e) => onChange('announceHoldtime', e.target.value)}
+              className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
+            >
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+              <option value="once">Once</option>
+            </select>
+          </FormRow>
 
-          {/* Periodic Announcement Section */}
-          <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-            <h4 className={`font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              🔁 Periodic Announcement
-            </h4>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Periodic Announcement Recording */}
-              <div>
-                <label className={labelClass}>
-                  Periodic Announcement Recording
-                  <span className={`ml-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    (Played periodically to waiting callers)
-                  </span>
-                </label>
-                <select
-                  value={formData.periodicAnnounce || 'none'}
-                  onChange={(e) => handleRecordingChange('periodicAnnounce', e.target.value)}
-                  className={inputClass}
-                >
-                  <option value="none">None</option>
-                  {recordings.map((recording) => (
-                    <option key={recording._id} value={recording._id}>
-                      {recording.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          {/* Periodic Announcement */}
+          <FormRow 
+            label="Periodic Announcement" 
+            tooltip="Recording played periodically to waiting callers."
+          >
+            <select
+              value={getRecordingIdFromPath(formData.periodicAnnounce || 'silence/1')}
+              onChange={(e) => handleRecordingChange('periodicAnnounce', e.target.value)}
+              className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
+            >
+              <option value="silence/1">None</option>
+              {recordings.map((recording) => (
+                <option key={recording._id} value={recording._id}>
+                  {recording.name}
+                </option>
+              ))}
+            </select>
+          </FormRow>
 
-              {/* Periodic Announcement Frequency */}
-              <div>
-                <label className={labelClass}>
-                  Periodic Announcement Frequency (seconds)
-                  <span className={`ml-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    (How often to play the announcement, 0 = disabled)
-                  </span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.periodicAnnounceFrequency || 0}
-                  onChange={(e) => onChange('periodicAnnounceFrequency', parseInt(e.target.value) || 0)}
-                  className={inputClass}
-                  placeholder="0"
-                />
-              </div>
-            </div>
-          </div>
+          <FormRow 
+            label="Periodic Frequency" 
+            tooltip="How often to play the periodic announcement (in seconds). Set to 0 to disable."
+          >
+            <input
+              type="number"
+              min="0"
+              value={formData.periodicAnnounceFrequency || 0}
+              onChange={(e) => onChange('periodicAnnounceFrequency', parseInt(e.target.value) || 0)}
+              className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
+              placeholder="0"
+            />
+          </FormRow>
 
-          {/* Queue Position Announcements */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* You Are Next */}
-            <div>
-              <label className={labelClass}>
-                "You Are Next" Announcement
-              </label>
-              <select
-                value={formData.queueYouAreNext || 'silence/1'}
-                onChange={(e) => handleRecordingChange('queueYouAreNext', e.target.value)}
-                className={inputClass}
-              >
-                <option value="silence/1">Default (Silence)</option>
-                {recordings.map((recording) => (
-                  <option key={recording._id} value={recording._id}>
-                    {recording.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+          {/* Queue Position Messages */}
+          <FormRow 
+            label="'You Are Next' Message" 
+            tooltip="Custom announcement when caller is next in queue."
+          >
+            <select
+              value={getRecordingIdFromPath(formData.queueYouAreNext || 'silence/1')}
+              onChange={(e) => handleRecordingChange('queueYouAreNext', e.target.value)}
+              className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
+            >
+              <option value="silence/1">Default (Silence)</option>
+              {recordings.map((recording) => (
+                <option key={recording._id} value={recording._id}>
+                  {recording.name}
+                </option>
+              ))}
+            </select>
+          </FormRow>
 
-            {/* There Are */}
-            <div>
-              <label className={labelClass}>
-                "There Are" Announcement
-              </label>
-              <select
-                value={formData.queueThereAre || 'silence/1'}
-                onChange={(e) => handleRecordingChange('queueThereAre', e.target.value)}
-                className={inputClass}
-              >
-                <option value="silence/1">Default (Silence)</option>
-                {recordings.map((recording) => (
-                  <option key={recording._id} value={recording._id}>
-                    {recording.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <FormRow 
+            label="'There Are' Message" 
+            tooltip="Custom announcement for 'there are' phrase."
+          >
+            <select
+              value={getRecordingIdFromPath(formData.queueThereAre || 'silence/1')}
+              onChange={(e) => handleRecordingChange('queueThereAre', e.target.value)}
+              className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
+            >
+              <option value="silence/1">Default (Silence)</option>
+              {recordings.map((recording) => (
+                <option key={recording._id} value={recording._id}>
+                  {recording.name}
+                </option>
+              ))}
+            </select>
+          </FormRow>
 
-            {/* Calls Waiting */}
-            <div>
-              <label className={labelClass}>
-                "Calls Waiting" Announcement
-              </label>
-              <select
-                value={formData.queueCallsWaiting || 'silence/1'}
-                onChange={(e) => handleRecordingChange('queueCallsWaiting', e.target.value)}
-                className={inputClass}
-              >
-                <option value="silence/1">Default (Silence)</option>
-                {recordings.map((recording) => (
-                  <option key={recording._id} value={recording._id}>
-                    {recording.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          <FormRow 
+            label="'Calls Waiting' Message" 
+            tooltip="Custom announcement for 'calls waiting' phrase."
+          >
+            <select
+              value={getRecordingIdFromPath(formData.queueCallsWaiting || 'silence/1')}
+              onChange={(e) => handleRecordingChange('queueCallsWaiting', e.target.value)}
+              className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
+            >
+              <option value="silence/1">Default (Silence)</option>
+              {recordings.map((recording) => (
+                <option key={recording._id} value={recording._id}>
+                  {recording.name}
+                </option>
+              ))}
+            </select>
+          </FormRow>
 
           {/* Music on Hold */}
-          <div>
-            <label className={labelClass}>
-              Music on Hold
-              <span className={`ml-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                (Music played while callers are waiting)
-              </span>
-            </label>
+          <FormRow 
+            label="Music on Hold" 
+            tooltip="Music played while callers are waiting in queue."
+          >
             <select
               value={formData.musicOnHold || 'default'}
               onChange={(e) => onChange('musicOnHold', e.target.value)}
-              className={inputClass}
+              className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
             >
               <option value="default">Default</option>
               <option value="none">None (Silence)</option>
@@ -333,20 +322,7 @@ const CallerAnnouncements: React.FC<CallerAnnouncementsProps> = ({ formData, onC
                 </option>
               ))}
             </select>
-          </div>
-
-          {/* Info Section */}
-          <div className={`mt-6 p-4 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-blue-50'}`}>
-            <h4 className={`font-semibold mb-2 ${isDarkMode ? 'text-blue-300' : 'text-blue-900'}`}>
-              ℹ️ About Caller Announcements
-            </h4>
-            <ul className={`text-sm space-y-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              <li>• <strong>Periodic Announcement:</strong> Played at regular intervals to waiting callers</li>
-              <li>• <strong>Position Announcements:</strong> Tell callers their position in the queue</li>
-              <li>• <strong>Music on Hold:</strong> Background music while waiting</li>
-              <li>• Recordings are stored in: <code className="bg-gray-200 dark:bg-gray-600 px-1 rounded">/var/lib/asterisk/sounds/custom/</code></li>
-            </ul>
-          </div>
+          </FormRow>
         </div>
       )}
     </div>

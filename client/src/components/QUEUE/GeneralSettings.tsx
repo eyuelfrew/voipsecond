@@ -304,6 +304,63 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = React.memo((
     fetchRecordings();
   }, []);
 
+  // Helper function to convert recording ID to file path
+  const getRecordingPath = (recordingId: string): string => {
+    if (!recordingId || recordingId === 'None') {
+      return 'None';
+    }
+    
+    const recording = recordings.find(r => r._id === recordingId);
+    if (recording && recording.audioFiles && recording.audioFiles.length > 0) {
+      // Get the first audio file and remove extension
+      const fileName = recording.audioFiles[0].originalName.replace(/\.[^/.]+$/, '');
+      return `custom/${fileName}`;
+    }
+    
+    // If not found or already a path, return as is
+    return recordingId;
+  };
+
+  // Helper function to get recording ID from file path (for display)
+  const getRecordingIdFromPath = (filePath: string): string => {
+    if (!filePath || filePath === 'None') {
+      return 'None';
+    }
+    
+    // If it's already an ID (MongoDB ObjectId is 24 chars), return it
+    const isObjectId = /^[a-f\d]{24}$/i.test(filePath);
+    if (isObjectId) {
+      return filePath;
+    }
+    
+    // If it's a path like "custom/filename", find the matching recording
+    const fileName = filePath.replace('custom/', '').replace(/\.[^/.]+$/, '');
+    const recording = recordings.find(r => 
+      r.audioFiles && r.audioFiles.some(f => {
+        const audioFileName = f.originalName.replace(/\.[^/.]+$/, '');
+        return audioFileName === fileName;
+      })
+    );
+    
+    return recording ? recording._id : 'None';
+  };
+
+  // Handle recording selection for join announcement and failover
+  const handleRecordingChange = (fieldName: string, recordingId: string) => {
+    const filePath = getRecordingPath(recordingId);
+    console.log(`🔍 Recording selected: ${recordingId} → ${filePath}`);
+    
+    // Create a synthetic event to pass to handleChange
+    const syntheticEvent = {
+      target: {
+        name: fieldName,
+        value: filePath
+      }
+    } as React.ChangeEvent<HTMLSelectElement>;
+    
+    handleChange(syntheticEvent);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-3 mb-8">
@@ -506,8 +563,8 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = React.memo((
         ) : (
           <select
             name="joinAnnouncement"
-            value={formData.joinAnnouncement}
-            onChange={handleChange}
+            value={getRecordingIdFromPath(formData.joinAnnouncement || 'None')}
+            onChange={(e) => handleRecordingChange('joinAnnouncement', e.target.value)}
             className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
           >
             <option value="None">None</option>
@@ -546,8 +603,8 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = React.memo((
         ) : (
           <select
             name="failOverDestination"
-            value={formData.failOverDestination}
-            onChange={handleChange}
+            value={getRecordingIdFromPath(formData.failOverDestination || 'None')}
+            onChange={(e) => handleRecordingChange('failOverDestination', e.target.value)}
             className="w-full px-4 py-3 cc-glass rounded-xl cc-text-primary focus:outline-none focus:ring-2 focus:ring-cc-yellow-400/50 focus:border-cc-yellow-400 cc-transition"
           >
             <option value="None">None</option>

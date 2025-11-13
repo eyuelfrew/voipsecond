@@ -2,11 +2,10 @@ import { useEffect, useState } from "react";
 import QueueDashboard from "../components/QueueMeterics";
 import { UseSocket } from "../context/SocketContext";
 import QueueMembersDashboard from "../components/QueueMembersStatus";
-import CallersTracking from "./CallersTracking";
 import CallStatus from "../components/CallStatus";
 import { useTheme } from "../context/ThemeContext";
 import { Phone, Users, Clock, TrendingUp, Headphones } from "lucide-react";
-import ShiftTracker from "../components/ShiftTracker";
+
 
 
 interface ActiveCall {
@@ -21,7 +20,7 @@ interface ActiveCall {
 }
 
 
-export default function LiveCalls() {
+export default function Dashboard() {
   const { socket } = UseSocket();
   const { isDarkMode } = useTheme();
   const [activeCalls, setActiveCalls] = useState<ActiveCall[]>([]);
@@ -126,12 +125,7 @@ export default function LiveCalls() {
 
       {/* Main Dashboard Content */}
       <div className="relative z-10 flex flex-col space-y-6 px-6 pb-6">
-        <ShiftTracker />
-
-        <div className="cc-glass rounded-xl p-6">
-          <CallersTracking />
-        </div>
-
+        
         <div className="cc-glass rounded-xl p-6">
           <CallStatus activeCalls={activeCalls} />
         </div>
