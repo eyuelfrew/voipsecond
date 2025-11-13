@@ -3,8 +3,9 @@ import QueueDashboard from "../components/QueueMeterics";
 import { UseSocket } from "../context/SocketContext";
 import QueueMembersDashboard from "../components/QueueMembersStatus";
 import CallStatus from "../components/CallStatus";
+import QueueCallerTable from "./CallersTracking";
 import { useTheme } from "../context/ThemeContext";
-import { Phone, Users, Clock, TrendingUp, Headphones } from "lucide-react";
+import { Headphones } from "lucide-react";
 
 
 
@@ -38,11 +39,11 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-full cc-bg-background cc-transition"
-         style={{ 
-           background: isDarkMode 
-             ? 'linear-gradient(135deg, #000000 0%, #1F2937 25%, #111827 50%, #1F2937 75%, #000000 100%)'
-             : 'linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 25%, #F3F4F6 50%, #F9FAFB 75%, #FFFFFF 100%)'
-         }}>
+      style={{
+        background: isDarkMode
+          ? 'linear-gradient(135deg, #000000 0%, #1F2937 25%, #111827 50%, #1F2937 75%, #000000 100%)'
+          : 'linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 25%, #F3F4F6 50%, #F9FAFB 75%, #FFFFFF 100%)'
+      }}>
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Floating Yellow Orbs */}
@@ -69,66 +70,19 @@ export default function Dashboard() {
               <p className="cc-text-secondary animate-fade-in-delay-300">Real-time monitoring and analytics</p>
             </div>
           </div>
-
-          {/* Quick Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="cc-glass cc-glass-hover rounded-xl p-6 cc-transition group">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="cc-text-secondary text-sm font-medium">Active Calls</p>
-                  <p className="text-2xl font-bold cc-text-accent group-hover:opacity-80 cc-transition">{activeCalls.length}</p>
-                </div>
-                <div className="w-12 h-12 bg-yellow-400/10 rounded-lg flex items-center justify-center group-hover:bg-yellow-400/20 cc-transition">
-                  <Phone className="h-6 w-6 cc-text-accent" />
-                </div>
-              </div>
-            </div>
-
-            <div className="cc-glass cc-glass-hover rounded-xl p-6 cc-transition group">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="cc-text-secondary text-sm font-medium">Agents Online</p>
-                  <p className="text-2xl font-bold cc-text-accent group-hover:opacity-80 cc-transition">24</p>
-                </div>
-                <div className="w-12 h-12 bg-yellow-400/10 rounded-lg flex items-center justify-center group-hover:bg-yellow-400/20 cc-transition">
-                  <Users className="h-6 w-6 cc-text-accent" />
-                </div>
-              </div>
-            </div>
-
-            <div className="cc-glass cc-glass-hover rounded-xl p-6 cc-transition group">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="cc-text-secondary text-sm font-medium">Avg Wait Time</p>
-                  <p className="text-2xl font-bold cc-text-accent group-hover:opacity-80 cc-transition">2:34</p>
-                </div>
-                <div className="w-12 h-12 bg-yellow-400/10 rounded-lg flex items-center justify-center group-hover:bg-yellow-400/20 cc-transition">
-                  <Clock className="h-6 w-6 cc-text-accent" />
-                </div>
-              </div>
-            </div>
-
-            <div className="cc-glass cc-glass-hover rounded-xl p-6 cc-transition group">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="cc-text-secondary text-sm font-medium">Success Rate</p>
-                  <p className="text-2xl font-bold cc-text-accent group-hover:opacity-80 cc-transition">98.5%</p>
-                </div>
-                <div className="w-12 h-12 bg-yellow-400/10 rounded-lg flex items-center justify-center group-hover:bg-yellow-400/20 cc-transition">
-                  <TrendingUp className="h-6 w-6 cc-text-accent" />
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
       {/* Main Dashboard Content */}
       <div className="relative z-10 flex flex-col space-y-6 px-6 pb-6">
-        
+        <div className="cc-glass rounded-xl p-6">
+          <QueueCallerTable />
+        </div>
         <div className="cc-glass rounded-xl p-6">
           <CallStatus activeCalls={activeCalls} />
         </div>
+
+
 
         <div className="cc-glass rounded-xl p-6">
           <QueueDashboard />

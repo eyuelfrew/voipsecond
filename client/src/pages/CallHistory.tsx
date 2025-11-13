@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Search, RotateCcw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Play, Pause, SkipBack, SkipForward, Download, Copy, Headphones } from 'lucide-react';
 import axios from 'axios';
 import baseUrl from '../util/baseUrl';
+import { useTheme } from '../context/ThemeContext';
 
 type RecordItem = {
     id: string;
@@ -32,6 +33,7 @@ type Filters = { from: string; to: string; callerId: string; callee: string; onl
 type AudioState = { current: number; duration: number; playing: boolean; error: string };
 
 const CallHistory: React.FC = () => {
+    const { isDarkMode } = useTheme();
     const [items, setItems] = useState<RecordItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -202,18 +204,34 @@ const CallHistory: React.FC = () => {
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
     return (
-        <div className="p-4 sm:p-6 max-w-7xl mx-auto">
-            <header className="mb-3 sm:mb-4">
-                <div className="flex items-start justify-between gap-4">
+        <div className="min-h-full cc-bg-background cc-transition"
+             style={{ 
+               background: isDarkMode 
+                 ? 'linear-gradient(135deg, #000000 0%, #1F2937 25%, #111827 50%, #1F2937 75%, #000000 100%)'
+                 : 'linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 25%, #F3F4F6 50%, #F9FAFB 75%, #FFFFFF 100%)'
+             }}>
+            {/* Animated Background Elements */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-20 right-20 w-24 h-24 bg-cc-yellow-400 rounded-full opacity-10 animate-pulse-slowest"></div>
+                <div className="absolute bottom-32 left-20 w-32 h-32 bg-cc-yellow-300 rounded-full opacity-5 animate-bounce"></div>
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,0,0.02)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
+            </div>
+
+            <div className="relative z-10 p-4 sm:p-6 max-w-7xl mx-auto">
+            <header className="mb-6">
+                <div className="flex items-center space-x-4 mb-4">
+                    <div className="w-12 h-12 bg-cc-yellow-400 rounded-xl flex items-center justify-center animate-pulse shadow-lg">
+                        <Headphones className="h-6 w-6 text-black" />
+                    </div>
                     <div>
-                        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Call History</h1>
-                        <p className="text-sm text-gray-600 mt-1">Browse and listen to call recordings. Use filters, sort, and pagination.</p>
+                        <h1 className="text-3xl font-bold cc-text-accent animate-fade-in">Call History</h1>
+                        <p className="cc-text-secondary animate-fade-in-delay-300">Browse and listen to call recordings with advanced filters</p>
                     </div>
                 </div>
             </header>
 
             {/* Filters Bar */}
-            <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur border border-gray-200 p-4 sm:p-5 rounded-xl shadow-sm mb-4">
+            <form onSubmit={handleSubmit} className="cc-glass border cc-border p-4 sm:p-5 rounded-xl shadow-xl mb-6">
                 <div className="flex flex-wrap items-end gap-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 flex-1">
                         <div>
@@ -249,10 +267,10 @@ const CallHistory: React.FC = () => {
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        <button type="submit" className="inline-flex items-center gap-2 bg-indigo-600 text-white px-3.5 py-2 rounded-lg shadow hover:bg-indigo-700 transition">
+                        <button type="submit" className="inline-flex items-center gap-2 bg-gradient-to-r from-cc-yellow-400 to-cc-yellow-500 hover:from-cc-yellow-500 hover:to-cc-yellow-600 text-black font-semibold px-4 py-2 rounded-xl shadow-lg cc-transition transform hover:scale-105">
                             <Search className="w-4 h-4" /> <span>Apply</span>
                         </button>
-                        <button type="button" onClick={resetFilters} className="inline-flex items-center gap-2 bg-white text-gray-700 px-3.5 py-2 rounded-lg border border-gray-300 hover:bg-gray-50">
+                        <button type="button" onClick={resetFilters} className="inline-flex items-center gap-2 cc-glass cc-text-primary px-4 py-2 rounded-xl hover:bg-cc-yellow-400/10 cc-transition">
                             <RotateCcw className="w-4 h-4" /> Reset
                         </button>
                         <div className="hidden sm:flex items-center gap-1 ml-2">
@@ -267,12 +285,12 @@ const CallHistory: React.FC = () => {
             </form>
 
             {/* Summary Bar */}
-            <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                <div>Matches: <span className="font-medium">{total}</span></div>
-                <div className="hidden sm:block">Sorted by <span className="font-medium">{sortBy}</span> <span className="uppercase">{sortOrder}</span></div>
+            <div className="flex items-center justify-between text-sm cc-text-secondary mb-4">
+                <div>Matches: <span className="font-medium cc-text-accent">{total}</span></div>
+                <div className="hidden sm:block">Sorted by <span className="font-medium cc-text-accent">{sortBy}</span> <span className="uppercase">{sortOrder}</span></div>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-x-auto">
+            <div className="cc-glass rounded-xl border cc-border shadow-xl overflow-x-auto">
                 {loading ? (
                     <div className="p-8">
                         <div className="animate-pulse space-y-3">
@@ -285,10 +303,10 @@ const CallHistory: React.FC = () => {
                     <div className="p-8 text-center text-rose-600">{error}</div>
                 ) : (
                     <table className="min-w-full">
-                        <thead className="bg-slate-50 sticky top-0 z-10">
+                        <thead className="bg-cc-yellow-400/10 sticky top-0 z-10">
                             <tr>
                                 {[{ k: 'callerId', t: 'Caller ID' }, { k: 'callerName', t: 'Caller Name' }, { k: 'callee', t: 'Callee' }, { k: 'status', t: 'Status' }, { k: 'startTime', t: 'Start' }, { k: 'endTime', t: 'End' }, { k: 'duration', t: 'Duration' }, { k: 'rec', t: 'Recording' }].map((col) => (
-                                    <th key={col.k} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 tracking-wider">
+                                    <th key={col.k} className="px-4 py-3 text-left text-xs font-bold cc-text-accent tracking-wider uppercase">
                                         <button
                                             type="button"
                                             className="flex items-center gap-1 hover:text-gray-900"
@@ -309,7 +327,7 @@ const CallHistory: React.FC = () => {
                                 ))}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y cc-border">
                             {items.length === 0 ? (
                                 <tr>
                                     <td colSpan={8} className="py-10 text-center text-gray-500">
@@ -322,9 +340,9 @@ const CallHistory: React.FC = () => {
                                     </td>
                                 </tr>
                             ) : (
-                                items.map((r, idx) => (
-                                    <tr key={r.id} className={idx % 2 === 0 ? 'bg-white hover:bg-slate-50' : 'bg-slate-50/50 hover:bg-slate-100'}>
-                                        <td className="px-4 py-3 text-sm text-gray-900">
+                                items.map((r, _) => (
+                                    <tr key={r.id} className="hover:bg-cc-yellow-400/5 cc-transition">
+                                        <td className="px-4 py-3 text-sm cc-text-primary">
                                             <div className="flex items-center gap-2">
                                                 <span title={r.callerId || ''}>{r.callerId || '-'}</span>
                                                 {r.callerId && (
@@ -442,6 +460,7 @@ const CallHistory: React.FC = () => {
                     </div>
                 </div>
             )}
+            </div>
         </div>
     );
 };

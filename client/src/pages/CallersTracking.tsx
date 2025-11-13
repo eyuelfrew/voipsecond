@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { UseSocket } from "../context/SocketContext";
 import { Clock, PhoneIncoming, Users, Timer } from 'lucide-react';
-import { useTheme } from "../context/ThemeContext";
 
 type Caller = {
   id: string;
@@ -16,7 +15,6 @@ type QueueNameMap = {
 };
 
 const QueueCallerTable: React.FC = () => {
-  const { isDarkMode } = useTheme();
   const [callers, setCallers] = useState<Caller[]>([]);
   const [queueNameMap, setQueueNameMap] = useState<QueueNameMap>({});
   const [now, setNow] = useState(Date.now());
@@ -132,20 +130,18 @@ const QueueCallerTable: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-5">
-                      <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold cc-transition ${
-                        isLongWait 
-                          ? 'bg-red-500/20 text-red-400 animate-pulse' 
-                          : waitSeconds > 60 
+                      <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold cc-transition ${isLongWait
+                          ? 'bg-red-500/20 text-red-400 animate-pulse'
+                          : waitSeconds > 60
                             ? 'bg-yellow-500/20 text-yellow-400'
                             : 'bg-green-500/20 text-green-400'
-                      }`}>
-                        <div className={`w-2 h-2 rounded-full ${
-                          isLongWait 
-                            ? 'bg-red-400 animate-pulse' 
-                            : waitSeconds > 60 
+                        }`}>
+                        <div className={`w-2 h-2 rounded-full ${isLongWait
+                            ? 'bg-red-400 animate-pulse'
+                            : waitSeconds > 60
                               ? 'bg-yellow-400'
                               : 'bg-green-400 animate-pulse'
-                        }`}></div>
+                          }`}></div>
                         {isLongWait ? 'Long Wait' : waitSeconds > 60 ? 'Waiting' : 'Recent'}
                       </span>
                     </td>

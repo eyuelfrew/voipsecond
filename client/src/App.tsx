@@ -4,7 +4,6 @@ import LiveCalls from "./pages/Dashboard";
 import HomePage from "./pages/HomePage";
 import Sidebar from "./components/SideBar";
 import Agents from "./pages/Agents";
-import Report from "./pages/Report";
 import CallHistory from "./pages/CallHistory";
 import { io } from "socket.io-client";
 import { useEffect } from "react";
@@ -88,7 +87,6 @@ export default function App() {
         {/* 2. All other routes that share the TopNav and Sidebar layout */}
         <Route path="/" element={<MainLayout />}>
           <Route index element={<HomePage />} />
-          <Route path="report" element={<Report />} />
           <Route path="dashboard" element={<LiveCalls />} />
           <Route path="ivr-menus" element={<IVRMenus />} />
           <Route path="ivr-menu/create" element={<IVRMenuForm />} />

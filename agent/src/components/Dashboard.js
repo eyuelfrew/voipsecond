@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { Phone, Bell, User, RefreshCw } from 'lucide-react';
 import { useSIP } from './SIPProvider';
-import CallPopup from './CallPopup';
+
 import useStore from '../store/store';
 
 import axios from 'axios';
