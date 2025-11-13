@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Search, RotateCcw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Play, Pause, SkipBack, SkipForward, Download, Copy, Headphones } from 'lucide-react';
+import { Search, Play, Download, Copy, Calendar, ChevronDown, ChevronLeft, ChevronUp, Clock, Filter, Headphones, Pause, PhoneIncoming, PhoneOff, PhoneOutgoing, SkipBack, SkipForward, Trash2, MoreVertical, CheckSquare, Square, FileJson, BarChart3 } from 'lucide-react';
 import axios from 'axios';
 import baseUrl from '../util/baseUrl';
-import { useTheme } from '../context/ThemeContext';
 
 type RecordItem = {
     id: string;
@@ -18,22 +17,10 @@ type RecordItem = {
     hasRecording: boolean;
 };
 
-const statusBadgeClasses: Record<string, string> = {
-    answered: 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200',
-    missed: 'bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-200',
-    ended: 'bg-slate-50 text-slate-700 ring-1 ring-inset ring-slate-200',
-    ringing: 'bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200',
-    busy: 'bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-200',
-    unanswered: 'bg-yellow-50 text-yellow-700 ring-1 ring-inset ring-yellow-200',
-    failed: 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-200',
-    on_hold: 'bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-200',
-};
-
 type Filters = { from: string; to: string; callerId: string; callee: string; onlyWithRecordings: '' | 'true' | 'false' };
 type AudioState = { current: number; duration: number; playing: boolean; error: string };
 
 const CallHistory: React.FC = () => {
-    const { isDarkMode } = useTheme();
     const [items, setItems] = useState<RecordItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -43,11 +30,12 @@ const CallHistory: React.FC = () => {
     const [q, setQ] = useState('');
     const [sortBy, setSortBy] = useState<'startTime' | 'duration' | 'status' | 'callerId' | 'callee'>('startTime');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-    const [expandedAudioId, setExpandedAudioId] = useState<string | null>(null);
     const [listenItem, setListenItem] = useState<RecordItem | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [audioState, setAudioState] = useState<AudioState>({ current: 0, duration: 0, playing: false, error: '' });
     const [filters, setFilters] = useState<Filters>({ from: '', to: '', callerId: '', callee: '', onlyWithRecordings: '' });
+    const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+    const [deleting, setDeleting] = useState(false);
 
     // Persist pageSize preference
     useEffect(() => {
@@ -137,7 +125,6 @@ const CallHistory: React.FC = () => {
         if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
         return `${Math.floor(diff / 86400)}d ago`;
     };
-    const statusToBadge = (status?: string) => (status ? statusBadgeClasses[status] || 'bg-slate-50 text-slate-700 ring-1 ring-inset ring-slate-200' : 'bg-slate-50 text-slate-700 ring-1 ring-inset ring-slate-200');
 
     const streamUrl = (id: string) => `${baseUrl}/api/report/recordings/${id}/stream`;
 
@@ -201,266 +188,418 @@ const CallHistory: React.FC = () => {
         catch { setError('Failed to copy link'); }
     };
 
+    // Bulk action handlers
+    const toggleSelectItem = (id: string) => {
+        const newSelected = new Set(selectedItems);
+        if (newSelected.has(id)) {
+            newSelected.delete(id);
+        } else {
+            newSelected.add(id);
+        }
+        setSelectedItems(newSelected);
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedItems.size === items.length) {
+            setSelectedItems(new Set());
+        } else {
+            setSelectedItems(new Set(items.map(item => item.id)));
+        }
+    };
+
+    const handleDeleteItem = async (item: RecordItem) => {
+        if (!window.confirm(`Delete recording for ${item.callerId || 'Unknown'} → ${item.callee || 'Unknown'}?`)) return;
+        try {
+            await axios.delete(`${baseUrl}/api/report/recordings/${item.id}`);
+            setItems(items.filter(i => i.id !== item.id));
+            setTotal(Math.max(0, total - 1));
+        } catch (e) {
+            setError('Failed to delete recording');
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedItems.size === 0) {
+            setError('No items selected');
+            return;
+        }
+        if (!window.confirm(`Delete ${selectedItems.size} recording(s)?`)) return;
+        
+        setDeleting(true);
+        try {
+            await Promise.all(Array.from(selectedItems).map(id => 
+                axios.delete(`${baseUrl}/api/report/recordings/${id}`)
+            ));
+            setItems(items.filter(i => !selectedItems.has(i.id)));
+            setTotal(Math.max(0, total - selectedItems.size));
+            setSelectedItems(new Set());
+            setError('');
+        } catch (e) {
+            setError('Failed to delete some recordings');
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    const handleExportJSON = () => {
+        const dataToExport = selectedItems.size > 0 
+            ? items.filter(i => selectedItems.has(i.id))
+            : items;
+        
+        const json = JSON.stringify(dataToExport, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `call-history-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    };
+
+    const handleExportCSV = () => {
+        const dataToExport = selectedItems.size > 0 
+            ? items.filter(i => selectedItems.has(i.id))
+            : items;
+        
+        const headers = ['ID', 'Caller ID', 'Caller Name', 'Callee', 'Callee Name', 'Start Time', 'End Time', 'Duration', 'Status', 'Has Recording'];
+        const rows = dataToExport.map(item => [
+            item.id,
+            item.callerId || '',
+            item.callerName || '',
+            item.callee || '',
+            item.calleeName || '',
+            item.startTime || '',
+            item.endTime || '',
+            item.duration || '',
+            item.status || '',
+            item.hasRecording ? 'Yes' : 'No'
+        ]);
+        
+        const csv = [headers, ...rows].map(row => 
+            row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+        ).join('\n');
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `call-history-${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    };
+
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
-    return (
-        <div className="min-h-full cc-bg-background cc-transition"
-             style={{ 
-               background: isDarkMode 
-                 ? 'linear-gradient(135deg, #000000 0%, #1F2937 25%, #111827 50%, #1F2937 75%, #000000 100%)'
-                 : 'linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 25%, #F3F4F6 50%, #F9FAFB 75%, #FFFFFF 100%)'
-             }}>
-            {/* Animated Background Elements */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-20 right-20 w-24 h-24 bg-cc-yellow-400 rounded-full opacity-10 animate-pulse-slowest"></div>
-                <div className="absolute bottom-32 left-20 w-32 h-32 bg-cc-yellow-300 rounded-full opacity-5 animate-bounce"></div>
-                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,0,0.02)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
-            </div>
+    // Delete all call logs
+    const handleDeleteAll = async () => {
+        if (!window.confirm('⚠️ Are you sure you want to delete ALL call history? This action cannot be undone!')) {
+            return;
+        }
+        
+        setDeleting(true);
+        setError('');
+        
+        try {
+            const response = await axios.delete(`${baseUrl}/api/report/calls/all`);
+            if (response.data.success) {
+                console.log(`✅ Deleted ${response.data.deletedCount} call logs`);
+                setItems([]);
+                setTotal(0);
+                setPage(1);
+                // Show success message
+                alert(`Successfully deleted ${response.data.deletedCount} call logs`);
+            }
+        } catch (err: any) {
+            console.error('❌ Error deleting call logs:', err);
+            setError(err.response?.data?.error || 'Failed to delete call logs');
+        } finally {
+            setDeleting(false);
+        }
+    };
 
-            <div className="relative z-10 p-4 sm:p-6 max-w-7xl mx-auto">
-            <header className="mb-6">
-                <div className="flex items-center space-x-4 mb-4">
-                    <div className="w-12 h-12 bg-cc-yellow-400 rounded-xl flex items-center justify-center animate-pulse shadow-lg">
-                        <Headphones className="h-6 w-6 text-black" />
-                    </div>
-                    <div>
-                        <h1 className="text-3xl font-bold cc-text-accent animate-fade-in">Call History</h1>
-                        <p className="cc-text-secondary animate-fade-in-delay-300">Browse and listen to call recordings with advanced filters</p>
-                    </div>
+    return (
+        <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+            <div style={{ marginBottom: '20px' }}>
+                <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '10px' }}>Call History</h1>
+                <p style={{ color: '#666', marginBottom: '15px' }}>Total: {total} calls {selectedItems.size > 0 && `(${selectedItems.size} selected)`}</p>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <button 
+                        onClick={resetFilters}
+                        style={{ padding: '8px 16px', cursor: 'pointer', border: '1px solid #ccc', borderRadius: '4px', backgroundColor: '#f5f5f5' }}
+                    >
+                        Reset Filters
+                    </button>
+                    <button 
+                        onClick={handleDeleteAll}
+                        disabled={deleting || total === 0}
+                        style={{ 
+                            padding: '8px 16px', 
+                            cursor: (deleting || total === 0) ? 'not-allowed' : 'pointer', 
+                            border: '1px solid #dc3545', 
+                            borderRadius: '4px', 
+                            backgroundColor: '#dc3545', 
+                            color: 'white', 
+                            opacity: (deleting || total === 0) ? 0.6 : 1 
+                        }}
+                        title={total === 0 ? 'No calls to delete' : 'Delete all call history'}
+                    >
+                        <Trash2 style={{ display: 'inline', marginRight: '5px', width: '16px', height: '16px' }} />
+                        {deleting ? 'Deleting...' : `Delete All (${total})`}
+                    </button>
+                    {selectedItems.size > 0 && (
+                        <>
+                            <button 
+                                onClick={handleBulkDelete}
+                                disabled={deleting}
+                                style={{ padding: '8px 16px', cursor: deleting ? 'not-allowed' : 'pointer', border: '1px solid #dc3545', borderRadius: '4px', backgroundColor: '#dc3545', color: 'white', opacity: deleting ? 0.6 : 1 }}
+                            >
+                                <Trash2 style={{ display: 'inline', marginRight: '5px', width: '16px', height: '16px' }} />
+                                Delete Selected ({selectedItems.size})
+                            </button>
+                            <button 
+                                onClick={handleExportJSON}
+                                style={{ padding: '8px 16px', cursor: 'pointer', border: '1px solid #007bff', borderRadius: '4px', backgroundColor: '#007bff', color: 'white' }}
+                            >
+                                <FileJson style={{ display: 'inline', marginRight: '5px', width: '16px', height: '16px' }} />
+                                Export JSON
+                            </button>
+                            <button 
+                                onClick={handleExportCSV}
+                                style={{ padding: '8px 16px', cursor: 'pointer', border: '1px solid #28a745', borderRadius: '4px', backgroundColor: '#28a745', color: 'white' }}
+                            >
+                                <BarChart3 style={{ display: 'inline', marginRight: '5px', width: '16px', height: '16px' }} />
+                                Export CSV
+                            </button>
+                        </>
+                    )}
                 </div>
-            </header>
+            </div>
 
             {/* Filters Bar */}
-            <form onSubmit={handleSubmit} className="cc-glass border cc-border p-4 sm:p-5 rounded-xl shadow-xl mb-6">
-                <div className="flex flex-wrap items-end gap-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 flex-1">
-                        <div>
-                            <label className="block text-sm font-medium">From</label>
-                            <input className="border rounded px-2 py-1" type="date" name="from" value={filters.from} onChange={handleFilterChange} />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium">To</label>
-                            <input className="border rounded px-2 py-1" type="date" name="to" value={filters.to} onChange={handleFilterChange} />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium">Caller ID</label>
-                            <input className="border rounded px-2 py-1" type="text" name="callerId" value={filters.callerId} onChange={handleFilterChange} />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium">Callee</label>
-                            <input className="border rounded px-2 py-1" type="text" name="callee" value={filters.callee} onChange={handleFilterChange} />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium">Has Recording</label>
-                            <select className="border rounded px-2 py-1" name="onlyWithRecordings" value={filters.onlyWithRecordings} onChange={handleFilterChange}>
-                                <option value="">All</option>
-                                <option value="true">Only with recordings</option>
-                                <option value="false">Without recordings</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium">Search</label>
-                            <div className="relative">
-                                <Search className="w-4 h-4 text-gray-400 absolute left-2 top-1/2 -translate-y-1/2" />
-                                <input className="border rounded pl-7 pr-2 py-1 w-full" type="text" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder="Search caller/callee/name/id" />
-                            </div>
-                        </div>
+            <div style={{ marginBottom: '20px', padding: '15px', border: '1px solid #ddd', borderRadius: '4px', backgroundColor: '#fafafa' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', marginBottom: '15px' }}>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: '500' }}>From Date</label>
+                        <input 
+                            type="date" 
+                            name="from" 
+                            value={filters.from} 
+                            onChange={handleFilterChange} 
+                            style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                        />
                     </div>
-                    <div className="flex gap-2">
-                        <button type="submit" className="inline-flex items-center gap-2 bg-gradient-to-r from-cc-yellow-400 to-cc-yellow-500 hover:from-cc-yellow-500 hover:to-cc-yellow-600 text-black font-semibold px-4 py-2 rounded-xl shadow-lg cc-transition transform hover:scale-105">
-                            <Search className="w-4 h-4" /> <span>Apply</span>
-                        </button>
-                        <button type="button" onClick={resetFilters} className="inline-flex items-center gap-2 cc-glass cc-text-primary px-4 py-2 rounded-xl hover:bg-cc-yellow-400/10 cc-transition">
-                            <RotateCcw className="w-4 h-4" /> Reset
-                        </button>
-                        <div className="hidden sm:flex items-center gap-1 ml-2">
-                            <span className="text-xs text-gray-500">Quick range:</span>
-                            <button type="button" onClick={() => { const d = new Date(); const iso = d.toISOString().slice(0, 10); setFilters((f: Filters) => ({ ...f, from: iso, to: iso })); setPage(1); fetchData(); }} className="px-2 py-1 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-50">Today</button>
-                            <button type="button" onClick={() => { const to = new Date(); const from = new Date(to.getTime() - 6 * 24 * 60 * 60 * 1000); setFilters((f: Filters) => ({ ...f, from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) })); setPage(1); fetchData(); }} className="px-2 py-1 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-50">7d</button>
-                            <button type="button" onClick={() => { const to = new Date(); const from = new Date(to.getTime() - 29 * 24 * 60 * 60 * 1000); setFilters((f: Filters) => ({ ...f, from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) })); setPage(1); fetchData(); }} className="px-2 py-1 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-50">30d</button>
-                            <button type="button" onClick={() => { setFilters((f: Filters) => ({ ...f, from: '', to: '' })); setPage(1); fetchData(); }} className="px-2 py-1 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-50">Clear</button>
-                        </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: '500' }}>To Date</label>
+                        <input 
+                            type="date" 
+                            name="to" 
+                            value={filters.to} 
+                            onChange={handleFilterChange} 
+                            style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: '500' }}>Caller ID</label>
+                        <input 
+                            type="text" 
+                            name="callerId" 
+                            value={filters.callerId} 
+                            onChange={handleFilterChange} 
+                            placeholder="Search by caller"
+                            style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: '500' }}>Callee</label>
+                        <input 
+                            type="text" 
+                            name="callee" 
+                            value={filters.callee} 
+                            onChange={handleFilterChange} 
+                            placeholder="Search by callee"
+                            style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: '500' }}>Recordings</label>
+                        <select 
+                            name="onlyWithRecordings" 
+                            value={filters.onlyWithRecordings} 
+                            onChange={handleFilterChange}
+                            style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                        >
+                            <option value="">All Calls</option>
+                            <option value="true">With Recordings</option>
+                            <option value="false">Without Recordings</option>
+                        </select>
                     </div>
                 </div>
-            </form>
-
-            {/* Summary Bar */}
-            <div className="flex items-center justify-between text-sm cc-text-secondary mb-4">
-                <div>Matches: <span className="font-medium cc-text-accent">{total}</span></div>
-                <div className="hidden sm:block">Sorted by <span className="font-medium cc-text-accent">{sortBy}</span> <span className="uppercase">{sortOrder}</span></div>
+                
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                    <input
+                        type="text"
+                        value={q}
+                        onChange={(e) => { setQ(e.target.value); setPage(1); }}
+                        placeholder="Search calls..."
+                        style={{ flex: 1, padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                    />
+                    <button 
+                        type="button" 
+                        onClick={handleSubmit}
+                        style={{ padding: '8px 16px', cursor: 'pointer', border: '1px solid #007bff', borderRadius: '4px', backgroundColor: '#007bff', color: 'white' }}
+                    >
+                        Search
+                    </button>
+                </div>
             </div>
 
-            <div className="cc-glass rounded-xl border cc-border shadow-xl overflow-x-auto">
-                {loading ? (
-                    <div className="p-8">
-                        <div className="animate-pulse space-y-3">
-                            <div className="h-4 bg-slate-100 rounded w-1/3" />
-                            <div className="h-4 bg-slate-100 rounded w-1/2" />
-                            <div className="h-4 bg-slate-100 rounded w-2/3" />
-                        </div>
-                    </div>
-                ) : error ? (
-                    <div className="p-8 text-center text-rose-600">{error}</div>
-                ) : (
-                    <table className="min-w-full">
-                        <thead className="bg-cc-yellow-400/10 sticky top-0 z-10">
-                            <tr>
-                                {[{ k: 'callerId', t: 'Caller ID' }, { k: 'callerName', t: 'Caller Name' }, { k: 'callee', t: 'Callee' }, { k: 'status', t: 'Status' }, { k: 'startTime', t: 'Start' }, { k: 'endTime', t: 'End' }, { k: 'duration', t: 'Duration' }, { k: 'rec', t: 'Recording' }].map((col) => (
-                                    <th key={col.k} className="px-4 py-3 text-left text-xs font-bold cc-text-accent tracking-wider uppercase">
-                                        <button
-                                            type="button"
-                                            className="flex items-center gap-1 hover:text-gray-900"
-                                            onClick={() => {
-                                                if (col.k === 'rec' || col.k === 'callerName' || col.k === 'endTime') return;
-                                                const nextOrder = (sortBy === (col.k as any) ? (sortOrder === 'asc' ? 'desc' : 'asc') : 'asc');
-                                                if (col.k === 'callerId' || col.k === 'callee' || col.k === 'status' || col.k === 'duration' || col.k === 'startTime') {
-                                                    setSortBy(col.k as any);
-                                                    setSortOrder(nextOrder as any);
-                                                    setPage(1);
-                                                }
-                                            }}
-                                        >
-                                            <span>{col.t}</span>
-                                            {(col.k === sortBy) && (sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                        </button>
-                                    </th>
-                                ))}
+            {/* Summary Bar */}
+            <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', color: '#666' }}>
+                <div>
+                    Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, total)} of {total} calls
+                    {loading && <span style={{ marginLeft: '10px' }}>Loading...</span>}
+                </div>
+                <div>
+                    <label style={{ marginRight: '10px' }}>Show:</label>
+                    <select
+                        value={pageSize}
+                        onChange={(e) => { setPageSize(parseInt(e.target.value, 10)); setPage(1); }}
+                        style={{ padding: '5px', border: '1px solid #ccc', borderRadius: '4px' }}
+                    >
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+            </div>
+
+            {/* Table */}
+            <div style={{ marginBottom: '20px', border: '1px solid #ddd', borderRadius: '4px', overflow: 'hidden' }}>
+                {loading && <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>}
+                {error && <div style={{ padding: '20px', textAlign: 'center', color: 'red' }}>Error: {error}</div>}
+                {!loading && !error && items.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>No call records found</div>}
+                {!loading && !error && items.length > 0 && (
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                            <tr style={{ backgroundColor: '#f5f5f5', borderBottom: '1px solid #ddd' }}>
+                                <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', fontSize: '14px', width: '40px' }}>
+                                    <button onClick={toggleSelectAll} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                                        {selectedItems.size === items.length && items.length > 0 ? (
+                                            <CheckSquare style={{ width: '18px', height: '18px', color: '#007bff' }} />
+                                        ) : (
+                                            <Square style={{ width: '18px', height: '18px', color: '#999' }} />
+                                        )}
+                                    </button>
+                                </th>
+                                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Caller</th>
+                                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Callee</th>
+                                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Status</th>
+                                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Date & Time</th>
+                                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Duration</th>
+                                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Recording</th>
+                                <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', fontSize: '14px', width: '50px' }}>Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y cc-border">
-                            {items.length === 0 ? (
-                                <tr>
-                                    <td colSpan={8} className="py-10 text-center text-gray-500">
-                                        <div className="flex flex-col items-center gap-3">
-                                            <div>No calls found.</div>
-                                            {filters.onlyWithRecordings !== '' && (
-                                                <button type="button" onClick={() => { setFilters((f: Filters) => ({ ...f, onlyWithRecordings: '' })); setPage(1); fetchData(); }} className="px-3 py-1.5 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-50">Show all calls</button>
+                        <tbody>
+                            {items.map((r) => (
+                                <tr key={r.id} style={{ borderBottom: '1px solid #eee', backgroundColor: selectedItems.has(r.id) ? '#f0f7ff' : 'transparent' }}>
+                                    <td style={{ padding: '12px', textAlign: 'center' }}>
+                                        <button onClick={() => toggleSelectItem(r.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                                            {selectedItems.has(r.id) ? (
+                                                <CheckSquare style={{ width: '18px', height: '18px', color: '#007bff' }} />
+                                            ) : (
+                                                <Square style={{ width: '18px', height: '18px', color: '#ccc' }} />
                                             )}
-                                        </div>
+                                        </button>
+                                    </td>
+                                    <td style={{ padding: '12px' }}>
+                                        <div style={{ fontWeight: '500' }}>{r.callerId || 'Unknown'}</div>
+                                        <div style={{ fontSize: '12px', color: '#666' }}>{r.callerName || 'No name'}</div>
+                                    </td>
+                                    <td style={{ padding: '12px' }}>
+                                        <div style={{ fontWeight: '500' }}>{r.callee || 'Unknown'}</div>
+                                        <div style={{ fontSize: '12px', color: '#666' }}>{r.calleeName || 'No name'}</div>
+                                    </td>
+                                    <td style={{ padding: '12px' }}>
+                                        <span style={{ padding: '4px 8px', borderRadius: '4px', backgroundColor: '#e3f2fd', color: '#1976d2', fontSize: '12px' }}>
+                                            {r.status ? r.status.charAt(0).toUpperCase() + r.status.slice(1).replace('_', ' ') : 'Unknown'}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '12px', fontSize: '14px' }}>
+                                        <div>{new Date(r.startTime).toLocaleDateString()}</div>
+                                        <div style={{ fontSize: '12px', color: '#666' }}>{new Date(r.startTime).toLocaleTimeString()}</div>
+                                    </td>
+                                    <td style={{ padding: '12px' }}>{formatDuration(r.duration)}</td>
+                                    <td style={{ padding: '12px' }}>
+                                        {r.hasRecording ? (
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <button type="button" onClick={() => openListen(r)} style={{ padding: '6px 12px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Play</button>
+                                                <button type="button" onClick={() => handleDownload(r)} style={{ padding: '6px 12px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Download</button>
+                                            </div>
+                                        ) : (
+                                            <span style={{ fontSize: '12px', color: '#999' }}>No recording</span>
+                                        )}
+                                    </td>
+                                    <td style={{ padding: '12px', textAlign: 'center' }}>
+                                        <button type="button" onClick={() => handleDeleteItem(r)} style={{ padding: '6px 10px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }} title="Delete this recording">
+                                            <Trash2 style={{ width: '14px', height: '14px' }} />
+                                        </button>
                                     </td>
                                 </tr>
-                            ) : (
-                                items.map((r, _) => (
-                                    <tr key={r.id} className="hover:bg-cc-yellow-400/5 cc-transition">
-                                        <td className="px-4 py-3 text-sm cc-text-primary">
-                                            <div className="flex items-center gap-2">
-                                                <span title={r.callerId || ''}>{r.callerId || '-'}</span>
-                                                {r.callerId && (
-                                                    <button title="Copy caller ID" onClick={async () => { try { await navigator.clipboard.writeText(r.callerId!); } catch { } }} className="p-1 rounded hover:bg-gray-100">
-                                                        <Copy className="w-3.5 h-3.5 text-gray-500" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-gray-700">{r.callerName || '-'}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-700">{r.callee || '-'}</td>
-                                        <td className="px-4 py-3">
-                                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusToBadge(r.status)}`}>{r.status || '-'}</span>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-gray-700">
-                                            <div className="flex flex-col leading-tight">
-                                                <span>{formatDateTime(r.startTime)}</span>
-                                                <span className="text-[11px] text-gray-500">{timeAgo(r.startTime)}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-gray-700">{formatDateTime(r.endTime)}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-700">{formatDuration(r.duration)}</td>
-                                        <td className="px-4 py-3 text-sm text-gray-700">
-                                            {r.hasRecording ? (
-                                                <div className="flex items-center gap-2">
-                                                    <button type="button" onClick={() => setExpandedAudioId(expandedAudioId === r.id ? null : r.id)} className="px-2 py-1 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-50 inline-flex items-center gap-1">
-                                                        {expandedAudioId === r.id ? <Headphones className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                                                        {expandedAudioId === r.id ? 'Hide' : 'Play'}
-                                                    </button>
-                                                    <button type="button" onClick={() => openListen(r)} className="px-2 py-1 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-50 inline-flex items-center gap-1">
-                                                        <Headphones className="w-3.5 h-3.5" /> Listen
-                                                    </button>
-                                                    {expandedAudioId === r.id && (
-                                                        <audio controls preload="none" className="h-8">
-                                                            <source src={streamUrl(r.id)} />
-                                                            Your browser does not support the audio element.
-                                                        </audio>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <span className="text-xs text-gray-500">No recording</span>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
+                            ))}
                         </tbody>
                     </table>
                 )}
-                {!loading && !error && items.length > 0 && (
-                    <div className="px-4 py-3 border-t border-gray-200 bg-white flex flex-wrap items-center gap-3">
-                        <div className="text-sm text-gray-600">
-                            Showing <span className="font-medium">{(page - 1) * pageSize + 1}</span>–
-                            <span className="font-medium">{Math.min(page * pageSize, total)}</span> of <span className="font-medium">{total}</span>
-                        </div>
-                        <div className="ml-auto flex items-center gap-2">
-                            <select className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white" value={pageSize} onChange={(e) => { setPageSize(parseInt(e.target.value, 10)); setPage(1); }}>
-                                {[25, 50, 100].map((n) => (
-                                    <option key={n} value={n}>{n} / page</option>
-                                ))}
-                            </select>
-                            <div className="flex items-center gap-1">
-                                <button type="button" className="px-2 py-1 text-sm rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 inline-flex items-center gap-1" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>
-                                    <ChevronLeft className="w-4 h-4" /> Prev
-                                </button>
-                                <span className="text-sm text-gray-600 px-2">{page} / {totalPages}</span>
-                                <button type="button" className="px-2 py-1 text-sm rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 inline-flex items-center gap-1" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>
-                                    Next <ChevronRight className="w-4 h-4" />
-                                </button>
-                                <div className="flex items-center gap-1 ml-2">
-                                    <span className="text-xs text-gray-500">Go to:</span>
-                                    <input type="number" min={1} max={totalPages} className="w-16 text-sm border border-gray-300 rounded-md px-2 py-1" onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            const v = parseInt((e.target as HTMLInputElement).value, 10);
-                                            if (!isNaN(v)) setPage(Math.min(Math.max(1, v), totalPages));
-                                        }
-                                    }} placeholder={String(page)} />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
+
+            {/* Pagination */}
+            {!loading && !error && items.length > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', fontSize: '14px' }}>
+                    <div>Page {page} of {totalPages}</div>
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                        <button onClick={() => setPage(1)} disabled={page <= 1} style={{ padding: '6px 12px', cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.5 : 1 }}>First</button>
+                        <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} style={{ padding: '6px 12px', cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.5 : 1 }}>Previous</button>
+                        <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} style={{ padding: '6px 12px', cursor: page >= totalPages ? 'not-allowed' : 'pointer', opacity: page >= totalPages ? 0.5 : 1 }}>Next</button>
+                        <button onClick={() => setPage(totalPages)} disabled={page >= totalPages} style={{ padding: '6px 12px', cursor: page >= totalPages ? 'not-allowed' : 'pointer', opacity: page >= totalPages ? 0.5 : 1 }}>Last</button>
+                    </div>
+                </div>
+            )}
 
             {/* Listening Modal */}
             {listenItem && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
-                    <div className="absolute inset-0 bg-black/40" onClick={closeListen} />
-                    <div className="relative bg-white rounded-xl shadow-xl border border-gray-200 w-[92vw] max-w-2xl mx-auto p-5">
-                        <div className="flex items-start justify-between gap-4 mb-4">
+                <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+                    <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '20px', maxWidth: '600px', width: '90%', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-900">Listening to recording</h3>
-                                <p className="text-xs text-gray-600 mt-0.5">Caller {listenItem.callerId || '-'} → {listenItem.callee || '-'} · {formatDateTime(listenItem.startTime)}</p>
+                                <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '5px' }}>Listening to recording</h3>
+                                <p style={{ fontSize: '12px', color: '#666' }}>Caller {listenItem.callerId || '-'} → {listenItem.callee || '-'}</p>
                             </div>
-                            <button onClick={closeListen} className="px-2 py-1 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-50">Close</button>
+                            <button onClick={closeListen} style={{ padding: '6px 12px', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer' }}>Close</button>
                         </div>
-                        <audio ref={audioRef} onTimeUpdate={onTimeUpdate} onLoadedMetadata={onLoaded} onPlay={onPlay} onPause={onPause} onError={onError}>
+                        <audio ref={audioRef} onTimeUpdate={onTimeUpdate} onLoadedMetadata={onLoaded} onPlay={onPlay} onPause={onPause} onError={onError} style={{ width: '100%', marginBottom: '15px' }}>
                             <source src={streamUrl(listenItem.id)} />
                         </audio>
-                        {audioState.error && <div className="text-sm text-rose-600 mb-2">{audioState.error}</div>}
-                        <div className="flex items-center gap-2 mb-3">
-                            <button onClick={() => skip(-10)} className="px-2 py-1 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-50 inline-flex items-center gap-1"><SkipBack className="w-4 h-4" /> 10s</button>
-                            <button onClick={togglePlay} className="px-3 py-1.5 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-50 inline-flex items-center gap-1">{audioState.playing ? (<><Pause className="w-4 h-4" /> Pause</>) : (<><Play className="w-4 h-4" /> Play</>)}</button>
-                            <button onClick={() => skip(10)} className="px-2 py-1 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-50 inline-flex items-center gap-1">10s <SkipForward className="w-4 h-4" /></button>
-                            <div className="ml-auto flex items-center gap-2">
-                                <button onClick={() => handleDownload(listenItem)} className="px-2 py-1 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-50 inline-flex items-center gap-1"><Download className="w-4 h-4" /> Download</button>
-                                <button onClick={() => copyLink(listenItem)} className="px-2 py-1 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-50 inline-flex items-center gap-1"><Copy className="w-4 h-4" /> Copy link</button>
-                            </div>
+                        {audioState.error && <div style={{ color: 'red', marginBottom: '10px', fontSize: '12px' }}>{audioState.error}</div>}
+                        <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                            <button onClick={() => skip(-10)} style={{ padding: '6px 12px', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>-10s</button>
+                            <button onClick={togglePlay} style={{ padding: '6px 12px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>{audioState.playing ? 'Pause' : 'Play'}</button>
+                            <button onClick={() => skip(10)} style={{ padding: '6px 12px', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>+10s</button>
+                            <button onClick={() => handleDownload(listenItem)} style={{ marginLeft: 'auto', padding: '6px 12px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Download</button>
+                            <button onClick={() => copyLink(listenItem)} style={{ padding: '6px 12px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Copy Link</button>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs tabular-nums w-12 text-right">{formatDuration(audioState.current)}</span>
-                            <input type="range" min={0} max={audioState.duration || 0} step={0.1} value={Math.min(audioState.current, audioState.duration || 0)} onChange={seek} className="flex-1" />
-                            <span className="text-xs tabular-nums w-12">{formatDuration(audioState.duration || 0)}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '12px', minWidth: '40px', textAlign: 'right' }}>{formatDuration(audioState.current)}</span>
+                            <input type="range" min={0} max={audioState.duration || 0} step={0.1} value={Math.min(audioState.current, audioState.duration || 0)} onChange={seek} style={{ flex: 1 }} />
+                            <span style={{ fontSize: '12px', minWidth: '40px' }}>{formatDuration(audioState.duration || 0)}</span>
                         </div>
                     </div>
                 </div>
             )}
-            </div>
         </div>
     );
 };

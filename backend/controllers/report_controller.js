@@ -80,4 +80,57 @@ exports.getCallCounts = async (req, res) => {
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
-}
+};
+
+// Delete all call logs
+exports.deleteAllCalls = async (req, res) => {
+    try {
+        const result = await CallLog.deleteMany({});
+        console.log(`🗑️ Deleted ${result.deletedCount} call logs`);
+        res.json({ 
+            success: true, 
+            message: `Successfully deleted ${result.deletedCount} call logs`,
+            deletedCount: result.deletedCount 
+        });
+    } catch (err) {
+        console.error('❌ Error deleting call logs:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+// Delete call logs by filter (optional: by date range or status)
+exports.deleteCallsByFilter = async (req, res) => {
+    try {
+        const { from, to, status } = req.query;
+        const query = {};
+        
+        if (from || to) {
+            query.startTime = {};
+            if (from) query.startTime.$gte = new Date(from);
+            if (to) query.startTime.$lte = new Date(to);
+        }
+        if (status) {
+            query.status = status;
+        }
+        
+        // If no filters provided, don't allow deletion (use deleteAllCalls instead)
+        if (Object.keys(query).length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Please provide filters (from, to, or status) or use DELETE /calls/all endpoint' 
+            });
+        }
+        
+        const result = await CallLog.deleteMany(query);
+        console.log(`🗑️ Deleted ${result.deletedCount} call logs with filters:`, query);
+        res.json({ 
+            success: true, 
+            message: `Successfully deleted ${result.deletedCount} call logs`,
+            deletedCount: result.deletedCount,
+            filters: query
+        });
+    } catch (err) {
+        console.error('❌ Error deleting call logs:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+};

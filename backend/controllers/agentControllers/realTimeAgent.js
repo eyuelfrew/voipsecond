@@ -682,8 +682,7 @@ function setupAgentListeners(ami, io) {
 
   // Listen to AgentConnect events (agent answers queue call) - More accurate than BridgeEnter
   ami.on("AgentConnect", async (event) => {
-    console.log("Agent Connect Event", event);
-
+    console.log(event);
     const {
       MemberName,
       Interface,
@@ -693,28 +692,23 @@ function setupAgentListeners(ami, io) {
       HoldTime,
       RingTime,
       Linkedid,
+      Channel,
     } = event;
 
-    // Extract username from Interface (e.g., "Local/1006@from-internal/n" -> "1006")
+    // Validate Interface and extract agent extension
     if (!Interface || !Interface.startsWith("Local/")) return;
     const username = Interface.split("/")[1];
     const exact_username = username.split("@")[0];
     if (!exact_username) return;
 
-    // Skip if extension doesn't exist in our database
+    // Skip if extension not in DB
     const exists = await extensionExists(exact_username);
-    if (!exists) {
-      return;
-    }
+    if (!exists) return;
 
-    console.log(
-      `🎯 AgentConnect: Agent ${exact_username} answered call from ${CallerIDNum} in queue ${Queue}`
-    );
-
-    // Use the dedicated function to increment answered calls
+    // Increment agent stats
     await incrementAnsweredCalls(exact_username, HoldTime, RingTime, io);
 
-    // Add to ongoing calls when agent connects (instead of BridgeEnter)
+    // Track ongoing call
     const amiState = require("../../config/amiConfig").state;
     amiState.ongoingCalls[Linkedid] = {
       caller: CallerIDNum,
@@ -725,18 +719,13 @@ function setupAgentListeners(ami, io) {
       startTime: Date.now(),
       queue: Queue,
       queueName: global.queueNameMap?.[Queue] || Queue,
-      channels: [Interface], // Agent's interface
+      channels: [Interface],
     };
 
-    // Emit ongoing calls update
     const { emitOngoingCallsStatus } = require("../../config/amiConfig");
     emitOngoingCallsStatus(io);
 
-    console.log(
-      `📞 Added ongoing call ${Linkedid} to dashboard (Agent: ${exact_username})`
-    );
-
-    // Store call session for timing with queue info
+    // Track call session
     state.callSessions[Linkedid] = {
       agent: exact_username,
       startTime: new Date(),
@@ -747,7 +736,73 @@ function setupAgentListeners(ami, io) {
       holdTime: parseInt(HoldTime) || 0,
       ringTime: parseInt(RingTime) || 0,
     };
+
+    // 🎙️ START CALL RECORDING (with proper file naming)
+    if (!Object.prototype.hasOwnProperty.call(amiState.recordingByLinkedId, Linkedid)) {
+      amiState.recordingByLinkedId[Linkedid] = true;
+
+      const path = require("path");
+      const fs = require("fs");
+      const recordingsBasePath = "/var/spool/asterisk/monitor/insaRecordings";
+
+      // Ensure recordings directory exists
+      if (!fs.existsSync(recordingsBasePath)) {
+        fs.mkdirSync(recordingsBasePath, { recursive: true });
+        console.log(`📁 Created recordings directory: ${recordingsBasePath}`);
+      }
+
+      // ✅ Safe timestamp and filename (sanitize Linkedid to remove dots)
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const safeCaller = CallerIDNum || "unknown";
+      const safeAgent = exact_username || "agent";
+      const safeLinkedid = Linkedid.replace(/\./g, "-"); // Replace dots with dashes
+      const fileName = `call-${safeCaller}-${safeAgent}-${safeLinkedid}-${timestamp}`;
+      const filePath = path.join(recordingsBasePath, fileName);
+
+      console.log(`🎙️ Starting MixMonitor for Agent ${exact_username} (Linkedid: ${Linkedid})`);
+      console.log(`📁 Recording will be saved to: ${filePath}.wav`);
+
+      // Use PJSIP channel for recording (not Local channel)
+      const pjsipChannel = `PJSIP/${exact_username}`;
+
+      // Start MixMonitor with .wav extension to specify format
+      ami.action(
+        {
+          Action: "MixMonitor",
+          Channel: pjsipChannel,
+          File: `${filePath}.wav`, // Include .wav extension to specify format
+          Options: "b", // record both directions
+        },
+        (err) => {
+          if (err) {
+            console.error("❌ Failed to start recording:", err);
+            delete amiState.recordingByLinkedId[Linkedid];
+          } else {
+            console.log(`✅ MixMonitor AMI command sent successfully for ${filePath}.wav`);
+          }
+        }
+      );
+
+      // Update call log with recording path (store as URL path)
+      const { updateCallLog } = require("../../config/amiConfig");
+      updateCallLog(
+        Linkedid,
+        {
+          answerTime: new Date(),
+          status: "answered",
+          callee: exact_username,
+          calleeName: MemberName,
+          agentExtension: exact_username,
+          agentName: MemberName,
+          recordingPath: `/call-recordings/${fileName}.wav`,
+          queue: Queue,
+          queueName: global.queueNameMap?.[Queue] || Queue,
+        },
+        { upsert: true }
+      );
+    }
   });
+
 
   // Listen to Hangup events (call ends)
   ami.on("Hangup", async (event) => {
@@ -948,4 +1003,4 @@ module.exports = {
   refreshAgentState,
   reloadAllAgents,
   updateAgentWrapTime,
-};
+}

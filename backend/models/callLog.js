@@ -11,7 +11,7 @@ const callLogSchema = new mongoose.Schema({
     answerTime: { type: Date },
     endTime: { type: Date },
     duration: { type: Number }, // in seconds
-    status: { type: String, enum: ['ringing', 'answered', 'missed', 'ended', 'busy', 'unanswered', 'failed', 'on_hold'], required: true },
+    status: { type: String, enum: ['answered', 'missed', 'ended', 'busy', 'unanswered', 'failed', 'completed', 'abandoned'], required: true },
     hangupCause: { type: String },
     channels: [{ type: String }],
     direction: { type: String, enum: ['inbound', 'outbound'] },

@@ -316,22 +316,18 @@ function handleDialBegin(event, io) {
 
   state.activeRinging[Linkedid].ringingChannels.add(DestChannel);
 
-  // Ensure a CallLog exists as soon as the call starts ringing
-  updateCallLog(
-    Linkedid,
-    {
-      linkedId: Linkedid,
-      callerId: CallerIDNum,
-      callerName: CallerIDName,
-      callee: DestExten,
-      startTime: new Date(),
-      status: "ringing",
-      channels: [DestChannel],
-      direction:
-        DialString && DialString.startsWith("PJSIP/") ? "outbound" : "inbound",
-    },
-    { upsert: true, setDefaultsOnInsert: true } // Create the document if it doesn't exist
-  );
+  // Store call info in memory but don't create CallLog yet
+  // We'll only create it when the call has a final status (answered, missed, etc.)
+  state.activeRinging[Linkedid].callInfo = {
+    ...state.activeRinging[Linkedid].callInfo,
+    linkedId: Linkedid,
+    callerId: CallerIDNum,
+    callerName: CallerIDName,
+    callee: DestExten,
+    startTime: new Date(),
+    channels: [DestChannel],
+    direction: DialString && DialString.startsWith("PJSIP/") ? "outbound" : "inbound",
+  };
 }
 
 const handleQueueStatus = (event) => {
@@ -377,69 +373,6 @@ function handleBridgeEnter(event, io, ami) {
   }
 
   state.activeBridges[BridgeUniqueid].channels.add(Channel);
-
-  const bridgeData = state.activeBridges[BridgeUniqueid];
-  const channels = [...bridgeData.channels];
-
-  // 🆕 REFINED CHECK: Use Object.prototype.hasOwnProperty to safely check if a recording has started
-  if (
-    channels.length === 2 &&
-    !Object.prototype.hasOwnProperty.call(state.recordingByLinkedId, Linkedid)
-  ) {
-    console.log(
-      "Starting recording for Linkedid:",
-      Linkedid,
-      "on bridge:",
-      BridgeUniqueid,
-      "with channels:",
-      channels
-    );
-    // Immediately mark this call as being recorded to prevent a race condition
-    state.recordingByLinkedId[Linkedid] = true;
-
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const fileName = `call-log-${Linkedid}-${timestamp}.wav`;
-    const filePath = path.join(recordingsBasePath, fileName);
-
-    console.log(
-      `✅ Caller-Agent conversation detected on bridge ${BridgeUniqueid} for Linkedid ${Linkedid}. Starting MixMonitor.`
-    );
-
-    ami.action(
-      {
-        Action: "MixMonitor",
-        Channel: channels.find((c) => c.startsWith("PJSIP/")),
-        File: filePath,
-        Options: "b",
-      },
-      (err) => {
-        if (err) {
-          console.error("❌ Failed to start recording:", err);
-          // Reset the flag if the AMI action fails
-          delete state.recordingByLinkedId[Linkedid];
-        } else {
-          console.log(
-            `✅ MixMonitor AMI command sent successfully for ${filePath}`
-          );
-        }
-      }
-    );
-    // It's also a good idea to update the call log here, once you've decided to record
-    updateCallLog(
-      Linkedid,
-      {
-        answerTime: new Date(),
-        status: "answered",
-        callee: bridgeData.connectedLineNum,
-        calleeName: bridgeData.connectedLineName,
-        agentExtension: bridgeData.connectedLineNum,
-        agentName: bridgeData.connectedLineName,
-        recordingPath: filePath,
-      },
-      { upsert: true }
-    );
-
-  }
 }
 
 // --- Bridge Destroy Handler ---
@@ -467,17 +400,29 @@ function handleHangup(event, io) {
 
     if (state.activeRinging[Linkedid].ringingChannels.size === 0) {
       console.log(`💔 Missed call ${Linkedid}`);
+      const callInfo = state.activeRinging[Linkedid].callInfo;
+
       io.emit("callState", {
         event: "missed",
         linkedId: Linkedid,
-        data: state.activeRinging[Linkedid].callInfo,
+        data: callInfo,
       });
+
+      // Create call log with missed status (first time creating it)
       updateCallLog(Linkedid, {
+        linkedId: Linkedid,
+        callerId: callInfo.callerId,
+        callerName: callInfo.callerName,
+        callee: callInfo.callee,
+        startTime: callInfo.startTime,
         endTime: new Date(),
         status: "missed",
+        channels: callInfo.channels,
+        direction: callInfo.direction,
         hangupCause: Cause,
         hangupCauseTxt: CauseTxt,
-      });
+      }, { upsert: true, setDefaultsOnInsert: true });
+
       delete state.activeRinging[Linkedid];
     }
     return;
@@ -802,28 +747,6 @@ async function handleAgentCalled(event) {
 }
 
 /**
- * Handles the 'AgentConnect' event when an agent answers a call
- * @param {object} event - The AMI event object.
- */
-async function handleAgentConnect(event) {
-  const { MemberName, Interface, Queue, HoldTime, RingTime } = event;
-
-  // Extract extension from Interface
-  const extensionMatch = Interface.match(/Local\/(\d+)@/);
-  const agentExtension = extensionMatch ? extensionMatch[1] : MemberName;
-
-  console.log(`✅ AgentConnect: Agent ${agentExtension} answered call in queue ${Queue}`);
-
-  // Track that agent answered a call
-  const { trackAgentCall } = require('../controllers/agentControllers/callStatsController');
-  await trackAgentCall(agentExtension, 'answered', {
-    queue: Queue,
-    holdTime: parseInt(HoldTime) || 0,
-    ringTime: parseInt(RingTime) || 0
-  });
-}
-
-/**
  * Handles the 'AgentComplete' event when a queue call ends.
  * Uses DestLinkedid to remove the ongoing call and emit updated list.
  * @param {object} event - The AMI event object.
@@ -988,7 +911,7 @@ async function handleRTPStat(event) {
 
     // Extract linked ID from channel name if needed
     const linkedId = Linkedid || extractLinkedIdFromChannel(Channel);
-    
+
     if (!linkedId) {
       console.warn('⚠️ Could not extract linkedId from RTPStat event:', event.Channel);
       return;
@@ -1008,10 +931,10 @@ async function handleRTPStat(event) {
     const localLossRate = localPackets > 0 ? (localLoss / localPackets) * 100 : 0;
     const remoteLossRate = remotePackets > 0 ? (remoteLoss / remotePackets) * 100 : 0;
     const avgLossRate = (localLossRate + remoteLossRate) / 2;
-    
+
     const avgJitter = (localJitter + remoteJitter) / 2;
     const avgRtt = Math.max(localRtt, remoteRtt);
-    
+
     // Calculate MOS (Mean Opinion Score) based on ITU-T G.107 recommendation
     const mosScore = calculateMOS(avgLossRate, avgJitter, avgRtt);
 
@@ -1069,7 +992,7 @@ async function handleRTPStat(event) {
  */
 function extractLinkedIdFromChannel(channel) {
   if (!channel) return null;
-  
+
   // Example: PJSIP/trunks-0000001a;1678901234.123 -> extract linkedId
   const match = channel.match(/\.(\d+)$|;(\d+)$/);
   return match ? match[1] || match[2] : null;
@@ -1086,10 +1009,10 @@ function calculateMOS(packetLoss, jitter, rtt) {
   try {
     // Convert RTT to delay (half of RTT) and add codec delay (assumed 20ms)
     const delay = Math.min(rtt / 2 + 20, 200);
-    
+
     // Calculate effective latency (in milliseconds)
     const effectiveLatency = delay + (jitter * 2);
-    
+
     // Calculate R-factor based on ITU-T G.107
     let R = 0;
     if (effectiveLatency < 160) {
@@ -1097,21 +1020,21 @@ function calculateMOS(packetLoss, jitter, rtt) {
     } else {
       R = 93.2 - ((effectiveLatency - 120) / 10);
     }
-    
+
     // Factor in packet loss (subtract 2.5 per percentage point of packet loss above 0.5%)
     if (packetLoss > 0.5) {
       R -= (packetLoss - 0.5) * 2.5;
     }
-    
+
     // Ensure R-factor stays within reasonable bounds
     R = Math.max(0, Math.min(100, R));
-    
+
     // Convert R-factor to MOS
     let mos = 1.0 + (0.035 * R) + (R * (R - 60) * (100 - R) * 7) / 1000000;
-    
+
     // Ensure MOS is within bounds
     mos = Math.max(1.0, Math.min(5.0, mos));
-    
+
     return mos;
   } catch (error) {
     console.error('❌ Error calculating MOS score:', error);
@@ -1367,7 +1290,7 @@ async function setupAmiEventListeners(ami, io) {
 
   // Agent call tracking events
   ami.on("AgentCalled", handleAgentCalled);
-  ami.on("AgentConnect", handleAgentConnect);
+  // AgentConnect is now handled in realTimeAgent.js for better organization
   ami.on("AgentRingNoAnswer", handleAgentRingNoAnswer);
   ami.on("AgentComplete", (event) => handleAgentComplete(event, io));
 
@@ -1424,4 +1347,5 @@ module.exports = {
   loadAgentDataMap,
   emitAgentStatus,
   emitOngoingCallsStatus,
+  updateCallLog,
 };

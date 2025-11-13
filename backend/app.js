@@ -45,7 +45,7 @@ app.use(cookieParser());
 
 // CORS configuration based on environment
 const NODE_ENV = process.env.NODE_ENV || 'development';
-const corsOrigins = NODE_ENV === 'production' 
+const corsOrigins = NODE_ENV === 'production'
   ? ['https://172.20.47.53', 'https://172.20.47.53:443', 'https://172.20.47.53:5173', 'https://172.20.47.53:3000', 'https://172.20.47.53:4000', 'http://172.20.47.53', 'http://172.20.47.53:5173', 'http://172.20.47.53:3000', 'http://172.20.47.53:4000']
   : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:4000', 'https://localhost:5173', 'https://localhost:3000'];
 
@@ -54,7 +54,22 @@ app.use(cors({
   credentials: true
 }));
 app.use(morgan('dev'));
-app.use('/recordings', express.static('/var/lib/asterisk/sounds/en/custom'))
+
+// Serve call recordings as static files
+const path = require('path');
+const callRecordingsPath = '/var/spool/asterisk/monitor/insaRecordings';
+
+// Create directory if it doesn't exist
+if (!fs.existsSync(callRecordingsPath)) {
+  fs.mkdirSync(callRecordingsPath, { recursive: true });
+  console.log(`📁 Created call-recordings directory: ${callRecordingsPath}`);
+}
+
+// Serve recordings statically at /call-recordings/*
+app.use('/call-recordings', express.static(callRecordingsPath));
+
+// Legacy recordings endpoint for system sounds
+app.use('/recordings', express.static('/var/lib/asterisk/sounds/en/custom'));
 
 app.get('/recordings', (req, res) => {
   const recordingsDir = '/var/lib/asterisk/sounds/en/custom'

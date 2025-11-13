@@ -43,4 +43,11 @@ router.get('/calls/:id', reportController.getCallById);
 // Recording routes backed by CallLog
 router.get('/recordings', listRecordings);
 router.get('/recordings/:id/stream', streamRecordingByCallLogId);
+
+// DELETE routes for call logs
+// DELETE /report/calls/all - Delete all call logs
+router.delete('/calls/all', reportController.deleteAllCalls);
+// DELETE /report/calls - Delete call logs by filter (date range or status)
+router.delete('/calls', reportController.deleteCallsByFilter);
+
 module.exports = router;
