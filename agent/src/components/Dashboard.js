@@ -1,9 +1,8 @@
-import  { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Phone, Bell, User, RefreshCw } from 'lucide-react';
 import { useSIP } from './SIPProvider';
-
 import useStore from '../store/store';
 
 import axios from 'axios';
@@ -12,6 +11,7 @@ import { baseUrl } from '../baseUrl';
 import KnowledgeBaseSearch from './KnowledgeBaseSearch';
 import { BookOpen, X } from 'lucide-react';
 import CannedResponseSearch from './CannedResponseSearch';
+import CallPopup from './CallPopup';
 
 const Header = ({ handleSearch, search, setSearch }) => (
   <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
@@ -37,7 +37,7 @@ const AgentPerformanceDashboard = ({ agent }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
-  
+
   const previousUsernameRef = useRef(null);
 
   // Fetch stats function (can be called manually or automatically)
@@ -109,16 +109,16 @@ const AgentPerformanceDashboard = ({ agent }) => {
 
   const formatTime = (seconds) => {
     if (!seconds) return '0s';
-    
+
     // Round to 2 decimal places
     const roundedSeconds = Math.round(seconds * 100) / 100;
-    
+
     const mins = Math.floor(roundedSeconds / 60);
     const secs = roundedSeconds % 60;
-    
+
     // Format seconds to 2 decimal places if needed
     const formattedSecs = secs % 1 === 0 ? Math.floor(secs) : secs.toFixed(2);
-    
+
     return mins > 0 ? `${mins}m ${formattedSecs}s` : `${formattedSecs}s`;
   };
 
@@ -371,6 +371,7 @@ const Dashboard = () => {
   const [showKeypad, setShowKeypad] = useState(false);
   const [showKBPopup, setShowKBPopup] = useState(false);
   const [showCannedPopup, setShowCannedPopup] = useState(false);
+  const [testIncomingCall, setTestIncomingCall] = useState(null);
 
 
 
@@ -416,6 +417,24 @@ const Dashboard = () => {
               >
                 <span className="inline-block w-4 h-4 bg-secondary-200 rounded-full mr-1" />
                 Canned Answers
+              </button>
+              {/* Test Incoming Call Button */}
+              <button
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-600 text-white font-semibold shadow hover:bg-green-700 transition"
+                onClick={() => {
+                  // Simulate incoming call
+                  setTestIncomingCall({
+                    remote_identity: {
+                      uri: {
+                        user: '1234567890'
+                      },
+                      display_name: 'Test Caller'
+                    }
+                  });
+                }}
+              >
+                <Phone size={20} />
+                Test Call
               </button>
             </div>
             {activeTab === "dashboard" && (
@@ -471,15 +490,28 @@ const Dashboard = () => {
       </div>
 
       {/* Show CallPopup if there is a live call OR if keypad is requested */}
-      {(sip.callSession || sip.incomingCall || showKeypad) && (
+      {(sip.callSession || sip.incomingCall || testIncomingCall || showKeypad) && (
         <CallPopup
           showKeypad={showKeypad}
           setShowKeypad={setShowKeypad}
           callSession={sip.callSession}
-          incomingCall={sip.incomingCall}
+          incomingCall={sip.incomingCall || testIncomingCall}
           callTimer={sip.callTimer}
-          hangup={sip.hangup}
-          answer={sip.answer}
+          hangup={() => {
+            if (testIncomingCall) {
+              setTestIncomingCall(null);
+            } else {
+              sip.hangup();
+            }
+          }}
+          answer={() => {
+            if (testIncomingCall) {
+              alert('This is a test call simulation. In a real scenario, the call would be answered.');
+              setTestIncomingCall(null);
+            } else {
+              sip.answer();
+            }
+          }}
           holdCall={sip.holdCall}
           unholdCall={sip.unholdCall}
           muteCall={sip.muteCall}
