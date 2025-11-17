@@ -7,7 +7,8 @@ import useStore from '../store/store';
 
 import axios from 'axios';
 import ContactSection from './ContactSection';
-import { baseUrl } from '../baseUrl';
+import { getApiUrl } from '../config';
+const baseUrl = getApiUrl();
 import KnowledgeBaseSearch from './KnowledgeBaseSearch';
 import { BookOpen, X } from 'lucide-react';
 import CannedResponseSearch from './CannedResponseSearch';

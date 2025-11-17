@@ -47,7 +47,7 @@ app.use(cookieParser());
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const corsOrigins = NODE_ENV === 'production'
   ? ['https://172.20.47.53', 'https://172.20.47.53:443', 'https://172.20.47.53:5173', 'https://172.20.47.53:3000', 'https://172.20.47.53:4000', 'http://172.20.47.53', 'http://172.20.47.53:5173', 'http://172.20.47.53:3000', 'http://172.20.47.53:4000']
-  : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:4000', 'https://localhost:5173', 'https://localhost:3000'];
+  : ['http://localhost:5174', 'http://localhost:3000', 'http://localhost:4000', 'http://localhost:5173', 'https://localhost:3000'];
 
 app.use(cors({
   origin: corsOrigins,
