@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { UseSocket } from "../context/SocketContext";
-import { useTheme } from "../context/ThemeContext";
 import { Users, Filter, Phone, UserCheck, UserX, Clock, Headphones } from "lucide-react";
 
 interface QueueMemberType {
@@ -19,7 +18,6 @@ interface QueueMemberType {
 }
 
 export default function QueueMembersDashboard() {
-  const { isDarkMode } = useTheme();
   const [queueMembers, setQueueMembers] = useState<QueueMemberType[]>([]);
   const [selectedQueue, setSelectedQueue] = useState("All Queues");
   const [wrapStatus, setWrapStatus] = useState<Record<string, any>>({});

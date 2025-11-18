@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
-import { TrendingUp, Signal, Users, Phone, Clock, Volume2, AlertCircle, CheckCircle, BarChart3, Activity } from 'lucide-react';
+import { Signal, Phone, Clock, AlertCircle, CheckCircle, BarChart3, Activity } from 'lucide-react';
 import axios from 'axios';
 import baseUrl from '../util/baseUrl';
 
@@ -314,9 +314,13 @@ const CallAnalyticsDashboard: React.FC = () => {
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  label={(props: any) => {
+                    const name = props.name;
+                    const percent = props.percent || 0;
+                    return `${name}: ${(percent * 100).toFixed(0)}%`;
+                  }}
                 >
-                  {COLORS.map((entry, index) => (
+                  {COLORS.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>

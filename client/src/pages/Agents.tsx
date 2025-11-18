@@ -7,7 +7,6 @@ import baseUrl from "../util/baseUrl";
 import {
   Activity,
   User,
-  Star,
   BellRing,
   Pause,
   Users,
@@ -580,14 +579,6 @@ const Agent: React.FC = () => {
                       statsView === "daily"
                         ? agent.dailyStats
                         : agent.overallStats;
-                    const successRate =
-                      stats.totalCalls > 0
-                        ? (
-                          ((stats.totalCalls - stats.missedCalls) /
-                            stats.totalCalls) *
-                          100
-                        ).toFixed(1)
-                        : "0";
 
                     return (
                       <tr key={agent.id} className="hover:bg-gray-50">

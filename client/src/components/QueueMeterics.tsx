@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { UseSocket } from "../context/SocketContext";
-import { Search, BarChart3, TrendingUp, Clock, Users, XCircle } from "lucide-react";
-import { useTheme } from "../context/ThemeContext";
+import { Search, BarChart3, TrendingUp, Clock, XCircle } from "lucide-react";
 import Tooltip from "@mui/material/Tooltip";
 
 // Queue data structure
@@ -19,7 +18,6 @@ interface Queue {
 }
 
 export default function QueueDashboard() {
-  const { isDarkMode } = useTheme();
   const [queues, setQueues] = useState<Queue[]>([]);
   const [search, setSearch] = useState("");
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);

@@ -12,7 +12,6 @@ import {
   Activity,
 } from "lucide-react";
 import { RTCSession } from "jssip/lib/RTCSession";
-import { useTheme } from "../context/ThemeContext";
 
 interface ActiveCall {
   id: string;
@@ -103,7 +102,6 @@ const CallMonitorModal: React.FC<CallMonitorModalProps> = ({
 };
 
 const CallStatus: React.FC<CallStatusProps> = ({ activeCalls }) => {
-  const { isDarkMode } = useTheme();
   const [, setTimeTick] = useState<number>(0);
   const [activeJsSipSessionsMap, setActiveJsSipSessionsMap] = useState<Map<string, RTCSession>>(new Map());
   const [uaInstance, setUaInstance] = useState<JsSIP.UA | null>(null);

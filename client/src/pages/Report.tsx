@@ -4,27 +4,11 @@ import { ResponsivePie } from '@nivo/pie';
 import axios from 'axios';
 import baseUrl from '../util/baseUrl';
 
-interface Call {
-  _id: string;
-  callerId: string;
-  callerName: string;
-  status: string;
-  startTime: string;
-  endTime?: string;
-}
-
 interface CallCount {
   status: string;
   count: number;
 }
 
-const statusBadgeClasses: Record<string, string> = {
-  answered: 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200',
-  missed: 'bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-200',
-  ended: 'bg-slate-50 text-slate-700 ring-1 ring-inset ring-slate-200',
-  ringing: 'bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200',
-  'on hold': 'bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-200',
-};
 
 const ReportDashboard: React.FC = () => {
   // Removed call history state and fetching logic
@@ -48,7 +32,7 @@ const ReportDashboard: React.FC = () => {
       const res = await axios.get(`${baseUrl}/api/report/calls/count`);
       setCounts(res.data.data);
     } catch {
-      setError('Failed to fetch call counts');
+      console.error('Failed to fetch call counts');
     }
   };
 
@@ -126,52 +110,10 @@ const ReportDashboard: React.FC = () => {
     </div>
   );
 
-  const FilterField: React.FC<{
-    label: string;
-    name: string;
-    type: string;
-    value: string;
-  }> = ({ label, name, type, value }) => (
-    <div>
-      <label className="block text-sm font-medium">{label}</label>
-      <input
-        className="border rounded px-2 py-1"
-        type={type}
-        name={name}
-        value={value}
-        onChange={handleFilterChange}
-      />
-    </div>
-  );
-
-  const FilterSelect: React.FC<{
-    label: string;
-    name: string;
-    value: string;
-    options: string[];
-  }> = ({ label, name, value, options }) => (
-    <div>
-      <label className="block text-sm font-medium">{label}</label>
-      <select
-        className="border rounded px-2 py-1"
-        name={name}
-        value={value}
-        onChange={handleFilterChange}
-      >
-        {options.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt === '' ? 'All' : opt}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
 
   const totalCalls = useMemo(() => counts.reduce((a, c) => a + c.count, 0), [counts]);
   const answeredCount = useMemo(() => counts.find((c) => c.status === 'answered')?.count || 0, [counts]);
   const missedCount = useMemo(() => counts.find((c) => c.status === 'missed')?.count || 0, [counts]);
-
-  const formatDateTime = (d: string | number | Date) => new Date(d).toLocaleString();
 
   // Removed call history pagination and badge logic
 

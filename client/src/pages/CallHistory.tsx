@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Search, Play, Download, Copy, Calendar, ChevronDown, ChevronLeft, ChevronUp, Clock, Filter, Headphones, Pause, PhoneIncoming, PhoneOff, PhoneOutgoing, SkipBack, SkipForward, Trash2, MoreVertical, CheckSquare, Square, FileJson, BarChart3 } from 'lucide-react';
+import { Trash2, CheckSquare, Square, FileJson, BarChart3 } from 'lucide-react';
 import axios from 'axios';
 import baseUrl from '../util/baseUrl';
 
@@ -106,7 +106,6 @@ const CallHistory: React.FC = () => {
         fetchData();
     };
 
-    const formatDateTime = (d?: string) => (d ? new Date(d).toLocaleString() : '-');
     const pad = (n: number) => (n < 10 ? `0${n}` : String(n));
     const formatDuration = (s?: number) => {
         if (typeof s !== 'number') return '-';
@@ -114,16 +113,6 @@ const CallHistory: React.FC = () => {
         const mins = Math.floor((s % 3600) / 60);
         const secs = Math.floor(s % 60);
         return hrs > 0 ? `${hrs}:${pad(mins)}:${pad(secs)}` : `${mins}:${pad(secs)}`;
-    };
-    const timeAgo = (iso?: string) => {
-        if (!iso) return '-';
-        const now = Date.now();
-        const then = new Date(iso).getTime();
-        const diff = Math.max(0, Math.floor((now - then) / 1000));
-        if (diff < 60) return `${diff}s ago`;
-        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-        return `${Math.floor(diff / 86400)}d ago`;
     };
 
     const streamUrl = (id: string) => `${baseUrl}/api/report/recordings/${id}/stream`;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Phone, PhoneOff, Mic, MicOff, Pause, Play, Grid3x3, Users, PhoneForwarded, Volume2, VolumeX, X, User as UserIcon, Clock, Minimize2, Maximize2 } from 'lucide-react';
 
 const CallPopup = ({
@@ -26,6 +26,11 @@ const CallPopup = ({
     const [transferTarget, setTransferTarget] = useState('');
     const [activeView, setActiveView] = useState('keypad'); // 'keypad', 'call', 'incoming'
     const [isMinimized, setIsMinimized] = useState(false);
+    const [audioLevel, setAudioLevel] = useState(0);
+    const [isReceivingAudio, setIsReceivingAudio] = useState(false);
+    const audioContextRef = useRef(null);
+    const analyserRef = useRef(null);
+    const animationFrameRef = useRef(null);
 
     // Keyboard input for keypad
     useEffect(() => {
@@ -56,6 +61,64 @@ const CallPopup = ({
             setActiveView('keypad');
         }
     }, [incomingCall, callSession, showKeypad]);
+
+    // Monitor incoming audio levels
+    useEffect(() => {
+        if (!callSession || !callSession.connection) return;
+
+        const setupAudioMonitoring = async () => {
+            try {
+                const remoteStream = callSession.connection.getRemoteStreams()[0];
+                if (!remoteStream) return;
+
+                // Create audio context and analyser
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                analyser.smoothingTimeConstant = 0.8;
+
+                const source = audioContext.createMediaStreamSource(remoteStream);
+                source.connect(analyser);
+
+                audioContextRef.current = audioContext;
+                analyserRef.current = analyser;
+
+                // Monitor audio levels
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                
+                const checkAudioLevel = () => {
+                    if (!analyserRef.current) return;
+                    
+                    analyserRef.current.getByteFrequencyData(dataArray);
+                    
+                    // Calculate average volume
+                    const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+                    const normalizedLevel = Math.min(100, (average / 255) * 100);
+                    
+                    setAudioLevel(normalizedLevel);
+                    setIsReceivingAudio(normalizedLevel > 5); // Threshold for detecting audio
+                    
+                    animationFrameRef.current = requestAnimationFrame(checkAudioLevel);
+                };
+                
+                checkAudioLevel();
+            } catch (error) {
+                console.error('Error setting up audio monitoring:', error);
+            }
+        };
+
+        setupAudioMonitoring();
+
+        // Cleanup
+        return () => {
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
+            if (audioContextRef.current) {
+                audioContextRef.current.close();
+            }
+        };
+    }, [callSession]);
 
     const hasActiveCall = callSession && typeof callSession === 'object';
     const hasIncomingCall = incomingCall && typeof incomingCall === 'object';
@@ -143,7 +206,22 @@ const CallPopup = ({
                             </div>
                             <div>
                                 <p className="text-gray-900 font-semibold text-sm">{remoteNumber || 'Unknown'}</p>
-                                <p className="text-gray-500 text-xs">{formatTime(callTimer)}</p>
+                                <div className="flex items-center space-x-2">
+                                    <p className="text-gray-500 text-xs">{formatTime(callTimer)}</p>
+                                    {/* Mini Audio Indicator */}
+                                    <div className="flex items-center space-x-0.5">
+                                        {[...Array(3)].map((_, i) => (
+                                            <div
+                                                key={i}
+                                                className="w-0.5 rounded-full transition-all duration-150"
+                                                style={{
+                                                    height: `${(i + 1) * 3}px`,
+                                                    backgroundColor: audioLevel > (i * 33) ? '#10b981' : '#d1d5db'
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <button
@@ -323,6 +401,30 @@ const CallPopup = ({
                                     <div className="inline-flex items-center space-x-3 bg-gray-100 rounded-full px-6 py-3 border border-gray-200">
                                         <Clock className="w-5 h-5 text-blue-600" />
                                         <span className="text-2xl font-mono font-bold text-gray-900">{formatTime(callTimer)}</span>
+                                    </div>
+                                    
+                                    {/* Audio Level Indicator */}
+                                    <div className="flex items-center space-x-3 bg-white rounded-xl px-5 py-3 border border-gray-200 shadow-sm">
+                                        <Volume2 className={`w-5 h-5 ${isReceivingAudio ? 'text-green-500' : 'text-gray-400'}`} />
+                                        <div className="flex items-center space-x-1">
+                                            {[...Array(5)].map((_, i) => (
+                                                <div
+                                                    key={i}
+                                                    className={`w-1 h-${Math.min(8, Math.floor((i + 1) * 1.6))} rounded-full transition-all duration-150 ${
+                                                        audioLevel > (i * 20)
+                                                            ? 'bg-green-500'
+                                                            : 'bg-gray-300'
+                                                    }`}
+                                                    style={{
+                                                        height: `${(i + 1) * 4}px`,
+                                                        backgroundColor: audioLevel > (i * 20) ? '#10b981' : '#d1d5db'
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                        <span className="text-xs font-medium text-gray-600">
+                                            {isReceivingAudio ? 'Receiving Audio' : 'No Audio'}
+                                        </span>
                                     </div>
                                     
                                     {isHeld && (

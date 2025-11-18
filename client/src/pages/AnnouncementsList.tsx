@@ -170,10 +170,6 @@ const AnnouncementsList: React.FC = () => {
         }
     };
 
-    const formatDate = (dateString: string): string => {
-        return new Date(dateString).toLocaleString();
-    };
-
     const getDestinationDisplay = (destination: Announcement['destinationAfterPlayback']) => {
         const typeLabels = {
             ivr: 'IVR',

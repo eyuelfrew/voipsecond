@@ -53,9 +53,16 @@ interface ErrorState { [key: string]: string; }
 
 // --- REUSABLE COMPONENTS ---
 
-const IVREntries = ({ entries, setEntries, systemRecordings, allIvrs, allExtensions, allQueues }) => {
+const IVREntries = ({ entries, setEntries, systemRecordings, allIvrs, allExtensions, allQueues }: {
+  entries: IVREntry[];
+  setEntries: React.Dispatch<React.SetStateAction<IVREntry[]>>;
+  systemRecordings: Recording[];
+  allIvrs: IvrInfo[];
+  allExtensions: Extension[];
+  allQueues: Queue[];
+}) => {
   const handleEntryChange = (id: number, field: keyof IVREntry, value: string | number) => {
-    const newEntries = entries.map(entry =>
+    const newEntries = entries.map((entry: IVREntry) =>
       entry.id === id ? { ...entry, [field]: value } : entry
     );
     setEntries(newEntries);
@@ -66,9 +73,9 @@ const IVREntries = ({ entries, setEntries, systemRecordings, allIvrs, allExtensi
   };
 
   // Professional delete with confirmation and icon
-  const removeEntry = (id) => {
+  const removeEntry = (id: number) => {
     if (window.confirm("Are you sure you want to delete this entry?")) {
-      setEntries(entries.filter(entry => entry.id !== id));
+      setEntries(entries.filter((entry: IVREntry) => entry.id !== id));
     }
   };
 
@@ -81,14 +88,14 @@ const IVREntries = ({ entries, setEntries, systemRecordings, allIvrs, allExtensi
         return (
           <select value={entry.value} onChange={e => handleEntryChange(entry.id, 'value', e.target.value)} className={commonSelectClass}>
             <option value="">Select IVR Menu</option>
-            {allIvrs.map(ivr => <option key={ivr._id} value={ivr._id}>{ivr.name}</option>)}
+            {allIvrs.map((ivr: IvrInfo) => <option key={ivr._id} value={ivr._id}>{ivr.name}</option>)}
           </select>
         );
       case 'recording':
         return (
           <select value={entry.value} onChange={e => handleEntryChange(entry.id, 'value', e.target.value)} className={commonSelectClass}>
             <option value="">Select Recording</option>
-            {systemRecordings.map(rec => <option key={rec._id} value={rec._id}>{rec.name}</option>)}
+            {systemRecordings.map((rec: Recording) => <option key={rec._id} value={rec._id}>{rec.name}</option>)}
           </select>
         );
       case 'queue':
@@ -96,7 +103,7 @@ const IVREntries = ({ entries, setEntries, systemRecordings, allIvrs, allExtensi
           <select value={entry.value} onChange={e => handleEntryChange(entry.id, 'value', e.target.value)} className={commonSelectClass}>
             <option value="">Select Queue</option>
             {/* FIX: Use q.queueId as the value for the option, as this is what's stored in IVREntry.value */}
-            {allQueues.map(q => <option key={q._id} value={q.queueId}>{q.name} ({q.queueId})</option>)}
+            {allQueues.map((q: Queue) => <option key={q._id} value={q.queueId}>{q.name} ({q.queueId})</option>)}
           </select>
         );
       case 'voicemail':
@@ -104,7 +111,7 @@ const IVREntries = ({ entries, setEntries, systemRecordings, allIvrs, allExtensi
         return (
           <select value={entry.value} onChange={e => handleEntryChange(entry.id, 'value', e.target.value)} className={commonSelectClass}>
             <option value="">Select Extension</option>
-            {allExtensions.map(ext => <option key={ext._id} value={ext.extension}>{ext.extension} ({ext.name})</option>)}
+            {allExtensions.map((ext: Extension) => <option key={ext._id} value={ext.extension}>{ext.extension} ({ext.name})</option>)}
           </select>
         );
       default:
@@ -116,7 +123,7 @@ const IVREntries = ({ entries, setEntries, systemRecordings, allIvrs, allExtensi
     <div className="bg-white shadow-md rounded-lg p-6 mt-6">
       <h2 className="text-xl font-semibold mb-4 text-indigo-700">Menu Entries</h2>
       <div className="space-y-4">
-        {entries.map((entry) => (
+        {entries.map((entry: IVREntry) => (
           <div key={entry.id} className="grid grid-cols-1 md:grid-cols-10 gap-3 items-center p-3 bg-gray-50 rounded-lg">
             <div className="md:col-span-2">
               <label className="text-sm font-medium text-gray-700">Digit(s)</label>
@@ -159,7 +166,7 @@ const IVREntries = ({ entries, setEntries, systemRecordings, allIvrs, allExtensi
 
 // --- PAGE COMPONENTS ---
 
-const IVRForm = ({ ivrId, onSave, onCancel }) => {
+const IVRForm = ({ ivrId, onSave, onCancel }: { ivrId: string | null; onSave: () => void; onCancel: () => void }) => {
     const isEditMode = !!ivrId;
     const [ivr, setIvr] = useState<IVRState>({
         name: '', description: '',
@@ -194,14 +201,10 @@ const IVRForm = ({ ivrId, onSave, onCancel }) => {
     const [systemRecordings, setSystemRecordings] = useState<Recording[]>([]);
     const [allIvrs, setAllIvrs] = useState<IvrInfo[]>([]);
     const [allExtensions, setAllExtensions] = useState<Extension[]>([]);
-    const [loadingExtensions, setLoadingExtensions] = useState(false);
-    const [extensionError, setExtensionError] = useState<string | null>(null);
     const [allQueues, setAllQueues] = useState<Queue[]>([]);
 
     useEffect(() => {
         const fetchData = async () => {
-            setLoadingExtensions(true);
-            setExtensionError(null);
             try {
                 // Fetch all required reference data in parallel
                 const [recordingsRes, ivrsRes, extensionsRes, queuesRes] = await Promise.all([
@@ -231,7 +234,7 @@ const IVRForm = ({ ivrId, onSave, onCancel }) => {
                     const ivrResponse = await axios.get(`${API_URL}/api/ivr/menu/${ivrId}`);
                     const fetchedIvrData = ivrResponse.data; // Confirmed: no 'data' wrapper for single IVR
 
-                    const entries = (fetchedIvrData.entries || []).map(entry => ({
+                    const entries = (fetchedIvrData.entries || []).map((entry: any) => ({
                         ...entry,
                         id: entry._id || Date.now() // Use existing _id for existing entries, new ID for new ones
                     }));
@@ -274,8 +277,6 @@ const IVRForm = ({ ivrId, onSave, onCancel }) => {
                 } else {
                     setErrors({ form: 'Failed to load required data for new IVR. Please try again.' });
                 }
-                setLoadingExtensions(false);
-                setExtensionError('Failed to load extensions.');
             } finally {
                 setLoading(false);
             }
@@ -316,8 +317,9 @@ const IVRForm = ({ ivrId, onSave, onCancel }) => {
         e.preventDefault();
         setSubmitting(true);
         try {
-            const payload = { ...ivr };
-            payload.entries = ivr.entries.map(({ id, ...rest }) => rest); // Clean client-side 'id'
+            // Prepare payload for backend (removing client-side id)
+            const payload: any = { ...ivr };
+            payload.entries = ivr.entries.map(({ id, ...rest }) => ({ ...rest }));
 
             if (isEditMode && ivrId) {
                 await axios.put(`${API_URL}/api/ivr/menu/${ivrId}`, payload);
@@ -360,14 +362,14 @@ const IVRForm = ({ ivrId, onSave, onCancel }) => {
                             <label className="block text-sm font-medium text-gray-700">Announcement</label>
                             <select name="announcement" value={ivr.dtmf.announcement?.id || ''} onChange={handleDTMFChange} className="mt-1 block w-full border rounded-md p-2 border-gray-300" required>
                                 <option value="">Select recording</option>
-                                {systemRecordings.map(rec => <option key={rec._id} value={rec._id}>{rec.name}</option>)}
+                                {systemRecordings.map((rec: Recording) => <option key={rec._id} value={rec._id}>{rec.name}</option>)}
                             </select>
                         </div>
                          <div className="mt-4">
                             <label className="block text-sm font-medium text-gray-700">Invalid Retry Recording</label>
                             <select name="invalidRetryRecording" value={ivr.dtmf.invalidRetryRecording?.id || ''} onChange={handleDTMFChange} className="mt-1 block w-full border rounded-md p-2 border-gray-300">
                                 <option value="">Select recording (Optional)</option>
-                                {systemRecordings.map(rec => <option key={rec._id} value={rec._id}>{rec.name}</option>)}
+                                {systemRecordings.map((rec: Recording) => <option key={rec._id} value={rec._id}>{rec.name}</option>)}
                             </select>
                         </div>
                         <div className="grid grid-cols-2 gap-4 mt-4">
@@ -386,7 +388,7 @@ const IVRForm = ({ ivrId, onSave, onCancel }) => {
                         </div>
                     </div>
                 </div>
-                <IVREntries entries={ivr.entries} setEntries={(newEntries) => setIvr(prev => ({ ...prev, entries: newEntries }))} systemRecordings={systemRecordings} allIvrs={allIvrs} allExtensions={allExtensions} allQueues={allQueues} />
+                <IVREntries entries={ivr.entries} setEntries={newEntries => setIvr(prev => ({ ...prev, entries: typeof newEntries === 'function' ? newEntries(prev.entries) : newEntries }))} systemRecordings={systemRecordings} allIvrs={allIvrs} allExtensions={allExtensions} allQueues={allQueues} />
                 <div className="flex justify-end space-x-4 pt-4">
                     <button type="button" onClick={onCancel} className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300" disabled={submitting}>Cancel</button>
                     <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300" disabled={submitting}>{submitting ? 'Saving...' : 'Save IVR'}</button>
@@ -396,7 +398,7 @@ const IVRForm = ({ ivrId, onSave, onCancel }) => {
     );
 };
 
-const IVRList = ({ onEdit, onCreate }) => {
+const IVRList = ({ onEdit, onCreate }: { onEdit: (id: string) => void; onCreate: () => void }) => {
     const [ivrs, setIvrs] = useState<IvrInfo[]>([]);
     const [loading, setLoading] = useState(true);
 

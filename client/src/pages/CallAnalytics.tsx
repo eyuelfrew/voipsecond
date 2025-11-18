@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Search, RotateCcw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Play, Pause, SkipBack, SkipForward, Download, Copy, Headphones, BarChart3, TrendingUp, Signal, Volume2 } from 'lucide-react';
+import { Search, RotateCcw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Play, Pause, SkipBack, SkipForward, Download, Copy, Headphones, BarChart3 } from 'lucide-react';
 import axios from 'axios';
 import baseUrl from '../util/baseUrl';
 

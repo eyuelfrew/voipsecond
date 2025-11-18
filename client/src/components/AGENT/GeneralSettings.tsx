@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTheme } from '../../context/ThemeContext';
 
 // Define the shape of the form data for the Add Extension form
 interface AddExtensionFormData {

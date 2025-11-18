@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Pencil, Trash2, AlertCircle, Users, Plus, Activity, Loader2, Settings, Phone, Clock } from 'lucide-react';
+import { Pencil, Trash2, AlertCircle, Plus, Activity, Loader2, Settings, Phone } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 type Queue = {

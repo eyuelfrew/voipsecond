@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Coffee, CheckCircle, Users, TrendingUp, RefreshCw, AlertCircle, Timer } from 'lucide-react';
+import { Clock, Coffee, CheckCircle, Users, RefreshCw, AlertCircle, Timer } from 'lucide-react';
 import axios from 'axios';
 import baseUrl from '../util/baseUrl';
 import { useShift } from '../context/ShiftContext';
@@ -47,7 +47,6 @@ interface AgentSummary {
 const AgentShifts: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'active' | 'today' | 'summary'>('active');
   const [summary, setSummary] = useState<AgentSummary[]>([]);
-  const [summaryLoading, setSummaryLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showClearModal, setShowClearModal] = useState(false);
   const [clearing, setClearing] = useState(false);
@@ -64,9 +63,8 @@ const AgentShifts: React.FC = () => {
 
   const fetchSummary = async () => {
     try {
-      setSummaryLoading(true);
       console.log('📡 Fetching shift summary from API...');
-      
+
       const summaryRes = await axios.get(`${baseUrl}/api/shifts/summary`);
       console.log('📥 Summary:', summaryRes.data);
 
@@ -75,8 +73,6 @@ const AgentShifts: React.FC = () => {
       }
     } catch (err: any) {
       console.error('❌ Error fetching summary:', err);
-    } finally {
-      setSummaryLoading(false);
     }
   };
 

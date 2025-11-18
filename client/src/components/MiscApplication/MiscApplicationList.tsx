@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Loader2, AlertCircle, Info, Trash2, Plus, Settings } from 'lucide-react';
+import { Loader2, AlertCircle, Trash2, Plus, Settings } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 // Define the interfaces for the data received from the backend
