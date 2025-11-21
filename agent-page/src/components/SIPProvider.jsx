@@ -312,17 +312,23 @@ export const SIPProvider = ({ children }) => {
         },
       });
 
+      // Set as call session immediately to show outgoing call UI
+      setCallSession(inviter);
+      setStatus("Calling...");
+
       setupSessionHandlers(inviter);
 
       inviter.invite().then(() => {
         console.log("📞 Call initiated to:", number);
-        setStatus("Calling...");
       }).catch((error) => {
         console.error("❌ Failed to make call:", error);
         setStatus("Call Failed");
+        handleCallEnd();
       });
     } catch (error) {
       console.error("❌ Error making call:", error);
+      setStatus("Call Failed");
+      handleCallEnd();
     }
   };
 
@@ -371,25 +377,166 @@ export const SIPProvider = ({ children }) => {
     }
   };
 
-  // Hold call
-  const holdCall = (session) => {
-    if (!session) return;
+  // Hold call - Proper SIP.js implementation using sessionDescriptionHandlerModifiers
+  const holdCall = async (session) => {
+    if (!session) {
+      console.error("❌ No session to hold");
+      return;
+    }
+
     try {
-      session.sessionDescriptionHandler.hold();
-      console.log("⏸️ Call on hold");
+      console.log("⏸️ Attempting to hold call...", {
+        hasSession: !!session,
+        hasSDH: !!session.sessionDescriptionHandler,
+        state: session.state
+      });
+
+      // Check if session is established
+      if (session.state !== SIP.SessionState.Established) {
+        console.error("❌ Cannot hold: Session not established");
+        return;
+      }
+
+      // Check if sessionDescriptionHandler exists
+      if (!session.sessionDescriptionHandler) {
+        console.error("❌ No sessionDescriptionHandler available");
+        return;
+      }
+
+      // Get peer connection and mute audio
+      const pc = session.sessionDescriptionHandler.peerConnection;
+      if (pc) {
+        // Get all audio senders and disable them
+        const senders = pc.getSenders();
+        senders.forEach(sender => {
+          if (sender.track && sender.track.kind === 'audio') {
+            sender.track.enabled = false;
+            console.log("🔇 Disabled audio track for hold");
+          }
+        });
+      }
+
+      // Send re-INVITE with hold modifier
+      const options = {
+        requestDelegate: {
+          onAccept: (response) => {
+            console.log("✅ Hold re-INVITE accepted by remote party");
+          },
+          onReject: (response) => {
+            console.error("❌ Hold re-INVITE rejected:", response.message);
+            // Re-enable audio on failure
+            if (pc) {
+              const senders = pc.getSenders();
+              senders.forEach(sender => {
+                if (sender.track && sender.track.kind === 'audio') {
+                  sender.track.enabled = true;
+                }
+              });
+            }
+          }
+        },
+        sessionDescriptionHandlerModifiers: [
+          (description) => {
+            // Modify SDP to set audio to sendonly (hold)
+            const sdp = description.sdp;
+            const modifiedSdp = sdp.replace(/a=sendrecv/g, 'a=sendonly');
+            console.log("📝 Modified SDP for hold (sendrecv -> sendonly)");
+            return Promise.resolve({
+              type: description.type,
+              sdp: modifiedSdp
+            });
+          }
+        ]
+      };
+
+      // Send re-INVITE
+      await session.invite(options);
+      console.log("✅ Hold re-INVITE sent successfully");
     } catch (error) {
-      console.error("❌ Error holding call:", error);
+      console.error("❌ Error holding call:", error.message || error);
+      // Re-enable audio on error
+      if (session.sessionDescriptionHandler) {
+        const pc = session.sessionDescriptionHandler.peerConnection;
+        if (pc) {
+          const senders = pc.getSenders();
+          senders.forEach(sender => {
+            if (sender.track && sender.track.kind === 'audio') {
+              sender.track.enabled = true;
+            }
+          });
+        }
+      }
     }
   };
 
-  // Unhold call
-  const unholdCall = (session) => {
-    if (!session) return;
+  // Unhold call - Proper SIP.js implementation
+  const unholdCall = async (session) => {
+    if (!session) {
+      console.error("❌ No session to unhold");
+      return;
+    }
+
     try {
-      session.sessionDescriptionHandler.unhold();
-      console.log("▶️ Call resumed");
+      console.log("▶️ Attempting to unhold call...", {
+        hasSession: !!session,
+        hasSDH: !!session.sessionDescriptionHandler,
+        state: session.state
+      });
+
+      // Check if session is established
+      if (session.state !== SIP.SessionState.Established) {
+        console.error("❌ Cannot unhold: Session not established");
+        return;
+      }
+
+      // Check if sessionDescriptionHandler exists
+      if (!session.sessionDescriptionHandler) {
+        console.error("❌ No sessionDescriptionHandler available");
+        return;
+      }
+
+      // Get peer connection and unmute audio
+      const pc = session.sessionDescriptionHandler.peerConnection;
+      if (pc) {
+        // Get all audio senders and enable them
+        const senders = pc.getSenders();
+        senders.forEach(sender => {
+          if (sender.track && sender.track.kind === 'audio') {
+            sender.track.enabled = true;
+            console.log("🔊 Enabled audio track for unhold");
+          }
+        });
+      }
+
+      // Send re-INVITE with unhold modifier
+      const options = {
+        requestDelegate: {
+          onAccept: (response) => {
+            console.log("✅ Unhold re-INVITE accepted by remote party");
+          },
+          onReject: (response) => {
+            console.error("❌ Unhold re-INVITE rejected:", response.message);
+          }
+        },
+        sessionDescriptionHandlerModifiers: [
+          (description) => {
+            // Modify SDP to set audio to sendrecv (unhold)
+            const sdp = description.sdp;
+            const modifiedSdp = sdp.replace(/a=sendonly/g, 'a=sendrecv');
+            console.log("📝 Modified SDP for unhold (sendonly -> sendrecv)");
+            return Promise.resolve({
+              type: description.type,
+              sdp: modifiedSdp
+            });
+          }
+        ]
+      };
+
+      // Send re-INVITE
+      await session.invite(options);
+      console.log("✅ Unhold re-INVITE sent successfully");
     } catch (error) {
-      console.error("❌ Error unholding call:", error);
+      console.error("❌ Error unholding call:", error.message || error);
     }
   };
 

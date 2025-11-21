@@ -56,20 +56,31 @@ const CallPopup = ({
         if (incomingCall) {
             setActiveView('incoming');
         } else if (callSession) {
-            setActiveView('call');
+            // Check if call is established or still connecting
+            // SIP.js SessionState enum values
+            const isEstablished = callSession.state === 'Established' || callSession.state === 2;
+            console.log('📞 Call session state:', callSession.state, 'isEstablished:', isEstablished);
+            setActiveView(isEstablished ? 'call' : 'outgoing');
         } else if (showKeypad) {
             setActiveView('keypad');
         }
-    }, [incomingCall, callSession, showKeypad]);
+    }, [incomingCall, callSession, showKeypad, callTimer]); // Add callTimer to trigger re-render
 
     // Monitor incoming audio levels
     useEffect(() => {
-        if (!callSession || !callSession.connection) return;
+        if (!callSession || !callSession.sessionDescriptionHandler) return;
 
         const setupAudioMonitoring = async () => {
             try {
-                const remoteStream = callSession.connection.getRemoteStreams()[0];
-                if (!remoteStream) return;
+                // Get remote stream from peer connection
+                const pc = callSession.sessionDescriptionHandler.peerConnection;
+                if (!pc) return;
+
+                const receivers = pc.getReceivers();
+                const audioReceiver = receivers.find(r => r.track && r.track.kind === 'audio');
+                if (!audioReceiver || !audioReceiver.track) return;
+
+                const remoteStream = new MediaStream([audioReceiver.track]);
 
                 // Create audio context and analyser
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -142,14 +153,22 @@ const CallPopup = ({
         ? incomingCall?.remote_identity?.uri?.user
         : callSession?.remote_identity?.uri?.user;
 
-    const handleHold = () => {
+    const handleHold = async () => {
         if (!callSession) return;
-        if (isHeld) {
-            unholdCall(callSession);
-        } else {
-            holdCall(callSession);
+        
+        console.log('🎯 Hold button clicked, current state:', isHeld);
+        
+        try {
+            if (isHeld) {
+                await unholdCall(callSession);
+                setIsHeld(false);
+            } else {
+                await holdCall(callSession);
+                setIsHeld(true);
+            }
+        } catch (error) {
+            console.error('❌ Error toggling hold:', error);
         }
-        setIsHeld(v => !v);
     };
 
     const handleMute = () => {
@@ -326,7 +345,7 @@ const CallPopup = ({
                         </div>
 
                         {/* Main Content Area - White Background */}
-                        <div className="bg-white px-6 py-6 min-h-[500px]">
+                        <div className="bg-white px-5 py-4 min-h-[420px]">
                         {/* INCOMING CALL VIEW - Modern Design */}
                         {activeView === 'incoming' && (
                             <div className="flex flex-col items-center justify-center h-full space-y-8 animate-slide-up">
@@ -375,6 +394,62 @@ const CallPopup = ({
                                     >
                                         <div className="absolute inset-0 bg-white/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                         <Phone className="w-10 h-10 text-white relative z-10" />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* OUTGOING CALL VIEW - Calling Screen */}
+                        {activeView === 'outgoing' && (
+                            <div className="flex flex-col items-center justify-center h-full space-y-8 animate-slide-up">
+                                {/* Calling Animation */}
+                                <div className="relative">
+                                    {/* Animated Ripple Effect */}
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <div className="w-32 h-32 bg-blue-400 rounded-full animate-ping opacity-20"></div>
+                                    </div>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <div className="w-24 h-24 bg-blue-400 rounded-full animate-pulse opacity-30"></div>
+                                    </div>
+                                    
+                                    {/* Phone Icon */}
+                                    <div className="relative w-28 h-28 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-2xl">
+                                        <Phone className="w-14 h-14 text-white animate-bounce" />
+                                    </div>
+                                </div>
+
+                                {/* Calling Info */}
+                                <div className="text-center space-y-3">
+                                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+                                        {remoteNumber || 'Unknown'}
+                                    </h2>
+                                    <div className="flex items-center justify-center space-x-2">
+                                        <div className="flex space-x-1">
+                                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                                        </div>
+                                        <p className="text-xl text-blue-600 dark:text-blue-400 font-medium">
+                                            {status || 'Calling...'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Connection Status */}
+                                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl px-6 py-3">
+                                    <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
+                                        Connecting to {remoteNumber}...
+                                    </p>
+                                </div>
+
+                                {/* Hangup Button */}
+                                <div className="pt-8">
+                                    <button
+                                        onClick={hangup}
+                                        className="w-20 h-20 bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-full flex items-center justify-center shadow-2xl hover:shadow-red-500/50 transition-all duration-300 transform hover:scale-110"
+                                        title="Cancel Call"
+                                    >
+                                        <PhoneOff className="w-10 h-10 text-white" />
                                     </button>
                                 </div>
                             </div>
@@ -523,58 +598,58 @@ const CallPopup = ({
                             </div>
                         )}
 
-                        {/* KEYPAD VIEW - Clean Design */}
+                        {/* KEYPAD VIEW - Compact Design */}
                         {activeView === 'keypad' && (
-                            <div className="flex flex-col h-full space-y-6 animate-slide-up">
-                                {/* Display - Clean */}
-                                <div className="bg-gray-50 rounded-2xl p-6 min-h-[80px] flex items-center justify-center border border-gray-200 shadow-inner">
+                            <div className="flex flex-col h-full space-y-4 animate-slide-up">
+                                {/* Display - Compact */}
+                                <div className="bg-gray-50 rounded-xl p-4 min-h-[60px] flex items-center justify-center border border-gray-200 shadow-inner">
                                     <input
                                         type="text"
                                         value={keypadValue}
                                         readOnly
-                                        className="w-full text-center text-3xl font-mono text-gray-900 bg-transparent focus:outline-none tracking-widest placeholder-gray-400"
+                                        className="w-full text-center text-2xl font-mono text-gray-900 bg-transparent focus:outline-none tracking-wider placeholder-gray-400"
                                         placeholder="Enter number"
                                     />
                                 </div>
 
-                                {/* Keypad Grid - Clean Buttons */}
-                                <div className="grid grid-cols-3 gap-3">
+                                {/* Keypad Grid - Compact Buttons */}
+                                <div className="grid grid-cols-3 gap-2">
                                     {keypadButtons.map((btn) => (
                                         <button
                                             key={btn.key}
                                             onClick={() => handleKeypadInput(btn.key)}
-                                            className="aspect-square bg-gray-100 hover:bg-gray-200 active:bg-blue-600 active:text-white border border-gray-200 rounded-2xl flex flex-col items-center justify-center transition-all transform hover:scale-105 active:scale-95 group shadow-sm"
+                                            className="h-14 bg-gray-100 hover:bg-gray-200 active:bg-blue-600 active:text-white border border-gray-200 rounded-xl flex flex-col items-center justify-center transition-all transform hover:scale-105 active:scale-95 group shadow-sm"
                                         >
-                                            <span className="text-3xl font-bold text-gray-900 group-active:text-white">{btn.key}</span>
+                                            <span className="text-2xl font-bold text-gray-900 group-active:text-white">{btn.key}</span>
                                             {btn.sub && (
-                                                <span className="text-xs text-gray-500 group-active:text-white mt-1">{btn.sub}</span>
+                                                <span className="text-[10px] text-gray-500 group-active:text-white">{btn.sub}</span>
                                             )}
                                         </button>
                                     ))}
                                 </div>
 
-                                {/* Action Buttons - Clean Style */}
-                                <div className="grid grid-cols-3 gap-3 mt-4">
+                                {/* Action Buttons - Compact Style */}
+                                <div className="grid grid-cols-3 gap-2 mt-3">
                                     <button
                                         onClick={handleKeypadBackspace}
                                         disabled={!keypadValue}
-                                        className="flex items-center justify-center p-4 rounded-2xl bg-gray-100 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed text-gray-700 transition-all border border-gray-200"
+                                        className="flex items-center justify-center p-3 rounded-xl bg-gray-100 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed text-gray-700 transition-all border border-gray-200"
                                     >
-                                        <X className="w-6 h-6" />
+                                        <X className="w-5 h-5" />
                                     </button>
                                     <button
                                         onClick={handleKeypadDial}
                                         disabled={!keypadValue}
-                                        className="flex items-center justify-center p-4 rounded-2xl bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-all transform hover:scale-105 active:scale-95 shadow-lg border border-green-400"
+                                        className="flex items-center justify-center p-3 rounded-xl bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-all transform hover:scale-105 active:scale-95 shadow-lg border border-green-400"
                                     >
-                                        <Phone className="w-6 h-6" />
+                                        <Phone className="w-5 h-5" />
                                     </button>
                                     <button
                                         onClick={handleKeypadClear}
                                         disabled={!keypadValue}
-                                        className="flex items-center justify-center p-4 rounded-2xl bg-gray-100 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed text-gray-700 transition-all border border-gray-200"
+                                        className="flex items-center justify-center p-3 rounded-xl bg-gray-100 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed text-gray-700 transition-all border border-gray-200"
                                     >
-                                        <span className="text-sm font-bold">Clear</span>
+                                        <span className="text-xs font-bold">Clear</span>
                                     </button>
                                 </div>
 
