@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useState, useContext, useEffect } from "react";
-import { Home, Users, ListOrdered, LogOut, BarChart3, Menu, ChevronLeft, ChevronDown, Clock } from "lucide-react";
+import { Home, Users, ListOrdered, LogOut, BarChart3, Menu, ChevronLeft, ChevronDown, Clock, Music } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 
@@ -30,6 +30,7 @@ const Sidebar = () => {
     { path: "/", name: "Home", icon: <Home /> },
     { path: "/dashboard", name: "Dashboard", icon: <BarChart3 /> },
     { path: "/call-history", name: "Call History", icon: <ListOrdered /> },
+    { path: "/call-recordings", name: "Call Recordings", icon: <Music /> },
     {
       name: "Queue",
       icon: <ListOrdered />,

@@ -146,6 +146,10 @@ app.use('/api/call-analytics', advancedCallAnalyticsRoutes);
 const recordingTestRoutes = require('./routes/recordingTestRoutes');
 app.use('/api/recordings', recordingTestRoutes);
 
+// Recording Management Routes
+const recordingManagementRoutes = require('./routes/recordingManagementRoutes');
+app.use('/api/recordings', recordingManagementRoutes);
+
 // =========================
 // Export App
 // =========================

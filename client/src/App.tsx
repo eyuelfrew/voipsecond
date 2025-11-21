@@ -5,6 +5,7 @@ import HomePage from "./pages/HomePage";
 import Sidebar from "./components/SideBar";
 import Agents from "./pages/Agents";
 import CallHistory from "./pages/CallHistory";
+import CallRecordings from "./pages/CallRecordings";
 import { io } from "socket.io-client";
 import { useEffect } from "react";
 import { UseSocket } from "./context/SocketContext";
@@ -112,6 +113,7 @@ export default function App() {
           <Route path="announcements/edit/:id" element={<AnnouncementForm />} />
 
           <Route path="call-history" element={<CallHistory />} />
+          <Route path="call-recordings" element={<CallRecordings />} />
 
           <Route path="new-misc-application" element={<MiscApplicationForm />} />
           <Route path="misc-applications" element={<MiscApplicationList />} />
