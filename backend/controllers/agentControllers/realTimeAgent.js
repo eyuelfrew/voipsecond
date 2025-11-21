@@ -743,7 +743,7 @@ function setupAgentListeners(ami, io) {
 
       const path = require("path");
       const fs = require("fs");
-      const recordingsBasePath = "/var/spool/asterisk/monitor/insaRecordings";
+      const recordingsBasePath = "/var/spool/asterisk/monitor";
 
       // Ensure recordings directory exists
       if (!fs.existsSync(recordingsBasePath)) {
@@ -762,14 +762,11 @@ function setupAgentListeners(ami, io) {
       console.log(`🎙️ Starting MixMonitor for Agent ${exact_username} (Linkedid: ${Linkedid})`);
       console.log(`📁 Recording will be saved to: ${filePath}.wav`);
 
-      // Use PJSIP channel for recording (not Local channel)
-      const pjsipChannel = `PJSIP/${exact_username}`;
-
       // Start MixMonitor with .wav extension to specify format
       ami.action(
         {
           Action: "MixMonitor",
-          Channel: pjsipChannel,
+          Channel: Channel,
           File: `${filePath}.wav`, // Include .wav extension to specify format
           Options: "b", // record both directions
         },
@@ -785,11 +782,12 @@ function setupAgentListeners(ami, io) {
 
       // Update call log with recording path (store as URL path)
       const { updateCallLog } = require("../../config/amiConfig");
+      console.log(`✅ AgentConnect: Setting call ${Linkedid} status to ANSWERED`);
       updateCallLog(
         Linkedid,
         {
           answerTime: new Date(),
-          status: "answered",
+          status: "answered", // This should ALWAYS be answered when AgentConnect fires
           callee: exact_username,
           calleeName: MemberName,
           agentExtension: exact_username,
@@ -798,7 +796,7 @@ function setupAgentListeners(ami, io) {
           queue: Queue,
           queueName: global.queueNameMap?.[Queue] || Queue,
         },
-        { upsert: true }
+        { upsert: true, overwrite: false } // Don't overwrite entire document, just update fields
       );
     }
   });

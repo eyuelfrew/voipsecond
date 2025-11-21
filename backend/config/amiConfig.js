@@ -391,15 +391,25 @@ function handleBridgeDestroy(event) {
  * @param {object} event - The AMI event object.
  * @param {object} io - The Socket.IO server instance.
  */
-function handleHangup(event, io) {
+async function handleHangup(event, io) {
   const { Linkedid, Channel, Cause, CauseTxt } = event;
 
-  // Case 1: Call was hung up while ringing -> Missed Call
+  // Case 1: Call was hung up while ringing -> Missed Call (BUT check if it was answered first!)
   if (state.activeRinging[Linkedid]?.ringingChannels.has(Channel)) {
     state.activeRinging[Linkedid].ringingChannels.delete(Channel);
 
     if (state.activeRinging[Linkedid].ringingChannels.size === 0) {
-      console.log(`💔 Missed call ${Linkedid}`);
+      // IMPORTANT: Check if call was answered before marking as missed
+      // The call might have been answered but still in activeRinging state
+      const existingCall = await CallLog.findOne({ linkedId: Linkedid });
+      
+      if (existingCall && existingCall.status === 'answered') {
+        console.log(`⚠️ Hangup Case 1: Call ${Linkedid} was answered, not marking as missed`);
+        delete state.activeRinging[Linkedid];
+        return; // Don't overwrite answered status
+      }
+
+      console.log(`💔 Missed call ${Linkedid} (Hangup while ringing)`);
       const callInfo = state.activeRinging[Linkedid].callInfo;
 
       io.emit("callState", {
@@ -428,7 +438,7 @@ function handleHangup(event, io) {
     return;
   }
 
-  // Case 2: An answered call was hung up -> Ended, Busy, Failed etc.
+  // Case 2: An answered call was hung up -> Keep status as "answered"
   if (state.ongoingCalls[Linkedid]) {
     // Remove the hung up channel from the call's channel list
     state.ongoingCalls[Linkedid].channels = state.ongoingCalls[
@@ -440,20 +450,6 @@ function handleHangup(event, io) {
       const call = state.ongoingCalls[Linkedid];
       const duration = Math.floor((Date.now() - call.startTime) / 1000);
 
-      let finalStatus = "ended";
-      switch (String(Cause)) {
-        case "17":
-          finalStatus = "busy";
-          break;
-        case "18":
-        case "19":
-          finalStatus = "unanswered";
-          break;
-        case "21":
-          finalStatus = "failed";
-          break;
-      }
-
       console.log(`👋 Call ${Linkedid} ended. Duration: ${duration}s`);
 
       // Emit call ended event with call details
@@ -462,16 +458,17 @@ function handleHangup(event, io) {
         linkedId: Linkedid,
         endTime: Date.now(),
         duration,
-        finalStatus,
+        finalStatus: "answered", // Keep as answered since it was connected
       });
 
-      // Update call log in database
+      // Update call log in database - DON'T change status if already answered
+      // Only update endTime, duration, and hangup info
       updateCallLog(Linkedid, {
         endTime: new Date(),
         duration,
-        status: finalStatus,
         hangupCause: Cause,
         hangupCauseTxt: CauseTxt,
+        // Note: We don't update status here because it was already set to "answered" in AgentConnect
       });
 
       // Remove call from ongoing calls state
@@ -757,13 +754,42 @@ async function handleAgentCalled(event) {
  * @param {object} event - The AMI event object.
  */
 async function handleAgentRingNoAnswer(event) {
-  const { MemberName, Interface, Queue, RingTime, CallerIDNum } = event;
+  const { MemberName, Interface, Queue, RingTime, CallerIDNum, Linkedid } = event;
 
   // Extract extension from Interface
   const extensionMatch = Interface?.match(/Local\/(\d+)@/);
   const agentExtension = extensionMatch ? extensionMatch[1] : MemberName;
 
-  console.log(`📵 AgentRingNoAnswer: Agent ${agentExtension} missed call from ${CallerIDNum} in queue ${Queue} (Rang for ${RingTime}s)`);
+  console.log(`📵 AgentRingNoAnswer: Agent ${agentExtension} - call from ${CallerIDNum} in queue ${Queue} (Rang for ${RingTime}s) - LinkedId: ${Linkedid}`);
+
+  // IMPORTANT: Check if call is in ongoingCalls (means it was answered)
+  if (state.ongoingCalls[Linkedid]) {
+    console.log(`⚠️ IGNORING AgentRingNoAnswer for ${Linkedid} - call is in ongoingCalls (was answered)`);
+    return; // Don't mark as missed if call is ongoing (answered)
+  }
+
+  // Check if call was already answered before marking as missed
+  if (Linkedid) {
+    // First check if this call already has "answered" status in database
+    const existingCall = await CallLog.findOne({ linkedId: Linkedid });
+    
+    if (existingCall && existingCall.status === 'answered') {
+      console.log(`⚠️ IGNORING AgentRingNoAnswer for ${Linkedid} - call status is already "answered" in database`);
+      return; // Don't overwrite answered status
+    }
+
+    // Only set to missed if not already answered
+    console.log(`📝 Setting call ${Linkedid} status to MISSED`);
+    updateCallLog(Linkedid, {
+      status: "missed",
+      callee: agentExtension,
+      calleeName: MemberName,
+      agentExtension: agentExtension,
+      agentName: MemberName,
+      queue: Queue,
+      queueName: global.queueNameMap?.[Queue] || Queue,
+    }, { upsert: true });
+  }
 
   // Track missed call
   const { trackAgentCall } = require('../controllers/agentControllers/callStatsController');
@@ -772,6 +798,45 @@ async function handleAgentRingNoAnswer(event) {
     ringTime: parseInt(RingTime) || 0,
     callerId: CallerIDNum
   }).catch(err => console.error('Error tracking missed call:', err));
+}
+
+/**
+ * Handles the 'AgentDump' event when an agent dumps/rejects a call
+ * @param {object} event - The AMI event object.
+ * @param {object} io - Socket.IO instance
+ */
+async function handleAgentDump(event, io) {
+  const { MemberName, Interface, Queue, CallerIDNum, CallerIDName, Linkedid } = event;
+
+  // Extract extension from Interface
+  const extensionMatch = Interface?.match(/Local\/(\d+)@/);
+  const agentExtension = extensionMatch ? extensionMatch[1] : MemberName;
+
+  console.log(`🚫 AgentDump: Agent ${agentExtension} dumped call from ${CallerIDNum} in queue ${Queue}`);
+
+  // Update call log with dumped status
+  if (Linkedid) {
+    updateCallLog(Linkedid, {
+      status: "dumped",
+      callee: agentExtension,
+      calleeName: MemberName,
+      agentExtension: agentExtension,
+      agentName: MemberName,
+      queue: Queue,
+      queueName: global.queueNameMap?.[Queue] || Queue,
+      endTime: new Date(),
+    }, { upsert: true });
+  }
+
+  // Emit event to frontend
+  io.emit("callDumped", {
+    linkedId: Linkedid,
+    agent: agentExtension,
+    agentName: MemberName,
+    caller: CallerIDNum,
+    callerName: CallerIDName,
+    queue: Queue,
+  });
 }
 
 /**
@@ -1295,7 +1360,7 @@ async function setupAmiEventListeners(ami, io) {
   ami.on("AgentComplete", (event) => handleAgentComplete(event, io));
 
   ami.on("DialBegin", (event) => handleDialBegin(event, io));
-  ami.on("Hangup", (event) => handleHangup(event, io));
+  ami.on("Hangup", async (event) => await handleHangup(event, io));
   ami.on("Hold", (event) => handleHold(event, io));
   ami.on("Unhold", (event) => handleUnhold(event, io));
 
@@ -1308,7 +1373,7 @@ async function setupAmiEventListeners(ami, io) {
   ami.on("QueueCallerLeave", (event) => handleQueueCallerLeave(event, io));
   ami.on("QueueCallerAbandon", async (event) => await handleQueueCallerAbandon(event, io));
   ami.on("RTPStat", (event) => handleRTPStat(event));
-  ami.on("AgentDump", (event) => { console.log(event) })
+  ami.on("AgentDump", (event) => handleAgentDump(event, io))
   // Wrap-up time tracking events
   ami.on("QueueMemberPause", (event) => {
     // Check if this is an unpause event (Paused: 0)

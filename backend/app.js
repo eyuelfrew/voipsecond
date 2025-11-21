@@ -57,7 +57,7 @@ app.use(morgan('dev'));
 
 // Serve call recordings as static files
 const path = require('path');
-const callRecordingsPath = '/var/spool/asterisk/monitor/insaRecordings';
+const callRecordingsPath = '/var/spool/asterisk/monitor';
 
 // Create directory if it doesn't exist
 if (!fs.existsSync(callRecordingsPath)) {
@@ -66,7 +66,10 @@ if (!fs.existsSync(callRecordingsPath)) {
 }
 
 // Serve recordings statically at /call-recordings/*
+// This allows accessing recordings via: http://server/call-recordings/filename.wav
 app.use('/call-recordings', express.static(callRecordingsPath));
+
+console.log(`📁 Serving call recordings from: ${callRecordingsPath}`);
 
 // Legacy recordings endpoint for system sounds
 app.use('/recordings', express.static('/var/lib/asterisk/sounds/en/custom'));
@@ -138,6 +141,11 @@ app.use('/api/report/call-analytics', callAnalyticsRoutes);
 // Advanced Call Analytics Routes
 const advancedCallAnalyticsRoutes = require('./routes/advancedCallAnalyticsRoutes');
 app.use('/api/call-analytics', advancedCallAnalyticsRoutes);
+
+// Recording Test Routes (for debugging)
+const recordingTestRoutes = require('./routes/recordingTestRoutes');
+app.use('/api/recordings', recordingTestRoutes);
+
 // =========================
 // Export App
 // =========================

@@ -75,10 +75,10 @@ const listRecordings = asyncHandler(async (req, res) => {
     res.json({ page, pageSize, total, items });
 });
 
-// GET /api/report/recordings/:id/stream -> returns the static URL for the recording
+// GET /api/report/recordings/:id/stream -> streams the recording file
 const streamRecordingByCallLogId = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const doc = await CallLog.findById(id).select('recordingPath');
+    const doc = await CallLog.findById(id).select('recordingPath linkedId');
     
     if (!doc) {
         console.log(`❌ Call log not found for ID: ${id}`);
@@ -86,33 +86,64 @@ const streamRecordingByCallLogId = asyncHandler(async (req, res) => {
     }
     
     if (!doc.recordingPath) {
-        console.log(`❌ No recording path for call log ID: ${id}`);
+        console.log(`❌ No recording path for call log ID: ${id} (LinkedId: ${doc.linkedId})`);
         return res.status(404).json({ message: 'No recording for this call' });
     }
 
     // recordingPath is stored as URL path: /call-recordings/filename.wav
     const urlPath = doc.recordingPath;
-    console.log(`🔍 Recording URL path: ${urlPath}`);
+    console.log(`🔍 Recording URL path from DB: ${urlPath}`);
     
     // Extract filename from URL path
     const fileName = path.basename(urlPath);
     
     // Build actual filesystem path
-    const actualFilePath = path.join('/var/spool/asterisk/monitor/insaRecordings', fileName);
+    const recordingsBasePath = '/var/spool/asterisk/monitor';
+    const actualFilePath = path.join(recordingsBasePath, fileName);
+    
+    console.log(`🔍 Looking for recording file at: ${actualFilePath}`);
     
     // Check if file exists on filesystem
     if (!fs.existsSync(actualFilePath)) {
         console.log(`❌ Recording file not found at: ${actualFilePath}`);
+        
+        // List files in directory for debugging
+        try {
+            const files = fs.readdirSync(recordingsBasePath);
+            console.log(`📁 Files in ${recordingsBasePath}:`, files.slice(0, 10)); // Show first 10 files
+        } catch (err) {
+            console.log(`❌ Cannot read directory: ${err.message}`);
+        }
+        
         return res.status(404).json({ 
             message: 'Recording file not found on server',
-            path: actualFilePath 
+            expectedPath: actualFilePath,
+            fileName: fileName
         });
     }
     
-    console.log(`✅ Recording available at: ${urlPath}`);
+    console.log(`✅ Recording file found, streaming: ${actualFilePath}`);
     
-    // Redirect to the static URL
-    res.redirect(urlPath);
+    // Stream the file directly
+    const stat = fs.statSync(actualFilePath);
+    const fileSize = stat.size;
+    
+    res.writeHead(200, {
+        'Content-Type': 'audio/wav',
+        'Content-Length': fileSize,
+        'Accept-Ranges': 'bytes',
+        'Cache-Control': 'public, max-age=3600'
+    });
+    
+    const readStream = fs.createReadStream(actualFilePath);
+    readStream.pipe(res);
+    
+    readStream.on('error', (err) => {
+        console.error(`❌ Error streaming file: ${err.message}`);
+        if (!res.headersSent) {
+            res.status(500).json({ message: 'Error streaming recording' });
+        }
+    });
 });
 
 module.exports = { listRecordings, streamRecordingByCallLogId };

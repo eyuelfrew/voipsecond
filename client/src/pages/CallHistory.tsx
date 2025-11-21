@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Trash2, CheckSquare, Square, FileJson, BarChart3 } from 'lucide-react';
+import { Trash2, CheckSquare, Square, FileJson, BarChart3, Phone, Download, Play, Pause, SkipBack, SkipForward, X, History, Filter, Search } from 'lucide-react';
 import axios from 'axios';
 import baseUrl from '../util/baseUrl';
+import { useTheme } from '../context/ThemeContext';
 
 type RecordItem = {
     id: string;
@@ -21,6 +22,7 @@ type Filters = { from: string; to: string; callerId: string; callee: string; onl
 type AudioState = { current: number; duration: number; playing: boolean; error: string };
 
 const CallHistory: React.FC = () => {
+    const { isDarkMode } = useTheme();
     const [items, setItems] = useState<RecordItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -36,6 +38,7 @@ const CallHistory: React.FC = () => {
     const [filters, setFilters] = useState<Filters>({ from: '', to: '', callerId: '', callee: '', onlyWithRecordings: '' });
     const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
     const [deleting, setDeleting] = useState(false);
+    const [showFilters, setShowFilters] = useState(false);
 
     // Persist pageSize preference
     useEffect(() => {
@@ -117,6 +120,12 @@ const CallHistory: React.FC = () => {
 
     const streamUrl = (id: string) => `${baseUrl}/api/report/recordings/${id}/stream`;
 
+    // Direct URL for recordings (fallback)
+    const directRecordingUrl = (item: RecordItem) => {
+        // If we have the recording path, construct direct URL
+        return `${baseUrl}/call-recordings/${item.linkedId}.wav`;
+    };
+
     // Listening modal controls
     const openListen = (item: RecordItem) => {
         setListenItem(item);
@@ -148,7 +157,13 @@ const CallHistory: React.FC = () => {
     };
     const onPlay = () => setAudioState((s: AudioState) => ({ ...s, playing: true }));
     const onPause = () => setAudioState((s: AudioState) => ({ ...s, playing: false }));
-    const onError = () => setAudioState((s: AudioState) => ({ ...s, error: 'Unable to load recording' }));
+    const onError = () => {
+        console.error('Audio playback error for item:', listenItem);
+        setAudioState((s: AudioState) => ({
+            ...s,
+            error: 'Unable to load recording. The file may not exist or is in an unsupported format.'
+        }));
+    };
 
     const seek = (e: React.ChangeEvent<HTMLInputElement>) => {
         const t = parseFloat(e.target.value);
@@ -213,10 +228,10 @@ const CallHistory: React.FC = () => {
             return;
         }
         if (!window.confirm(`Delete ${selectedItems.size} recording(s)?`)) return;
-        
+
         setDeleting(true);
         try {
-            await Promise.all(Array.from(selectedItems).map(id => 
+            await Promise.all(Array.from(selectedItems).map(id =>
                 axios.delete(`${baseUrl}/api/report/recordings/${id}`)
             ));
             setItems(items.filter(i => !selectedItems.has(i.id)));
@@ -231,10 +246,10 @@ const CallHistory: React.FC = () => {
     };
 
     const handleExportJSON = () => {
-        const dataToExport = selectedItems.size > 0 
+        const dataToExport = selectedItems.size > 0
             ? items.filter(i => selectedItems.has(i.id))
             : items;
-        
+
         const json = JSON.stringify(dataToExport, null, 2);
         const blob = new Blob([json], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -248,10 +263,10 @@ const CallHistory: React.FC = () => {
     };
 
     const handleExportCSV = () => {
-        const dataToExport = selectedItems.size > 0 
+        const dataToExport = selectedItems.size > 0
             ? items.filter(i => selectedItems.has(i.id))
             : items;
-        
+
         const headers = ['ID', 'Caller ID', 'Caller Name', 'Callee', 'Callee Name', 'Start Time', 'End Time', 'Duration', 'Status', 'Has Recording'];
         const rows = dataToExport.map(item => [
             item.id,
@@ -265,11 +280,11 @@ const CallHistory: React.FC = () => {
             item.status || '',
             item.hasRecording ? 'Yes' : 'No'
         ]);
-        
-        const csv = [headers, ...rows].map(row => 
+
+        const csv = [headers, ...rows].map(row =>
             row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
         ).join('\n');
-        
+
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -288,10 +303,10 @@ const CallHistory: React.FC = () => {
         if (!window.confirm('⚠️ Are you sure you want to delete ALL call history? This action cannot be undone!')) {
             return;
         }
-        
+
         setDeleting(true);
         setError('');
-        
+
         try {
             const response = await axios.delete(`${baseUrl}/api/report/calls/all`);
             if (response.data.success) {
@@ -311,284 +326,437 @@ const CallHistory: React.FC = () => {
     };
 
     return (
-        <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-            <div style={{ marginBottom: '20px' }}>
-                <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '10px' }}>Call History</h1>
-                <p style={{ color: '#666', marginBottom: '15px' }}>Total: {total} calls {selectedItems.size > 0 && `(${selectedItems.size} selected)`}</p>
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                    <button 
-                        onClick={resetFilters}
-                        style={{ padding: '8px 16px', cursor: 'pointer', border: '1px solid #ccc', borderRadius: '4px', backgroundColor: '#f5f5f5' }}
-                    >
-                        Reset Filters
-                    </button>
-                    <button 
-                        onClick={handleDeleteAll}
-                        disabled={deleting || total === 0}
-                        style={{ 
-                            padding: '8px 16px', 
-                            cursor: (deleting || total === 0) ? 'not-allowed' : 'pointer', 
-                            border: '1px solid #dc3545', 
-                            borderRadius: '4px', 
-                            backgroundColor: '#dc3545', 
-                            color: 'white', 
-                            opacity: (deleting || total === 0) ? 0.6 : 1 
-                        }}
-                        title={total === 0 ? 'No calls to delete' : 'Delete all call history'}
-                    >
-                        <Trash2 style={{ display: 'inline', marginRight: '5px', width: '16px', height: '16px' }} />
-                        {deleting ? 'Deleting...' : `Delete All (${total})`}
-                    </button>
-                    {selectedItems.size > 0 && (
-                        <>
-                            <button 
-                                onClick={handleBulkDelete}
-                                disabled={deleting}
-                                style={{ padding: '8px 16px', cursor: deleting ? 'not-allowed' : 'pointer', border: '1px solid #dc3545', borderRadius: '4px', backgroundColor: '#dc3545', color: 'white', opacity: deleting ? 0.6 : 1 }}
-                            >
-                                <Trash2 style={{ display: 'inline', marginRight: '5px', width: '16px', height: '16px' }} />
-                                Delete Selected ({selectedItems.size})
-                            </button>
-                            <button 
-                                onClick={handleExportJSON}
-                                style={{ padding: '8px 16px', cursor: 'pointer', border: '1px solid #007bff', borderRadius: '4px', backgroundColor: '#007bff', color: 'white' }}
-                            >
-                                <FileJson style={{ display: 'inline', marginRight: '5px', width: '16px', height: '16px' }} />
-                                Export JSON
-                            </button>
-                            <button 
-                                onClick={handleExportCSV}
-                                style={{ padding: '8px 16px', cursor: 'pointer', border: '1px solid #28a745', borderRadius: '4px', backgroundColor: '#28a745', color: 'white' }}
-                            >
-                                <BarChart3 style={{ display: 'inline', marginRight: '5px', width: '16px', height: '16px' }} />
-                                Export CSV
-                            </button>
-                        </>
-                    )}
-                </div>
+        <div className="min-h-full cc-bg-background cc-transition"
+            style={{
+                background: isDarkMode
+                    ? 'linear-gradient(135deg, #000000 0%, #1F2937 25%, #111827 50%, #1F2937 75%, #000000 100%)'
+                    : 'linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 25%, #F3F4F6 50%, #F9FAFB 75%, #FFFFFF 100%)'
+            }}>
+            {/* Animated Background Elements */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-20 right-20 w-24 h-24 bg-cc-yellow-400 rounded-full opacity-10 animate-pulse"></div>
+                <div className="absolute bottom-32 left-20 w-32 h-32 bg-cc-yellow-300 rounded-full opacity-5 animate-bounce"></div>
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,0,0.02)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
             </div>
 
-            {/* Filters Bar */}
-            <div style={{ marginBottom: '20px', padding: '15px', border: '1px solid #ddd', borderRadius: '4px', backgroundColor: '#fafafa' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', marginBottom: '15px' }}>
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: '500' }}>From Date</label>
-                        <input 
-                            type="date" 
-                            name="from" 
-                            value={filters.from} 
-                            onChange={handleFilterChange} 
-                            style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                        />
+            <div className="relative z-10 p-6 max-w-7xl mx-auto">
+                {/* Header */}
+                <div className="mb-8">
+                    <div className="flex items-center space-x-4 mb-4">
+                        <div className="w-12 h-12 bg-cc-yellow-400 rounded-xl flex items-center justify-center animate-pulse">
+                            <History className="h-6 w-6 text-black" />
+                        </div>
+                        <div>
+                            <h1 className="text-3xl font-bold cc-text-accent animate-fade-in">Call History</h1>
+                            <p className="cc-text-secondary animate-fade-in-delay-300">
+                                Total: {total} calls {selectedItems.size > 0 && `(${selectedItems.size} selected)`}
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: '500' }}>To Date</label>
-                        <input 
-                            type="date" 
-                            name="to" 
-                            value={filters.to} 
-                            onChange={handleFilterChange} 
-                            style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                        />
-                    </div>
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: '500' }}>Caller ID</label>
-                        <input 
-                            type="text" 
-                            name="callerId" 
-                            value={filters.callerId} 
-                            onChange={handleFilterChange} 
-                            placeholder="Search by caller"
-                            style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                        />
-                    </div>
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: '500' }}>Callee</label>
-                        <input 
-                            type="text" 
-                            name="callee" 
-                            value={filters.callee} 
-                            onChange={handleFilterChange} 
-                            placeholder="Search by callee"
-                            style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                        />
-                    </div>
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: '500' }}>Recordings</label>
-                        <select 
-                            name="onlyWithRecordings" 
-                            value={filters.onlyWithRecordings} 
-                            onChange={handleFilterChange}
-                            style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap gap-3">
+                        <button
+                            onClick={() => setShowFilters(!showFilters)}
+                            className="cc-glass px-4 py-2 rounded-lg cc-text-primary hover:cc-border-accent cc-transition flex items-center space-x-2"
                         >
-                            <option value="">All Calls</option>
-                            <option value="true">With Recordings</option>
-                            <option value="false">Without Recordings</option>
+                            <Filter className="w-4 h-4" />
+                            <span>{showFilters ? 'Hide' : 'Show'} Filters</span>
+                        </button>
+                        <button
+                            onClick={resetFilters}
+                            className="cc-glass px-4 py-2 rounded-lg cc-text-primary hover:cc-border-accent cc-transition"
+                        >
+                            Reset Filters
+                        </button>
+                        <button
+                            onClick={handleDeleteAll}
+                            disabled={deleting || total === 0}
+                            className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white cc-transition flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={total === 0 ? 'No calls to delete' : 'Delete all call history'}
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            <span>{deleting ? 'Deleting...' : `Delete All (${total})`}</span>
+                        </button>
+                        {selectedItems.size > 0 && (
+                            <>
+                                <button
+                                    onClick={handleBulkDelete}
+                                    disabled={deleting}
+                                    className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white cc-transition flex items-center space-x-2 disabled:opacity-50"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                    <span>Delete Selected ({selectedItems.size})</span>
+                                </button>
+                                <button
+                                    onClick={handleExportJSON}
+                                    className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white cc-transition flex items-center space-x-2"
+                                >
+                                    <FileJson className="w-4 h-4" />
+                                    <span>Export JSON</span>
+                                </button>
+                                <button
+                                    onClick={handleExportCSV}
+                                    className="px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white cc-transition flex items-center space-x-2"
+                                >
+                                    <BarChart3 className="w-4 h-4" />
+                                    <span>Export CSV</span>
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                {/* Filters Bar */}
+                {showFilters && (
+                    <div className="cc-glass rounded-xl p-6 mb-6 animate-fade-in">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+                            <div>
+                                <label className="block mb-2 text-sm font-medium cc-text-primary">From Date</label>
+                                <input
+                                    type="date"
+                                    name="from"
+                                    value={filters.from}
+                                    onChange={handleFilterChange}
+                                    className="w-full px-3 py-2 cc-glass rounded-lg cc-text-primary focus:cc-border-accent cc-transition outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block mb-2 text-sm font-medium cc-text-primary">To Date</label>
+                                <input
+                                    type="date"
+                                    name="to"
+                                    value={filters.to}
+                                    onChange={handleFilterChange}
+                                    className="w-full px-3 py-2 cc-glass rounded-lg cc-text-primary focus:cc-border-accent cc-transition outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block mb-2 text-sm font-medium cc-text-primary">Caller ID</label>
+                                <input
+                                    type="text"
+                                    name="callerId"
+                                    value={filters.callerId}
+                                    onChange={handleFilterChange}
+                                    placeholder="Search by caller"
+                                    className="w-full px-3 py-2 cc-glass rounded-lg cc-text-primary focus:cc-border-accent cc-transition outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block mb-2 text-sm font-medium cc-text-primary">Callee</label>
+                                <input
+                                    type="text"
+                                    name="callee"
+                                    value={filters.callee}
+                                    onChange={handleFilterChange}
+                                    placeholder="Search by callee"
+                                    className="w-full px-3 py-2 cc-glass rounded-lg cc-text-primary focus:cc-border-accent cc-transition outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block mb-2 text-sm font-medium cc-text-primary">Recordings</label>
+                                <select
+                                    name="onlyWithRecordings"
+                                    value={filters.onlyWithRecordings}
+                                    onChange={handleFilterChange}
+                                    className="w-full px-3 py-2 cc-glass rounded-lg cc-text-primary focus:cc-border-accent cc-transition outline-none"
+                                >
+                                    <option value="">All Calls</option>
+                                    <option value="true">With Recordings</option>
+                                    <option value="false">Without Recordings</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <div className="flex-1 relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 cc-text-secondary" />
+                                <input
+                                    type="text"
+                                    value={q}
+                                    onChange={(e) => { setQ(e.target.value); setPage(1); }}
+                                    placeholder="Search calls..."
+                                    className="w-full pl-10 pr-4 py-2 cc-glass rounded-lg cc-text-primary focus:cc-border-accent cc-transition outline-none"
+                                />
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleSubmit}
+                                className="px-6 py-2 rounded-lg bg-cc-yellow-400 hover:bg-cc-yellow-500 text-black font-medium cc-transition"
+                            >
+                                Search
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Summary Bar */}
+                <div className="cc-glass rounded-xl p-4 mb-6 flex justify-between items-center">
+                    <div className="cc-text-primary text-sm">
+                        Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, total)} of {total} calls
+                        {loading && <span className="ml-3 cc-text-secondary animate-pulse">Loading...</span>}
+                    </div>
+                    <div className="flex items-center space-x-3">
+                        <label className="cc-text-primary text-sm">Show:</label>
+                        <select
+                            value={pageSize}
+                            onChange={(e) => { setPageSize(parseInt(e.target.value, 10)); setPage(1); }}
+                            className="px-3 py-1 cc-glass rounded-lg cc-text-primary focus:cc-border-accent cc-transition outline-none"
+                        >
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
                         </select>
                     </div>
                 </div>
-                
-                <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                    <input
-                        type="text"
-                        value={q}
-                        onChange={(e) => { setQ(e.target.value); setPage(1); }}
-                        placeholder="Search calls..."
-                        style={{ flex: 1, padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-                    />
-                    <button 
-                        type="button" 
-                        onClick={handleSubmit}
-                        style={{ padding: '8px 16px', cursor: 'pointer', border: '1px solid #007bff', borderRadius: '4px', backgroundColor: '#007bff', color: 'white' }}
-                    >
-                        Search
-                    </button>
-                </div>
-            </div>
 
-            {/* Summary Bar */}
-            <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', color: '#666' }}>
-                <div>
-                    Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, total)} of {total} calls
-                    {loading && <span style={{ marginLeft: '10px' }}>Loading...</span>}
+                {/* Table */}
+                <div className="cc-glass rounded-xl overflow-hidden mb-6">
+                    {loading && (
+                        <div className="p-20 text-center">
+                            <div className="inline-block w-12 h-12 border-4 border-cc-yellow-400 border-t-transparent rounded-full animate-spin"></div>
+                            <p className="mt-4 cc-text-secondary">Loading call history...</p>
+                        </div>
+                    )}
+                    {error && (
+                        <div className="p-20 text-center">
+                            <div className="inline-block w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-4">
+                                <X className="w-8 h-8 text-red-500" />
+                            </div>
+                            <p className="text-red-500 font-medium">Error: {error}</p>
+                        </div>
+                    )}
+                    {!loading && !error && items.length === 0 && (
+                        <div className="p-20 text-center">
+                            <div className="inline-block w-16 h-16 bg-cc-yellow-400/20 rounded-full flex items-center justify-center mb-4">
+                                <History className="w-8 h-8 text-cc-yellow-400" />
+                            </div>
+                            <p className="cc-text-secondary">No call records found</p>
+                        </div>
+                    )}
+                    {!loading && !error && items.length > 0 && (
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="cc-bg-surface border-b cc-border">
+                                        <th className="px-4 py-3 text-center font-semibold text-sm cc-text-primary w-10">
+                                            <button onClick={toggleSelectAll} className="bg-transparent border-none cursor-pointer p-0" style={{ width: '18px', height: '18px' }}>
+                                                {selectedItems.size === items.length && items.length > 0 ? (
+                                                    <CheckSquare className="w-5 h-5 text-blue-500" />
+                                                ) : (
+                                                    <Square className="w-5 h-5 text-gray-400" />
+                                                )}
+                                            </button>
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-semibold text-sm cc-text-primary">Caller</th>
+                                        <th className="px-4 py-3 text-left font-semibold text-sm cc-text-primary">Callee</th>
+                                        <th className="px-4 py-3 text-left font-semibold text-sm cc-text-primary">Status</th>
+                                        <th className="px-4 py-3 text-left font-semibold text-sm cc-text-primary">Date & Time</th>
+                                        <th className="px-4 py-3 text-left font-semibold text-sm cc-text-primary">Duration</th>
+                                        <th className="px-4 py-3 text-left font-semibold text-sm cc-text-primary">Recording</th>
+                                        <th className="px-4 py-3 text-center font-semibold text-sm cc-text-primary w-24">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {items.map((r) => (
+                                        <tr key={r.id} className={`border-b ${(isDarkMode ? 'border-gray-700' : 'border-gray-200')} ${(selectedItems.has(r.id) ? 'bg-blue-50' : '')}`}>
+                                            <td className="px-4 py-3 text-center">
+                                                <button onClick={() => toggleSelectItem(r.id)} className="bg-transparent border-none cursor-pointer p-0" style={{ width: '18px', height: '18px' }}>
+                                                    {selectedItems.has(r.id) ? (
+                                                        <CheckSquare className="w-5 h-5 text-blue-500" />
+                                                    ) : (
+                                                        <Square className="w-5 h-5 text-gray-400" />
+                                                    )}
+                                                </button>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <div className="font-medium">{r.callerId || 'Unknown'}</div>
+                                                <div className="text-xs cc-text-secondary">{r.callerName || 'No name'}</div>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <div className="font-medium">{r.callee || 'Unknown'}</div>
+                                                <div className="text-xs cc-text-secondary">{r.calleeName || 'No name'}</div>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                                    r.status === 'answered' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                                                    r.status === 'missed' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                                                    r.status === 'dumped' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
+                                                    r.status === 'ended' ? 'bg-gray-500/20 text-gray-400 border border-gray-500/30' :
+                                                    'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                                                }`}>
+                                                    {r.status === 'answered' ? '✓ Answered' :
+                                                     r.status === 'missed' ? '✗ Missed' :
+                                                     r.status === 'dumped' ? '⊘ Dumped' :
+                                                     r.status === 'ended' ? '◉ Ended' :
+                                                     r.status ? r.status.charAt(0).toUpperCase() + r.status.slice(1).replace('_', ' ') : 'Unknown'}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm">
+                                                <div>{new Date(r.startTime).toLocaleDateString()}</div>
+                                                <div className="text-xs cc-text-secondary">{new Date(r.startTime).toLocaleTimeString()}</div>
+                                            </td>
+                                            <td className="px-4 py-3">{formatDuration(r.duration)}</td>
+                                            <td className="px-4 py-3">
+                                                {r.hasRecording ? (
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openListen(r)}
+                                                            className={`px-3 py-1.5 text-xs rounded ${(isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600')} text-white border-0 cursor-pointer`}
+                                                        >
+                                                            Play
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDownload(r)}
+                                                            className={`px-3 py-1.5 text-xs rounded ${(isDarkMode ? 'bg-green-600 hover:bg-green-700' : 'bg-green-500 hover:bg-green-600')} text-white border-0 cursor-pointer`}
+                                                        >
+                                                            Download
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-xs cc-text-secondary">No recording</span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3 text-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDeleteItem(r)}
+                                                    className={`p-2 rounded ${(isDarkMode ? 'bg-red-600 hover:bg-red-700' : 'bg-red-500 hover:bg-red-600')} text-white border-0 cursor-pointer`}
+                                                    title="Delete this recording"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
-                <div>
-                    <label style={{ marginRight: '10px' }}>Show:</label>
-                    <select
-                        value={pageSize}
-                        onChange={(e) => { setPageSize(parseInt(e.target.value, 10)); setPage(1); }}
-                        style={{ padding: '5px', border: '1px solid #ccc', borderRadius: '4px' }}
-                    >
-                        <option value="10">10</option>
-                        <option value="25">25</option>
-                        <option value="50">50</option>
-                        <option value="100">100</option>
-                    </select>
-                </div>
-            </div>
 
-            {/* Table */}
-            <div style={{ marginBottom: '20px', border: '1px solid #ddd', borderRadius: '4px', overflow: 'hidden' }}>
-                {loading && <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>}
-                {error && <div style={{ padding: '20px', textAlign: 'center', color: 'red' }}>Error: {error}</div>}
-                {!loading && !error && items.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>No call records found</div>}
+                {/* Pagination */}
                 {!loading && !error && items.length > 0 && (
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                            <tr style={{ backgroundColor: '#f5f5f5', borderBottom: '1px solid #ddd' }}>
-                                <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', fontSize: '14px', width: '40px' }}>
-                                    <button onClick={toggleSelectAll} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                                        {selectedItems.size === items.length && items.length > 0 ? (
-                                            <CheckSquare style={{ width: '18px', height: '18px', color: '#007bff' }} />
-                                        ) : (
-                                            <Square style={{ width: '18px', height: '18px', color: '#999' }} />
-                                        )}
-                                    </button>
-                                </th>
-                                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Caller</th>
-                                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Callee</th>
-                                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Status</th>
-                                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Date & Time</th>
-                                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Duration</th>
-                                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', fontSize: '14px' }}>Recording</th>
-                                <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', fontSize: '14px', width: '50px' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {items.map((r) => (
-                                <tr key={r.id} style={{ borderBottom: '1px solid #eee', backgroundColor: selectedItems.has(r.id) ? '#f0f7ff' : 'transparent' }}>
-                                    <td style={{ padding: '12px', textAlign: 'center' }}>
-                                        <button onClick={() => toggleSelectItem(r.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                                            {selectedItems.has(r.id) ? (
-                                                <CheckSquare style={{ width: '18px', height: '18px', color: '#007bff' }} />
-                                            ) : (
-                                                <Square style={{ width: '18px', height: '18px', color: '#ccc' }} />
-                                            )}
-                                        </button>
-                                    </td>
-                                    <td style={{ padding: '12px' }}>
-                                        <div style={{ fontWeight: '500' }}>{r.callerId || 'Unknown'}</div>
-                                        <div style={{ fontSize: '12px', color: '#666' }}>{r.callerName || 'No name'}</div>
-                                    </td>
-                                    <td style={{ padding: '12px' }}>
-                                        <div style={{ fontWeight: '500' }}>{r.callee || 'Unknown'}</div>
-                                        <div style={{ fontSize: '12px', color: '#666' }}>{r.calleeName || 'No name'}</div>
-                                    </td>
-                                    <td style={{ padding: '12px' }}>
-                                        <span style={{ padding: '4px 8px', borderRadius: '4px', backgroundColor: '#e3f2fd', color: '#1976d2', fontSize: '12px' }}>
-                                            {r.status ? r.status.charAt(0).toUpperCase() + r.status.slice(1).replace('_', ' ') : 'Unknown'}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '12px', fontSize: '14px' }}>
-                                        <div>{new Date(r.startTime).toLocaleDateString()}</div>
-                                        <div style={{ fontSize: '12px', color: '#666' }}>{new Date(r.startTime).toLocaleTimeString()}</div>
-                                    </td>
-                                    <td style={{ padding: '12px' }}>{formatDuration(r.duration)}</td>
-                                    <td style={{ padding: '12px' }}>
-                                        {r.hasRecording ? (
-                                            <div style={{ display: 'flex', gap: '8px' }}>
-                                                <button type="button" onClick={() => openListen(r)} style={{ padding: '6px 12px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Play</button>
-                                                <button type="button" onClick={() => handleDownload(r)} style={{ padding: '6px 12px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Download</button>
-                                            </div>
-                                        ) : (
-                                            <span style={{ fontSize: '12px', color: '#999' }}>No recording</span>
-                                        )}
-                                    </td>
-                                    <td style={{ padding: '12px', textAlign: 'center' }}>
-                                        <button type="button" onClick={() => handleDeleteItem(r)} style={{ padding: '6px 10px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }} title="Delete this recording">
-                                            <Trash2 style={{ width: '14px', height: '14px' }} />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <div className="flex justify-between items-center mb-6 text-sm">
+                        <div className="cc-text-primary">Page {page} of {totalPages}</div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setPage(1)}
+                                disabled={page <= 1}
+                                className={`px-3 py-1.5 rounded ${(isDarkMode ? 'cc-bg-surface cc-text-secondary disabled:opacity-50' : 'cc-bg-surface cc-text-primary disabled:opacity-50')} disabled:cursor-not-allowed`}
+                            >
+                                First
+                            </button>
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page <= 1}
+                                className={`px-3 py-1.5 rounded ${(isDarkMode ? 'cc-bg-surface cc-text-secondary disabled:opacity-50' : 'cc-bg-surface cc-text-primary disabled:opacity-50')} disabled:cursor-not-allowed`}
+                            >
+                                Previous
+                            </button>
+                            <button
+                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                disabled={page >= totalPages}
+                                className={`px-3 py-1.5 rounded ${(isDarkMode ? 'cc-bg-surface cc-text-secondary disabled:opacity-50' : 'cc-bg-surface cc-text-primary disabled:opacity-50')} disabled:cursor-not-allowed`}
+                            >
+                                Next
+                            </button>
+                            <button
+                                onClick={() => setPage(totalPages)}
+                                disabled={page >= totalPages}
+                                className={`px-3 py-1.5 rounded ${(isDarkMode ? 'cc-bg-surface cc-text-secondary disabled:opacity-50' : 'cc-bg-surface cc-text-primary disabled:opacity-50')} disabled:cursor-not-allowed`}
+                            >
+                                Last
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Listening Modal */}
+                {listenItem && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                        <div className={`rounded-xl p-5 max-w-2xl w-11/12 ${(isDarkMode ? 'bg-gray-800' : 'bg-white')} shadow-lg`}>
+                            <div className="flex justify-between items-center mb-4">
+                                <div>
+                                    <h3 className="text-lg font-semibold mb-1">Listening to recording</h3>
+                                    <p className="text-xs cc-text-secondary">Caller {listenItem.callerId || '-'} → {listenItem.callee || '-'}</p>
+                                </div>
+                                <button
+                                    onClick={closeListen}
+                                    className={`px-3 py-1 rounded ${(isDarkMode ? 'cc-bg-surface cc-text-primary' : 'cc-bg-surface cc-text-primary')} border ${(isDarkMode ? 'border-gray-600' : 'border-gray-300')} cursor-pointer`}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                            <audio
+                                ref={audioRef}
+                                onTimeUpdate={onTimeUpdate}
+                                onLoadedMetadata={onLoaded}
+                                onPlay={onPlay}
+                                onPause={onPause}
+                                onError={onError}
+                                className="w-full mb-4"
+                            >
+                                <source src={streamUrl(listenItem.id)} type="audio/wav" />
+                            </audio>
+                            {audioState.error && (
+                                <div className={`mb-3 text-xs p-3 rounded ${(isDarkMode ? 'bg-red-900/30 text-red-300' : 'bg-red-100 text-red-700')}`}>
+                                    <strong>Error:</strong> {audioState.error}
+                                    <br />
+                                    <small>Recording URL: {streamUrl(listenItem.id)}</small>
+                                </div>
+                            )}
+                            <div className="flex gap-2 mb-4">
+                                <button
+                                    onClick={() => skip(-10)}
+                                    className={`px-3 py-1.5 text-xs rounded ${(isDarkMode ? 'cc-bg-surface cc-text-primary border border-gray-600' : 'cc-bg-surface cc-text-primary border border-gray-300')} cursor-pointer`}
+                                >
+                                    -10s
+                                </button>
+                                <button
+                                    onClick={togglePlay}
+                                    className={`px-3 py-1.5 text-xs rounded ${(isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600')} text-white border-0 cursor-pointer`}
+                                >
+                                    {audioState.playing ? 'Pause' : 'Play'}
+                                </button>
+                                <button
+                                    onClick={() => skip(10)}
+                                    className={`px-3 py-1.5 text-xs rounded ${(isDarkMode ? 'cc-bg-surface cc-text-primary border border-gray-600' : 'cc-bg-surface cc-text-primary border border-gray-300')} cursor-pointer`}
+                                >
+                                    +10s
+                                </button>
+                                <button
+                                    onClick={() => handleDownload(listenItem)}
+                                    className={`px-3 py-1.5 text-xs rounded ml-auto ${(isDarkMode ? 'bg-green-600 hover:bg-green-700' : 'bg-green-500 hover:bg-green-600')} text-white border-0 cursor-pointer`}
+                                >
+                                    Download
+                                </button>
+                                <button
+                                    onClick={() => copyLink(listenItem)}
+                                    className={`px-3 py-1.5 text-xs rounded ${(isDarkMode ? 'bg-gray-600 hover:bg-gray-700' : 'bg-gray-500 hover:bg-gray-600')} text-white border-0 cursor-pointer`}
+                                >
+                                    Copy Link
+                                </button>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs w-12 text-right cc-text-secondary">{formatDuration(audioState.current)}</span>
+                                <input
+                                    type="range"
+                                    min={0}
+                                    max={audioState.duration || 0}
+                                    step={0.1}
+                                    value={Math.min(audioState.current, audioState.duration || 0)}
+                                    onChange={seek}
+                                    className="flex-1"
+                                />
+                                <span className="text-xs w-12 cc-text-secondary">{formatDuration(audioState.duration || 0)}</span>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
-
-            {/* Pagination */}
-            {!loading && !error && items.length > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', fontSize: '14px' }}>
-                    <div>Page {page} of {totalPages}</div>
-                    <div style={{ display: 'flex', gap: '5px' }}>
-                        <button onClick={() => setPage(1)} disabled={page <= 1} style={{ padding: '6px 12px', cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.5 : 1 }}>First</button>
-                        <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} style={{ padding: '6px 12px', cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.5 : 1 }}>Previous</button>
-                        <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} style={{ padding: '6px 12px', cursor: page >= totalPages ? 'not-allowed' : 'pointer', opacity: page >= totalPages ? 0.5 : 1 }}>Next</button>
-                        <button onClick={() => setPage(totalPages)} disabled={page >= totalPages} style={{ padding: '6px 12px', cursor: page >= totalPages ? 'not-allowed' : 'pointer', opacity: page >= totalPages ? 0.5 : 1 }}>Last</button>
-                    </div>
-                </div>
-            )}
-
-            {/* Listening Modal */}
-            {listenItem && (
-                <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-                    <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '20px', maxWidth: '600px', width: '90%', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                            <div>
-                                <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '5px' }}>Listening to recording</h3>
-                                <p style={{ fontSize: '12px', color: '#666' }}>Caller {listenItem.callerId || '-'} → {listenItem.callee || '-'}</p>
-                            </div>
-                            <button onClick={closeListen} style={{ padding: '6px 12px', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer' }}>Close</button>
-                        </div>
-                        <audio ref={audioRef} onTimeUpdate={onTimeUpdate} onLoadedMetadata={onLoaded} onPlay={onPlay} onPause={onPause} onError={onError} style={{ width: '100%', marginBottom: '15px' }}>
-                            <source src={streamUrl(listenItem.id)} />
-                        </audio>
-                        {audioState.error && <div style={{ color: 'red', marginBottom: '10px', fontSize: '12px' }}>{audioState.error}</div>}
-                        <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                            <button onClick={() => skip(-10)} style={{ padding: '6px 12px', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>-10s</button>
-                            <button onClick={togglePlay} style={{ padding: '6px 12px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>{audioState.playing ? 'Pause' : 'Play'}</button>
-                            <button onClick={() => skip(10)} style={{ padding: '6px 12px', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>+10s</button>
-                            <button onClick={() => handleDownload(listenItem)} style={{ marginLeft: 'auto', padding: '6px 12px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Download</button>
-                            <button onClick={() => copyLink(listenItem)} style={{ padding: '6px 12px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Copy Link</button>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '12px', minWidth: '40px', textAlign: 'right' }}>{formatDuration(audioState.current)}</span>
-                            <input type="range" min={0} max={audioState.duration || 0} step={0.1} value={Math.min(audioState.current, audioState.duration || 0)} onChange={seek} style={{ flex: 1 }} />
-                            <span style={{ fontSize: '12px', minWidth: '40px' }}>{formatDuration(audioState.duration || 0)}</span>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
