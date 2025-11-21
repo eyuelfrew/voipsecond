@@ -92,9 +92,9 @@ export const SIPProvider = ({ children }) => {
             ],
             rtcpMuxPolicy: "require",
             bundlePolicy: "max-bundle",
-            iceCandidatePoolSize: 10
+            iceCandidatePoolSize: 10  
           },
-        },
+        }, 
         logConfiguration: false,
         logLevel: "error",
       };

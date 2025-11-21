@@ -1,4 +1,4 @@
-import { Routes, Route, Outlet } from "react-router-dom";
+import { Routes, Route, Outlet, Navigate } from "react-router-dom";
 import TopNav from "./components/TopNav";
 import LiveCalls from "./pages/Dashboard";
 import HomePage from "./pages/HomePage";
@@ -13,10 +13,9 @@ import IVRMenuForm from "./pages/IVRMenuForm";
 import SystemRecordingUpload from "./components/SystemRecordingUpload";
 import MiscApplicationForm from "./pages/MiscApplicationForm";
 import SystemRecordingsList from "./pages/SystemRecordingsList";
-import MiscApplicationList from "./components/MiscApplication/MiscApplicationList"; // This is the list component
+import MiscApplicationList from "./components/MiscApplication/MiscApplicationList";
 import AnnouncementsList from "./pages/AnnouncementsList";
 import AnnouncementForm from "./pages/AnnouncementForm";
-
 import QueuePage from "./pages/QueuePage";
 import AgentPage from "./pages/AgentPage";
 import QueueList from "./pages/QueueList";
@@ -27,6 +26,7 @@ import QueueStatistics from "./pages/QueueStatistics";
 import QueueDetails from "./pages/QueueDetails";
 import AgentShifts from "./pages/AgentShifts";
 import { ShiftProvider } from "./context/ShiftContext";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 // Loading component to display while checking authentication
 const Loading = () => {
@@ -71,7 +71,7 @@ const MainLayout = () => {
 };
 
 export default function App() {
-  const { loading } = useAuth();
+  const { loading, isAuthenticated } = useAuth();
 
   // Show loading UI while checking authentication
   if (loading) {
@@ -81,12 +81,24 @@ export default function App() {
   return (
     <ShiftProvider>
       <Routes>
-        {/* 1. Login page - this route stands alone */}
-        <Route path="/login" element={<LoginPage />} />
+        {/* Public route - Login page */}
+        <Route 
+          path="/login" 
+          element={
+            isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />
+          } 
+        />
 
-        {/* 2. All other routes that share the TopNav and Sidebar layout */}
-        <Route path="/" element={<MainLayout />}>
-          <Route index element={<HomePage />} />
+        {/* Protected routes - All require authentication */}
+        <Route 
+          path="/" 
+          element={
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<LiveCalls />} />
           <Route path="ivr-menus" element={<IVRMenus />} />
           <Route path="ivr-menu/create" element={<IVRMenuForm />} />
@@ -117,6 +129,14 @@ export default function App() {
           
           <Route path="agent-shifts" element={<AgentShifts />} />
         </Route>
+
+        {/* Catch-all route - redirect to dashboard if authenticated, login if not */}
+        <Route 
+          path="*" 
+          element={
+            <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />
+          } 
+        />
       </Routes>
     </ShiftProvider>
   );

@@ -10,24 +10,99 @@ const LoginPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [loginAttempts, setLoginAttempts] = useState<number>(0);
+  const [isLocked, setIsLocked] = useState<boolean>(false);
 
   useEffect(() => {
     setIsVisible(true);
+    
+    // Check if account is locked from previous attempts
+    const lockUntil = sessionStorage.getItem('loginLockUntil');
+    if (lockUntil) {
+      const lockTime = parseInt(lockUntil);
+      if (Date.now() < lockTime) {
+        setIsLocked(true);
+        const remainingTime = Math.ceil((lockTime - Date.now()) / 1000);
+        setError(`Too many failed attempts. Please try again in ${remainingTime} seconds.`);
+        
+        // Auto-unlock after time expires
+        setTimeout(() => {
+          setIsLocked(false);
+          setError(null);
+          sessionStorage.removeItem('loginLockUntil');
+        }, lockTime - Date.now());
+      } else {
+        sessionStorage.removeItem('loginLockUntil');
+      }
+    }
   }, []);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    
+    // Check if locked
+    if (isLocked) {
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     setSuccessMessage(null);
 
     try {
+      // Validate input before sending
+      if (!email.trim() || !password.trim()) {
+        throw new Error('Email and password are required');
+      }
+      
+      // Basic email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        throw new Error('Please enter a valid email address');
+      }
+
       await login(email, password);
-      setSuccessMessage('Login successful!');
+      
+      // Clear failed attempts on success
+      setLoginAttempts(0);
+      sessionStorage.removeItem('loginAttempts');
+      sessionStorage.removeItem('loginLockUntil');
+      
+      setSuccessMessage('Login successful! Redirecting...');
     } catch (err: any) {
-      // Improve security by not exposing internal error messages
-      setError(err?.response?.data?.message || 'Login failed. Please check your credentials and try again.');
+      // Increment failed attempts
+      const newAttempts = loginAttempts + 1;
+      setLoginAttempts(newAttempts);
+      sessionStorage.setItem('loginAttempts', newAttempts.toString());
+      
+      // Lock account after 5 failed attempts
+      if (newAttempts >= 5) {
+        const lockUntil = Date.now() + (5 * 60 * 1000); // Lock for 5 minutes
+        sessionStorage.setItem('loginLockUntil', lockUntil.toString());
+        setIsLocked(true);
+        setError('Too many failed login attempts. Account locked for 5 minutes.');
+        
+        // Auto-unlock after 5 minutes
+        setTimeout(() => {
+          setIsLocked(false);
+          setLoginAttempts(0);
+          setError(null);
+          sessionStorage.removeItem('loginLockUntil');
+          sessionStorage.removeItem('loginAttempts');
+        }, 5 * 60 * 1000);
+      } else {
+        // Show generic error message for security
+        const remainingAttempts = 5 - newAttempts;
+        setError(
+          err?.message || 
+          `Invalid credentials. ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining.`
+        );
+      }
+      
       setSuccessMessage(null);
+      
+      // Clear password field on error
+      setPassword('');
     } finally {
       setLoading(false);
     }
@@ -159,7 +234,7 @@ const LoginPage: React.FC = () => {
                   {/* Login Button */}
                   <button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || isLocked}
                     className="w-full relative overflow-hidden bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black font-bold py-6 px-10 rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 hover:shadow-yellow-400/25 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none group text-xl"
                   >
                     <span className="relative z-10">

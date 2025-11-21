@@ -1,26 +1,22 @@
 const express = require('express');
 const { registerSupervisor, getAllSupervisors, deleteSupervisor, loginSupervisor, protect, checkAuth, logoutSupervisor } = require('../controllers/supervisorController/supervisorController');
+const { loginLimiter, strictLimiter } = require('../middleware/rateLimiter');
 const router = express.Router();
 
-// Define agent routes here
+// Public routes (no authentication required) with rate limiting
+router.post('/login', loginLimiter, loginSupervisor);
+router.post('/register', strictLimiter, registerSupervisor);
 
-router.post('/', registerSupervisor);
+// Protected routes - ALL routes below require authentication
+router.use(protect);
 
-// Login supervisor
-router.post('/login', loginSupervisor);
-
-// Protected routes
-// router.use(protect);
-
-// Check if the supervisor is logged in
+// Check authentication status
 router.get('/check-auth', checkAuth);
 
-// Get all supervisors
-router.get('/', getAllSupervisors);
-
-// Delete a supervisor (if needed)
-router.delete('/:id', deleteSupervisor);
-
-// Logout route (if needed)
+// Logout
 router.post('/logout', logoutSupervisor);
+
+// Supervisor management (protected)
+router.get('/', getAllSupervisors);
+router.delete('/:id', deleteSupervisor);
 module.exports = router;

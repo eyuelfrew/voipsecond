@@ -14,25 +14,27 @@ const createSendToken = (user, statusCode, res) => {
   const token = signToken(user._id);
 
   const cookieOptions = {
-    expiresIn:'7d',
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Lax',
+    expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    httpOnly: true, // Prevents XSS attacks
+    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    sameSite: process.env.NODE_ENV === 'production' ? 'Strict' : 'Lax', // CSRF protection
+    path: '/', // Cookie available for all paths
   };
 
-  if (process.env.NODE_ENV === 'development') {
-    cookieOptions.secure = false;
-  }
-
+  // Set the cookie
   res.cookie('auth_sup', token, cookieOptions);
 
+  // Remove password from output
   user.password = undefined;
 
   res.status(statusCode).json({
     status: 'success',
-    token,
     data: {
-      user,
+      user: {
+        _id: user._id,
+        email: user.email,
+        name: user.name,
+      },
     },
   });
 };
@@ -229,13 +231,19 @@ const loginSupervisor = async (req, res) => {
 };
 
 const logoutSupervisor = (req, res) => {
+  // Clear the authentication cookie
   res.cookie('auth_sup', 'loggedout', {
-    expires: new Date(Date.now() + 10 * 1000),
+    expires: new Date(Date.now() + 1000), // Expire immediately
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Lax',
+    sameSite: process.env.NODE_ENV === 'production' ? 'Strict' : 'Lax',
+    path: '/',
   });
-  res.status(200).json({ status: 'success', message: 'Logged out successfully.' });
+  
+  res.status(200).json({ 
+    status: 'success', 
+    message: 'Logged out successfully.' 
+  });
 };
 
 const protect = async (req, res, next) => {
@@ -288,10 +296,22 @@ const protect = async (req, res, next) => {
 
 const checkAuth = async (req, res) => {
   try {
+    // req.user is set by the protect middleware
+    if (!req.user) {
+      return res.status(401).json({
+        status: 'fail',
+        message: 'Not authenticated',
+      });
+    }
+
     res.status(200).json({
       status: 'success',
       data: {
-        user: req.user,
+        user: {
+          _id: req.user._id,
+          email: req.user.email,
+          name: req.user.name,
+        },
       },
     });
   } catch (err) {
