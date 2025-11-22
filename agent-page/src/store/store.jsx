@@ -52,15 +52,28 @@ const useStore = create((set, get) => ({
     }
   },
   logout: async () => {
-    const res = await fetch(`${baseUrl}/auth/logout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-    });
-    if (res.status === 200) {
+    try {
+      const res = await fetch(`${baseUrl}/auth/logout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        timeout: 5000,
+      });
+      
+      // Always clear client-side state regardless of server response
       localStorage.clear();
-      // cookieStore.clear();
-      set({ agent: null, token: null });
+      sessionStorage.clear();
+      set({ agent: null, token: null, shift: null, call: null });
+      
+      if (!res.ok) {
+        console.error('Logout request failed, but client state cleared');
+      }
+    } catch (error) {
+      // Even if logout fails, clear client-side state
+      console.error('Logout error:', error);
+      localStorage.clear();
+      sessionStorage.clear();
+      set({ agent: null, token: null, shift: null, call: null });
     }
   },
 
@@ -148,19 +161,39 @@ const useStore = create((set, get) => ({
       const res = await fetch(`${baseUrl}/auth/me`, {
         method: 'GET',
         credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
+      
       if (res.ok) {
         const data = await res.json();
-        if (data.agent) {
+        
+        // Validate response structure
+        if (data && data.agent) {
           // Attach SIP credentials if present
           const agentWithSip = data.sip ? { ...data.agent, sip: data.sip } : data.agent;
           set({ agent: agentWithSip });
-        } else set({ agent: null });
+          return true;
+        } else {
+          console.error('Invalid authentication response structure');
+          set({ agent: null });
+          return false;
+        }
+      } else if (res.status === 401) {
+        // Unauthorized - clear state
+        console.log('Authentication failed: Unauthorized');
+        set({ agent: null, token: null });
+        return false;
       } else {
+        console.error('Authentication check failed:', res.status);
         set({ agent: null });
+        return false;
       }
     } catch (err) {
+      console.error('Error fetching current agent:', err);
       set({ agent: null });
+      return false;
     }
   },
 }));

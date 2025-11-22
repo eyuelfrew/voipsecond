@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import RequireAuth from './components/RequireAuth';
 import Login from './components/Login';
@@ -15,15 +15,31 @@ import ShiftManagement from './pages/ShiftManagement';
 import CustomerTimeline from './pages/CustomerTimeline';
 import QualityMonitoring from './pages/QualityMonitoring';
 import TeamCollaboration from './pages/TeamCollaboration';
+import { setupAxiosInterceptors } from './utils/axiosInterceptor';
+import useStore from './store/store';
 import './App.css';
 
-function App() {
+// Wrapper component to access router hooks
+function AppContent() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const agent = useStore(state => state.agent);
+
+  useEffect(() => {
+    // Setup axios interceptors on mount
+    const handleUnauthorized = () => {
+      useStore.getState().logout();
+      if (location.pathname !== '/login') {
+        navigate('/login', { replace: true, state: { from: location } });
+      }
+    };
+    
+    setupAxiosInterceptors(handleUnauthorized);
+  }, [navigate, location]);
+
   return (
-    <ThemeProvider>
-      <ShiftProvider>
-        <Router>
-          <SIPProvider>
-            <div className="App">
+    <SIPProvider>
+      <div className="App">
           <Routes>
             <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
@@ -121,7 +137,16 @@ function App() {
           </Routes>
         </div>
       </SIPProvider>
-    </Router>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <ShiftProvider>
+        <Router>
+          <AppContent />
+        </Router>
       </ShiftProvider>
     </ThemeProvider>
   );

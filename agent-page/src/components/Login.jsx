@@ -10,30 +10,106 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [loginAttempts, setLoginAttempts] = useState(0);
+    const [isLocked, setIsLocked] = useState(false);
     const setAuth = useStore(state => state.setAuth);
     const navigate = useNavigate();
 
+    // Check if account is locked on mount
+    React.useEffect(() => {
+        const lockUntil = sessionStorage.getItem('loginLockUntil');
+        if (lockUntil) {
+            const lockTime = parseInt(lockUntil);
+            if (Date.now() < lockTime) {
+                setIsLocked(true);
+                const remainingTime = Math.ceil((lockTime - Date.now()) / 1000);
+                setError(`Too many failed attempts. Please try again in ${remainingTime} seconds.`);
+                
+                // Auto-unlock after time expires
+                setTimeout(() => {
+                    setIsLocked(false);
+                    setError('');
+                    sessionStorage.removeItem('loginLockUntil');
+                }, lockTime - Date.now());
+            } else {
+                sessionStorage.removeItem('loginLockUntil');
+            }
+        }
+    }, []);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // Check if locked
+        if (isLocked) {
+            return;
+        }
+        
         setError('');
         setLoading(true);
         const baseUrl = getApiUrl();
+        
         try {
+            // Validate input
+            if (!username.trim() || !password.trim()) {
+                setError('Username and password are required');
+                setLoading(false);
+                return;
+            }
+            
             const res = await fetch(`${baseUrl}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password }),
-                credentials: 'include'
+                credentials: 'include',
+                timeout: 10000,
             });
+            
             const data = await res.json();
+            
             if (res.ok && data.agent) {
+                // Clear failed attempts on success
+                setLoginAttempts(0);
+                sessionStorage.removeItem('loginAttempts');
+                sessionStorage.removeItem('loginLockUntil');
+                
                 const agentWithSip = { ...data.agent, sip: data.sip };
                 setAuth({ agent: agentWithSip });
                 navigate('/dashboard');
             } else {
-                setError(data.message || 'Login failed. Please check your credentials.');
+                // Increment failed attempts
+                const newAttempts = loginAttempts + 1;
+                setLoginAttempts(newAttempts);
+                sessionStorage.setItem('loginAttempts', newAttempts.toString());
+                
+                // Lock account after 5 failed attempts
+                if (newAttempts >= 5) {
+                    const lockUntil = Date.now() + (5 * 60 * 1000); // Lock for 5 minutes
+                    sessionStorage.setItem('loginLockUntil', lockUntil.toString());
+                    setIsLocked(true);
+                    setError('Too many failed login attempts. Account locked for 5 minutes.');
+                    
+                    // Auto-unlock after 5 minutes
+                    setTimeout(() => {
+                        setIsLocked(false);
+                        setLoginAttempts(0);
+                        setError('');
+                        sessionStorage.removeItem('loginLockUntil');
+                        sessionStorage.removeItem('loginAttempts');
+                    }, 5 * 60 * 1000);
+                } else {
+                    const remainingAttempts = 5 - newAttempts;
+                    setError(
+                        data.message || 
+                        `Invalid credentials. ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining.`
+                    );
+                }
+                
+                // Clear password field on error
+                setPassword('');
             }
         } catch (err) {
+            console.error('Login error:', err);
             setError('Server error. Please try again later.');
         } finally {
             setLoading(false);
