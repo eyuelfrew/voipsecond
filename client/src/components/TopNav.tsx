@@ -165,7 +165,7 @@ const TopNav = () => {
                       <Link to="#" className="block px-4 py-3 text-sm cc-text-secondary hover:cc-text-accent hover:bg-yellow-400/10 flex items-center cc-transition rounded-lg mx-2">
                         <HardDrive className="h-4 w-4 mr-2" /> Trunks
                       </Link>
-                      <Link to="/agents/list" className="block px-4 py-3 text-sm cc-text-secondary hover:cc-text-accent hover:bg-yellow-400/10 flex items-center cc-transition rounded-lg mx-2">
+                      <Link to="/extensions/list" className="block px-4 py-3 text-sm cc-text-secondary hover:cc-text-accent hover:bg-yellow-400/10 flex items-center cc-transition rounded-lg mx-2">
                         <Phone className="h-4 w-4 mr-2" /> Extensions
                       </Link>
                       <Link to="#" className="block px-4 py-3 text-sm cc-text-secondary hover:cc-text-accent hover:bg-yellow-400/10 flex items-center cc-transition rounded-lg mx-2">
@@ -201,8 +201,8 @@ const TopNav = () => {
                       <Link to="#" className="block px-4 py-3 text-sm cc-text-secondary hover:cc-text-accent hover:bg-yellow-400/10 flex items-center cc-transition rounded-lg mx-2">
                         <Mic className="h-4 w-4 mr-2" /> REST Interface Users
                       </Link>
-                      <Link to="#" className="block px-4 py-3 text-sm cc-text-secondary hover:cc-text-accent hover:bg-yellow-400/10 flex items-center cc-transition rounded-lg mx-2">
-                        <Phone className="h-4 w-4 mr-2" /> SIP Settings
+                      <Link to="/advanced-sip-settings" className="block px-4 py-3 text-sm cc-text-secondary hover:cc-text-accent hover:bg-yellow-400/10 flex items-center cc-transition rounded-lg mx-2">
+                        <Phone className="h-4 w-4 mr-2" /> Advanced SIP Settings
                       </Link>
                     </div>
                   </div>

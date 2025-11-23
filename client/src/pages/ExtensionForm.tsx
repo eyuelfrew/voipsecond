@@ -22,7 +22,7 @@ import FormRow from '../components/AGENT/FormRow';
 // --- API Base URL ---
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
-const AgentForm: React.FC = () => {
+const ExtensionForm: React.FC = () => {
   // *** CHANGE 1: Use 'id' from useParams instead of 'userExtension' ***
   const { id } = useParams<{ id: string }>(); // 'id' will be the MongoDB _id
   const navigate = useNavigate();
@@ -41,6 +41,7 @@ const AgentForm: React.FC = () => {
     { name: 'Voicemail', icon: FiMail },
     { name: 'Find Me/Follow Me', icon: FiPhone },
     { name: 'Advanced', icon: FiSettings },
+    { name: 'Advanced SIP', icon: FiSettings },
     { name: 'Pin Sets', icon: FiShield },
     { name: 'Other', icon: FiMoreHorizontal }
   ];
@@ -111,10 +112,10 @@ const AgentForm: React.FC = () => {
           // *** CHANGE 6: After creating, navigate using the returned _id if available ***
           // Assuming your /api/agent/register endpoint returns the newly created agent's data, including _id
           if (response.data._id) {
-            navigate(`/agent/dev/${response.data._id}`); // Navigate to the new agent's edit page by its _id
+            navigate(`/extension/dev/${response.data._id}`); // Navigate to the new extension's edit page by its _id
           } else {
             // Fallback if _id is not returned immediately for new agents (less ideal)
-            navigate(`/agents/list`); // Or some other appropriate page
+            navigate(`/extensions/list`); // Or some other appropriate page
             console.warn("New agent's _id not returned by registration endpoint. Cannot navigate to its edit page.");
           }
         }
@@ -156,7 +157,7 @@ const AgentForm: React.FC = () => {
         await axios.delete(`${API_URL}/api/agent/dev/${id}`);
         setMessage('Agent deleted successfully!');
         setMessageType('success');
-        navigate('/agents/list'); // Redirect to a list of agents after successful deletion
+        navigate('/extensions/list'); // Redirect to a list of extensions after successful deletion
       } catch (error: any) {
         setMessage(error.response?.data?.message || 'Failed to delete agent.');
         setMessageType('error');
@@ -182,6 +183,7 @@ const AgentForm: React.FC = () => {
         return <FindMeFollowMeSettings />;
       case 'Advanced':
         return <AdvancedSettings  {...commonProps} />;
+
       case 'Pin Sets':
         return <PinSetsSettings />;
       case 'Other':
@@ -216,7 +218,7 @@ const AgentForm: React.FC = () => {
         <div className="relative z-10 flex items-center justify-center min-h-screen">
           <div className="text-center p-8 rounded-2xl cc-glass cc-transition">
             <div className="animate-spin rounded-full h-16 w-16 border-4 cc-border-accent border-t-cc-primary mx-auto mb-4"></div>
-            <p className="text-xl font-semibold cc-text-accent">Loading Agent Data...</p>
+            <p className="text-xl font-semibold cc-text-accent">Loading Extension Data...</p>
           </div>
         </div>
       </div>
@@ -248,20 +250,20 @@ const AgentForm: React.FC = () => {
         <div className="relative z-10 flex items-center justify-center min-h-screen">
           <div className="text-center p-8 rounded-2xl cc-glass cc-transition max-w-md">
             <FiXCircle className="text-6xl mx-auto mb-4 text-red-400" />
-            <h3 className="text-2xl font-bold mb-2 cc-text-accent">Error Loading Agent</h3>
+            <h3 className="text-2xl font-bold mb-2 cc-text-accent">Error Loading Extension</h3>
             <p className="text-red-400 mb-4">{fetchError}</p>
             <p className="text-sm mb-6 cc-text-secondary opacity-80">
               Please check the URL or try again later.
             </p>
             <button
-              onClick={() => navigate('/agents/list')}
+              onClick={() => navigate('/extensions/list')}
               className="px-6 py-3 rounded-xl font-semibold cc-transition cc-glass-hover cc-glow-yellow-hover hover:scale-105 hover:shadow-lg"
-              style={{ 
+              style={{
                 background: 'var(--cc-accent)',
                 color: isDarkMode ? '#000' : '#fff'
               }}
             >
-              Go to Agent List
+              Go to Extension List
             </button>
           </div>
         </div>
@@ -297,12 +299,12 @@ const AgentForm: React.FC = () => {
           <div className="mb-8 animate-fade-in">
             <div className="text-center mb-6">
               <h1 className="text-4xl font-bold mb-2 cc-text-accent animate-fade-in">
-                {isEditing ? 'Edit Agent' : 'Create New Agent'}
+                {isEditing ? 'Edit Extension' : 'Create New Extension'}
               </h1>
               <p className="text-lg cc-text-secondary animate-fade-in-delay-300">
-                {isEditing 
+                {isEditing
                   ? `Modify settings for extension ${formData.userExtension || '...'}`
-                  : 'Configure a new agent extension with advanced settings'
+                  : 'Configure a new extension with advanced settings'
                 }
               </p>
             </div>
@@ -388,7 +390,7 @@ const AgentForm: React.FC = () => {
                     color: isDarkMode ? '#000' : '#fff'
                   }}
                 >
-                  <FiSave className="inline-block mr-2" /> {isEditing ? 'Update Agent' : 'Create Agent'}
+                  <FiSave className="inline-block mr-2" /> {isEditing ? 'Update Extension' : 'Create Extension'}
                 </button>
                 
                 {isEditing && (
@@ -401,7 +403,7 @@ const AgentForm: React.FC = () => {
                       color: '#fff'
                     }}
                   >
-                    <FiTrash2 className="inline-block mr-2" /> Delete Agent
+                    <FiTrash2 className="inline-block mr-2" /> Delete Extension
                   </button>
                 )}
               </div>
@@ -413,4 +415,4 @@ const AgentForm: React.FC = () => {
   );
 };
 
-export default AgentForm;
+export default ExtensionForm;

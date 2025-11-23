@@ -10,7 +10,7 @@ type Agent = {
   displayName: string;
 };
 
-const AgentList: React.FC = () => {
+const ExtensionsList: React.FC = () => {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -118,10 +118,10 @@ const AgentList: React.FC = () => {
         <div className="mb-8 animate-fade-in">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold mb-2 cc-text-accent animate-fade-in">
-              Agent Management
+              Extension Management
             </h1>
             <p className="text-lg cc-text-secondary opacity-80 animate-fade-in-delay-300">
-              Manage your call center agents and extensions
+              Manage your call center extensions
             </p>
           </div>
 
@@ -151,9 +151,9 @@ const AgentList: React.FC = () => {
                 <FiRefreshCw className="mr-2 inline cc-text-secondary group-hover:animate-spin" /> <span className="cc-text-secondary">Refresh</span>
               </button>
               <button
-                onClick={() => navigate("/agent/dev")}
+                onClick={() => navigate("/extension/dev")}
                 className="px-6 py-3 rounded-xl font-semibold cc-transition cc-glass-hover cc-glow-yellow-hover hover:scale-105 hover:shadow-lg extension-button"
-                style={{ 
+                style={{
                   background: 'var(--cc-accent)',
                   color: isDarkMode ? '#000' : '#fff'
                 }}
@@ -168,12 +168,12 @@ const AgentList: React.FC = () => {
         {loading ? (
           <div className="cc-glass rounded-2xl p-12 text-center animate-fade-in cc-transition">
             <div className="animate-spin rounded-full h-16 w-16 border-4 cc-border-accent border-t-cc-primary mx-auto mb-4"></div>
-            <p className="text-xl cc-text-accent">Loading Agents...</p>
+            <p className="text-xl cc-text-accent">Loading Extensions...</p>
           </div>
         ) : error ? (
           <div className="cc-glass rounded-2xl p-12 text-center animate-fade-in cc-transition">
             <FiXCircle className="text-6xl mx-auto mb-4 text-red-400" />
-            <p className="text-xl text-red-400 mb-2">Error Loading Agents</p>
+            <p className="text-xl text-red-400 mb-2">Error Loading Extensions</p>
             <p className="opacity-80 cc-text-secondary">{error}</p>
           </div>
         ) : (
@@ -183,24 +183,24 @@ const AgentList: React.FC = () => {
               <div className="p-12 text-center">
                 <FiUser className="text-6xl mx-auto mb-4 cc-text-secondary opacity-40" />
                 <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--cc-text)' }}>
-                  {searchTerm ? 'No agents found' : 'No agents yet'}
+                  {searchTerm ? 'No extensions found' : 'No extensions yet'}
                 </h3>
                 <p className="opacity-80 mb-6" style={{ color: 'var(--cc-textSecondary)' }}>
-                  {searchTerm 
-                    ? `No agents match "${searchTerm}". Try a different search term.`
-                    : 'Get started by creating your first agent extension.'
+                  {searchTerm
+                    ? `No extensions match "${searchTerm}". Try a different search term.`
+                    : 'Get started by creating your first extension.'
                   }
                 </p>
                 {!searchTerm && (
                   <button
-                    onClick={() => navigate("/agent/dev")}
+                    onClick={() => navigate("/extension/dev")}
                     className="px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg extension-button"
-                    style={{ 
+                    style={{
                       background: 'var(--cc-accent)',
                       color: isDarkMode ? '#000' : '#fff'
                     }}
                   >
-                    <FiPlus className="mr-2 inline" /> Create First Agent
+                    <FiPlus className="mr-2 inline" /> Create First Extension
                   </button>
                 )}
               </div>
@@ -266,22 +266,22 @@ const AgentList: React.FC = () => {
                         <td className="p-6">
                           <div className="flex space-x-2">
                             <button
-                              onClick={() => navigate(`/agent/dev/${agent._id}`)}
+                              onClick={() => navigate(`/extension/dev/${agent._id}`)}
                               className="p-3 rounded-xl cc-transition cc-glass-hover hover:scale-110 hover:shadow-lg cc-text-accent"
-                              style={{ 
+                              style={{
                                 background: `var(--cc-accent)20`,
                               }}
-                              title={`Edit Agent ${agent._id}`}
+                              title={`Edit Extension ${agent._id}`}
                             >
                               <FiEdit size={18} />
                             </button>
                             <button
                               onClick={() => handleDeleteClick(agent)}
                               className="p-3 rounded-xl cc-transition cc-glass-hover hover:scale-110 hover:shadow-lg text-red-400"
-                              style={{ 
+                              style={{
                                 background: '#EF444420',
                               }}
-                              title={`Delete Agent ${agent._id}`}
+                              title={`Delete Extension ${agent._id}`}
                             >
                               <FiTrash2 size={18} />
                             </button>
@@ -314,7 +314,7 @@ const AgentList: React.FC = () => {
                 Confirm Deletion
               </h3>
               <p className="mb-6 opacity-80" style={{ color: 'var(--cc-textSecondary)' }}>
-                Are you sure you want to delete agent{' '}
+                Are you sure you want to delete extension{' '}
                 <span className="font-semibold" style={{ color: 'var(--cc-accent)' }}>
                   {agentToDelete.displayName}
                 </span>{' '}
@@ -346,4 +346,4 @@ const AgentList: React.FC = () => {
   );
 };
 
-export default AgentList;
+export default ExtensionsList;

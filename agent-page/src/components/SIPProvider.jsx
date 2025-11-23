@@ -26,6 +26,9 @@ export const SIPProvider = ({ children }) => {
 
   const timerIntervalRef = useRef(null);
   const remoteAudioRef = useRef(null);
+  const callStartTimeRef = useRef(null); // Track call start time
+  const callDirectionRef = useRef(null); // Track call direction (incoming/outgoing)
+  const remoteIdentityRef = useRef(null); // Track remote identity
 
   // Fetch SIP password
   useEffect(() => {
@@ -92,9 +95,9 @@ export const SIPProvider = ({ children }) => {
             ],
             rtcpMuxPolicy: "require",
             bundlePolicy: "max-bundle",
-            iceCandidatePoolSize: 10  
+            iceCandidatePoolSize: 10
           },
-        }, 
+        },
         logConfiguration: false,
         logLevel: "error",
       };
@@ -131,7 +134,12 @@ export const SIPProvider = ({ children }) => {
       ua.delegate = {
         onInvite: (session) => {
           console.log("📞 Incoming call received");
+          const remoteUser = session.remoteIdentity?.uri?.user || 'Unknown';
+          console.log("📊 Remote identity:", remoteUser);
           setIncomingCall(session);
+          callDirectionRef.current = 'incoming';
+          remoteIdentityRef.current = remoteUser;
+          console.log("✅ Call direction set to: incoming, remote:", remoteUser);
           setupSessionHandlers(session);
         },
       };
@@ -231,6 +239,7 @@ export const SIPProvider = ({ children }) => {
           setAgentStatus("On Call");
           setCallSession(session);
           setIncomingCall(null); // Clear incoming call to close modal
+          callStartTimeRef.current = Date.now(); // Set start time
           startCallTimer();
 
           // Ensure audio is connected
@@ -244,8 +253,28 @@ export const SIPProvider = ({ children }) => {
           break;
         case SIP.SessionState.Terminated:
           console.log("🔴 State: Terminated");
+          console.log("📊 Call data before logging:", {
+            startTime: callStartTimeRef.current,
+            direction: callDirectionRef.current,
+            remoteIdentity: remoteIdentityRef.current
+          });
+
           setStatus("Registered & Idle");
           setAgentStatus("Available");
+
+          // IMPORTANT: Save call log BEFORE handleCallEnd (which resets refs)
+          if (callStartTimeRef.current) {
+            const duration = Math.floor((Date.now() - callStartTimeRef.current) / 1000);
+            console.log("✅ Saving answered call with duration:", duration);
+            saveCallLog('Answered', duration);
+          } else if (callDirectionRef.current === 'incoming') {
+            console.log("❌ Saving missed incoming call");
+            saveCallLog('Missed', 0);
+          } else if (callDirectionRef.current === 'outgoing') {
+            console.log("🚫 Saving cancelled outgoing call");
+            saveCallLog('Cancelled', 0);
+          }
+
           handleCallEnd();
           console.log("📴 Call ended");
           break;
@@ -261,7 +290,9 @@ export const SIPProvider = ({ children }) => {
       },
       onReject: (response) => {
         console.log("❌ Call rejected:", response);
+        console.log("📊 Saving rejected call - direction:", callDirectionRef.current);
         setStatus("Call Rejected");
+        saveCallLog('Missed', 0);
         handleCallEnd();
       },
     };
@@ -278,8 +309,63 @@ export const SIPProvider = ({ children }) => {
     }, 1000);
   };
 
+  // Save call log to localStorage
+  const saveCallLog = (status, duration = 0) => {
+    if (!SIP_USER) {
+      console.warn("⚠️ Cannot save call log: No SIP_USER");
+      return;
+    }
+
+    const log = {
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
+      direction: callDirectionRef.current || 'unknown',
+      remoteIdentity: remoteIdentityRef.current || 'Unknown',
+      status: status,
+      duration: duration,
+      agent: SIP_USER
+    };
+
+    console.log("💾 Attempting to save call log:", log);
+
+    try {
+      const key = `voip_call_history_${SIP_USER}`;
+      const existingLogs = JSON.parse(localStorage.getItem(key) || '[]');
+      const newLogs = [log, ...existingLogs].slice(0, 100); // Keep last 100 calls
+      localStorage.setItem(key, JSON.stringify(newLogs));
+
+      console.log("✅ Call log saved successfully. Total logs:", newLogs.length);
+
+      // Dispatch event for real-time updates
+      window.dispatchEvent(new Event('call_history_updated'));
+    } catch (error) {
+      console.error("❌ Error saving call log:", error);
+    }
+  };
+
   // Handle call end
   const handleCallEnd = () => {
+    // Calculate duration if call was established
+    let duration = 0;
+    if (callStartTimeRef.current) {
+      duration = Math.floor((Date.now() - callStartTimeRef.current) / 1000);
+    } else if (callTimer > 0) {
+      duration = callTimer;
+    }
+
+    // Determine status for log if not already logged
+    // Note: This is a simplified check. You might want to pass specific status to handleCallEnd
+    // But for now, we'll rely on the fact that if we have duration, it was answered.
+    // If no duration and it was incoming, it might be missed/rejected.
+
+    // We'll let the specific event handlers (onReject, Terminated) call saveCallLog directly if possible,
+    // or we can infer here. 
+
+    // Reset refs
+    callStartTimeRef.current = null;
+    callDirectionRef.current = null;
+    remoteIdentityRef.current = null;
+
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
@@ -315,6 +401,11 @@ export const SIPProvider = ({ children }) => {
       // Set as call session immediately to show outgoing call UI
       setCallSession(inviter);
       setStatus("Calling...");
+
+      callDirectionRef.current = 'outgoing';
+      remoteIdentityRef.current = number;
+      console.log("📞 Outgoing call initiated to:", number);
+      console.log("✅ Call direction set to: outgoing");
 
       setupSessionHandlers(inviter);
 

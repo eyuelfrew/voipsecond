@@ -1,7 +1,6 @@
 import { Routes, Route, Outlet, Navigate } from "react-router-dom";
 import TopNav from "./components/TopNav";
 import LiveCalls from "./pages/Dashboard";
-import HomePage from "./pages/HomePage";
 import Sidebar from "./components/SideBar";
 import Agents from "./pages/Agents";
 import CallHistory from "./pages/CallHistory";
@@ -18,9 +17,10 @@ import MiscApplicationList from "./components/MiscApplication/MiscApplicationLis
 import AnnouncementsList from "./pages/AnnouncementsList";
 import AnnouncementForm from "./pages/AnnouncementForm";
 import QueuePage from "./pages/QueuePage";
-import AgentPage from "./pages/AgentPage";
+import ExtensionForm from "./pages/ExtensionForm";
 import QueueList from "./pages/QueueList";
-import AgentList from "./pages/AgentList";
+import ExtensionsList from "./pages/ExtensionsList";
+import AdvancedSipSettings from "./pages/AdvancedSipSettings";
 import LoginPage from "./auth/Login";
 import { useAuth } from "./context/AuthContext";
 import QueueStatistics from "./pages/QueueStatistics";
@@ -118,10 +118,10 @@ export default function App() {
           <Route path="new-misc-application" element={<MiscApplicationForm />} />
           <Route path="misc-applications" element={<MiscApplicationList />} />
 
-          <Route path="agent/dev" element={<AgentPage />} />
-          <Route path="agent/dev/:id" element={<AgentPage />} />
-          <Route path="agents" element={<Agents />} />
-          <Route path="agents/list" element={<AgentList />} />
+          <Route path="extension/dev" element={<ExtensionForm />} />
+          <Route path="extension/dev/:id" element={<ExtensionForm />} />
+          <Route path="extensions" element={<Agents />} />
+          <Route path="extensions/list" element={<ExtensionsList />} />
 
           <Route path="queue-list" element={<QueueList />} />
           <Route path="queues/edit/:id" element={<QueuePage />} />
@@ -130,14 +130,15 @@ export default function App() {
           <Route path="queue-details/:queueId" element={<QueueDetails />} />
           
           <Route path="agent-shifts" element={<AgentShifts />} />
+          <Route path="advanced-sip-settings" element={<AdvancedSipSettings />} />
         </Route>
 
         {/* Catch-all route - redirect to dashboard if authenticated, login if not */}
-        <Route 
-          path="*" 
+        <Route
+          path="*"
           element={
             <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />
-          } 
+          }
         />
       </Routes>
     </ShiftProvider>

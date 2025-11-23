@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, PhoneIncoming, PhoneMissed, PhoneForwarded, Search, Filter, Calendar, Clock, User } from 'lucide-react';
-import { getApiUrl } from '../config';
-const baseUrl = getApiUrl();
+import { Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing, Search, Filter, Clock } from 'lucide-react';
 import useStore from '../store/store';
 
 const CallHistory = () => {
@@ -9,50 +7,63 @@ const CallHistory = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const callsPerPage = 10;
   const agent = useStore(state => state.agent);
 
   useEffect(() => {
-    fetchCallHistory();
-  }, []);
+    loadCalls();
 
-  const fetchCallHistory = async () => {
+    // Listen for real-time updates
+    const handleStorageUpdate = () => loadCalls();
+    window.addEventListener('call_history_updated', handleStorageUpdate);
+
+    return () => {
+      window.removeEventListener('call_history_updated', handleStorageUpdate);
+    };
+  }, [agent]);
+
+  const loadCalls = () => {
+    if (!agent?.username) return;
+
     try {
       setLoading(true);
-      const response = await fetch(`${baseUrl}/calls/history/${agent._id || agent.id}`, {
-        credentials: 'include'
-      });
-      const data = await response.json();
-      setCalls(data.calls || []);
+      const key = `voip_call_history_${agent.username}`;
+      const storedCalls = JSON.parse(localStorage.getItem(key) || '[]');
+      setCalls(storedCalls);
     } catch (error) {
-      console.error('Error fetching call history:', error);
+      console.error('Error loading call history:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatusIcon = (status) => {
-    switch (status.toLowerCase()) {
-      case 'answered':
-        return <PhoneIncoming className="w-5 h-5 text-green-400" />;
-      case 'missed':
-        return <PhoneMissed className="w-5 h-5 text-red-400" />;
-      case 'transferred':
-        return <PhoneForwarded className="w-5 h-5 text-blue-400" />;
-      default:
-        return <Phone className="w-5 h-5 text-gray-400" />;
+  const getStatusIcon = (status, direction) => {
+    const normalizedStatus = status?.toLowerCase() || '';
+    const normalizedDirection = direction?.toLowerCase() || '';
+
+    if (normalizedStatus === 'missed' || normalizedStatus === 'cancelled') {
+      return <PhoneMissed className="w-6 h-6 text-red-500" />;
     }
+
+    if (normalizedDirection === 'outgoing') {
+      return <PhoneOutgoing className="w-6 h-6 text-blue-500" />;
+    }
+
+    if (normalizedDirection === 'incoming') {
+      return <PhoneIncoming className="w-6 h-6 text-green-500" />;
+    }
+
+    return <Phone className="w-6 h-6 text-gray-400" />;
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusColor = (status) => {
     const styles = {
-      answered: 'bg-green-500/20 text-green-400 border-green-500/30',
-      missed: 'bg-red-500/20 text-red-400 border-red-500/30',
-      transferred: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      default: 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+      answered: 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30',
+      missed: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30',
+      cancelled: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30',
+      transferred: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30',
+      default: 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/30'
     };
-    return styles[status.toLowerCase()] || styles.default;
+    return styles[status?.toLowerCase()] || styles.default;
   };
 
   const formatDuration = (seconds) => {
@@ -63,66 +74,71 @@ const CallHistory = () => {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const formatTime = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
   const filteredCalls = calls.filter(call => {
-    const matchesSearch = call.callerNumber?.includes(searchTerm) || 
-                         call.callerName?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = call.remoteIdentity?.includes(searchTerm) ||
+      call.remoteIdentity?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || call.status.toLowerCase() === filterStatus;
     return matchesSearch && matchesFilter;
   });
 
-  const indexOfLastCall = currentPage * callsPerPage;
-  const indexOfFirstCall = indexOfLastCall - callsPerPage;
-  const currentCalls = filteredCalls.slice(indexOfFirstCall, indexOfLastCall);
-  const totalPages = Math.ceil(filteredCalls.length / callsPerPage);
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 transition-colors duration-200">
+    <div className="p-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-black text-gray-900 dark:text-white mb-2">Call History</h1>
-        <p className="text-gray-600 dark:text-gray-400">View and manage your call records</p>
+        <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 to-orange-500 mb-2">
+          Call History
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400">Your recent call activity</p>
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 mb-6 border border-gray-200 dark:border-gray-700 shadow-lg">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 mb-6 border border-gray-200 dark:border-gray-700 shadow-xl backdrop-blur-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by number or name..."
+              placeholder="Search by number..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-yellow-500 transition-all"
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-yellow-500 transition-all"
             />
           </div>
 
           {/* Status Filter */}
           <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
+            <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:border-yellow-500 transition-all appearance-none"
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:border-yellow-500 transition-all appearance-none cursor-pointer"
             >
               <option value="all">All Calls</option>
               <option value="answered">Answered</option>
               <option value="missed">Missed</option>
-              <option value="transferred">Transferred</option>
+              <option value="cancelled">Cancelled</option>
             </select>
           </div>
-
-          {/* Refresh Button */}
-          <button
-            onClick={fetchCallHistory}
-            className="bg-yellow-500 hover:bg-yellow-600 dark:bg-yellow-600 dark:hover:bg-yellow-700 text-black font-bold py-3 px-6 rounded-xl transition-all transform hover:scale-105 shadow-lg"
-          >
-            Refresh
-          </button>
         </div>
       </div>
 
@@ -131,112 +147,65 @@ const CallHistory = () => {
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-yellow-400 border-t-transparent"></div>
         </div>
-      ) : currentCalls.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 text-center border border-gray-200 dark:border-gray-700 shadow-lg">
-          <Phone className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No Calls Found</h3>
+      ) : filteredCalls.length === 0 ? (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 text-center border border-gray-200 dark:border-gray-700 shadow-xl">
+          <Phone className="w-20 h-20 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No Calls Yet</h3>
           <p className="text-gray-600 dark:text-gray-400">Your call history will appear here</p>
         </div>
       ) : (
-        <>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-lg">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-100 dark:bg-gray-900">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                      Caller
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                      Duration
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                      Date & Time
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {currentCalls.map((call, index) => (
-                    <tr
-                      key={call._id || index}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-3">
-                          {getStatusIcon(call.status)}
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusBadge(call.status)}`}>
-                            {call.status}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center">
-                            <User className="w-5 h-5 text-yellow-400" />
-                          </div>
-                          <div>
-                            <div className="text-gray-900 dark:text-white font-semibold">{call.callerName || 'Unknown'}</div>
-                            <div className="text-gray-600 dark:text-gray-400 text-sm">{call.callerNumber}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-2 text-gray-700 dark:text-gray-300">
-                          <Clock className="w-4 h-4" />
-                          <span>{formatDuration(call.duration || 0)}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-2 text-gray-700 dark:text-gray-300">
-                          <Calendar className="w-4 h-4" />
-                          <span className="text-sm">{formatDate(call.timestamp)}</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+        <div className="space-y-3">
+          {filteredCalls.map((call, index) => (
+            <div
+              key={call.id || index}
+              className="group bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer"
+            >
+              <div className="flex items-center justify-between">
+                {/* Left: Icon and Info */}
+                <div className="flex items-center space-x-4 flex-1">
+                  {/* Icon */}
+                  <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    {getStatusIcon(call.status, call.direction)}
+                  </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center space-x-2 mt-6">
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 dark:text-white rounded-lg transition-all"
-              >
-                Previous
-              </button>
-              <div className="flex items-center space-x-2">
-                {[...Array(totalPages)].map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setCurrentPage(i + 1)}
-                    className={`w-10 h-10 rounded-lg font-semibold transition-all ${
-                      currentPage === i + 1
-                        ? 'bg-yellow-500 dark:bg-yellow-600 text-black shadow-lg'
-                        : 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
+                  {/* Call Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-3 mb-1">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">
+                        {call.remoteIdentity || 'Unknown'}
+                      </h3>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(call.status)}`}>
+                        {call.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+                      <span className="flex items-center space-x-1 capitalize">
+                        <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+                        <span>{call.direction}</span>
+                      </span>
+                      {call.duration > 0 && (
+                        <span className="flex items-center space-x-1">
+                          <Clock className="w-3 h-3" />
+                          <span>{formatDuration(call.duration)}</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Time */}
+                <div className="flex-shrink-0 text-right ml-4">
+                  <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {formatDate(call.timestamp)}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {formatTime(call.timestamp)}
+                  </div>
+                </div>
               </div>
-              <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 dark:text-white rounded-lg transition-all"
-              >
-                Next
-              </button>
             </div>
-          )}
-        </>
+          ))}
+        </div>
       )}
     </div>
   );

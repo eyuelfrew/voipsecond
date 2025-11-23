@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Phone, Clock, Users, Calendar, Filter } from 'lucide-react';
+import { TrendingUp, Phone, Clock, Users, Calendar, Filter, RefreshCw } from 'lucide-react';
+import axios from 'axios';
 import { getApiUrl } from '../config';
 const baseUrl = getApiUrl();
 import useStore from '../store/store';
@@ -10,6 +11,106 @@ const Analytics = () => {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('today');
   const agent = useStore(state => state.agent);
+
+  // Daily Stats State (moved from Dashboard)
+  const [dailyStats, setDailyStats] = useState({
+    totalCallsToday: 0,
+    answeredCallsToday: 0,
+    missedCallsToday: 0,
+    averageTalkTimeToday: 0,
+    averageWrapTimeToday: 0,
+    averageHoldTimeToday: 0,
+    longestIdleTimeToday: 0
+  });
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+
+  const fetchDailyStats = async (isManualRefresh = false) => {
+    if (!agent?.username) return;
+
+    if (isManualRefresh) {
+      setRefreshing(true);
+    }
+
+    try {
+      const response = await axios.get(`${baseUrl}/agent/stats/${agent.username}?period=today`, {
+        withCredentials: true
+      });
+
+      if (response.data && response.data.success) {
+        const statsData = response.data.stats;
+        setDailyStats({
+          totalCallsToday: statsData.totalCalls || 0,
+          answeredCallsToday: statsData.answeredCalls || 0,
+          missedCallsToday: statsData.missedCalls || 0,
+          averageTalkTimeToday: statsData.averageTalkTime || 0,
+          averageWrapTimeToday: statsData.averageWrapTime || 0,
+          averageHoldTimeToday: statsData.averageHoldTime || 0,
+          longestIdleTimeToday: statsData.longestIdleTime || 0
+        });
+        setLastUpdated(new Date());
+      }
+    } catch (error) {
+      console.error('Error fetching agent stats:', error);
+      // Fallback
+      try {
+        const agentId = agent.id || agent._id;
+        if (agentId) {
+          const fallbackResponse = await axios.get(`${baseUrl}/agent/ex/${agentId}`, {
+            withCredentials: true
+          });
+
+          if (fallbackResponse.data) {
+            setDailyStats({
+              totalCallsToday: fallbackResponse.data.totalCallsToday || 0,
+              answeredCallsToday: fallbackResponse.data.answeredCallsToday || 0,
+              missedCallsToday: fallbackResponse.data.missedCallsToday || 0,
+              averageTalkTimeToday: fallbackResponse.data.averageTalkTimeToday || 0,
+              averageWrapTimeToday: fallbackResponse.data.averageWrapTimeToday || 0,
+              averageHoldTimeToday: fallbackResponse.data.averageHoldTimeToday || 0,
+              longestIdleTimeToday: fallbackResponse.data.longestIdleTimeToday || 0
+            });
+            setLastUpdated(new Date());
+          }
+        }
+      } catch (fallbackError) {
+        console.error('Fallback fetch also failed:', fallbackError);
+      }
+    } finally {
+      if (isManualRefresh) {
+        setRefreshing(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (agent?.username) {
+      fetchDailyStats();
+    }
+  }, []);
+
+  const formatTime = (seconds) => {
+    if (!seconds) return '0s';
+    const roundedSeconds = Math.round(seconds * 100) / 100;
+    const mins = Math.floor(roundedSeconds / 60);
+    const secs = roundedSeconds % 60;
+    const formattedSecs = secs % 1 === 0 ? Math.floor(secs) : secs.toFixed(2);
+    return mins > 0 ? `${mins}m ${formattedSecs}s` : `${formattedSecs}s`;
+  };
+
+  const answerRate = dailyStats.totalCallsToday > 0
+    ? Math.round((dailyStats.answeredCallsToday / dailyStats.totalCallsToday) * 100)
+    : 0;
+
+  const formatLastUpdated = () => {
+    if (!lastUpdated) return 'Never';
+    const now = new Date();
+    const diff = Math.floor((now - lastUpdated) / 1000);
+    if (diff < 10) return 'Just now';
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    return lastUpdated.toLocaleTimeString();
+  };
 
   useEffect(() => {
     fetchAnalytics();
@@ -99,15 +200,103 @@ const Analytics = () => {
               <button
                 key={range}
                 onClick={() => setTimeRange(range)}
-                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                  timeRange === range
+                className={`px-4 py-2 rounded-lg font-semibold transition-all ${timeRange === range
                     ? 'bg-yellow-500 text-black'
                     : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                }`}
+                  }`}
               >
                 {range.charAt(0).toUpperCase() + range.slice(1)}
               </button>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Daily Stats Section (Moved from Dashboard) */}
+      <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-2xl shadow-lg p-6 mb-8 border border-yellow-500/20">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-white">Today's Overview</h2>
+            <p className="text-gray-400">Real-time daily statistics</p>
+          </div>
+          <div className="flex items-center space-x-4">
+            {lastUpdated && (
+              <span className="text-xs text-gray-500">
+                Updated: {formatLastUpdated()}
+              </span>
+            )}
+            <button
+              onClick={() => fetchDailyStats(true)}
+              disabled={refreshing}
+              className="flex items-center space-x-2 bg-gray-700 hover:bg-gray-600 rounded-lg px-4 py-2 transition-all disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 text-yellow-400 ${refreshing ? 'animate-spin' : ''}`} />
+              <span className="text-sm font-medium text-white">Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Total Calls */}
+          <div className="bg-black/40 rounded-xl p-6 border-l-4 border-blue-500">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-gray-400 text-sm font-medium">Total Calls</h3>
+              <Phone className="text-blue-500" size={24} />
+            </div>
+            <p className="text-3xl font-bold text-white">{dailyStats.totalCallsToday}</p>
+            <p className="text-xs text-gray-500 mt-1">Today's activity</p>
+          </div>
+
+          {/* Answered Calls */}
+          <div className="bg-black/40 rounded-xl p-6 border-l-4 border-green-500">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-gray-400 text-sm font-medium">Answered</h3>
+              <div className="w-6 h-6 bg-green-900/30 rounded-full flex items-center justify-center">
+                <span className="text-green-400 text-lg">✓</span>
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-white">{dailyStats.answeredCallsToday}</p>
+            <p className="text-xs text-green-400 mt-1 font-semibold">{answerRate}% answer rate</p>
+          </div>
+
+          {/* Missed Calls */}
+          <div className="bg-black/40 rounded-xl p-6 border-l-4 border-red-500">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-gray-400 text-sm font-medium">Missed</h3>
+              <div className="w-6 h-6 bg-red-900/30 rounded-full flex items-center justify-center">
+                <span className="text-red-400 text-lg">✕</span>
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-white">{dailyStats.missedCallsToday}</p>
+            <p className="text-xs text-gray-500 mt-1">Needs attention</p>
+          </div>
+
+          {/* Avg Talk Time */}
+          <div className="bg-black/40 rounded-xl p-6 border-l-4 border-purple-500">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-gray-400 text-sm font-medium">Avg Talk Time</h3>
+              <div className="w-6 h-6 bg-purple-900/30 rounded-full flex items-center justify-center">
+                <span className="text-purple-400 text-sm">⏱</span>
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-white">{formatTime(dailyStats.averageTalkTimeToday)}</p>
+            <p className="text-xs text-gray-500 mt-1">Per call</p>
+          </div>
+        </div>
+
+        {/* Additional Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+          <div className="bg-black/30 p-4 rounded-lg flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Avg Wrap Time</span>
+            <span className="text-white font-bold">{formatTime(dailyStats.averageWrapTimeToday)}</span>
+          </div>
+          <div className="bg-black/30 p-4 rounded-lg flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Avg Hold Time</span>
+            <span className="text-white font-bold">{formatTime(dailyStats.averageHoldTimeToday)}</span>
+          </div>
+          <div className="bg-black/30 p-4 rounded-lg flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Longest Idle</span>
+            <span className="text-white font-bold">{formatTime(dailyStats.longestIdleTimeToday)}</span>
           </div>
         </div>
       </div>
