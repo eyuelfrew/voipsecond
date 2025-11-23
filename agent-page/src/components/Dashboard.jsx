@@ -76,7 +76,7 @@ const Dashboard = () => {
 
   return (
     <>
-      <div className="flex h-[calc(100vh-68px)] text-gray-900 dark:text-gray-100">
+      <div className="flex h-[calc(100vh-68px)] text-gray-900">
         <main className="flex-1 overflow-y-auto px-8 py-6">
           <div className="max-w-5xl mx-auto flex flex-col space-y-8">
             {/* Top action buttons for dialogs */}
@@ -134,8 +134,8 @@ const Dashboard = () => {
             {/* Knowledge Base Dialog */}
             {showKBPopup && (
               <div className="fixed inset-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center animate-fadeIn">
-                <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-3xl h-[90vh] overflow-y-auto relative p-8 flex flex-col border border-gray-200 dark:border-gray-700">
-                  <button className="absolute top-6 right-6 text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition" onClick={() => setShowKBPopup(false)}>
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl h-[90vh] overflow-y-auto relative p-8 flex flex-col border border-gray-200">
+                  <button className="absolute top-6 right-6 text-gray-400 hover:text-gray-700 transition" onClick={() => setShowKBPopup(false)}>
                     <X size={32} />
                   </button>
                   <KnowledgeBaseSearch />
@@ -145,8 +145,8 @@ const Dashboard = () => {
             {/* Canned Answers Dialog */}
             {showCannedPopup && (
               <div className="fixed inset-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center animate-fadeIn">
-                <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl h-[80vh] overflow-y-auto relative p-8 flex flex-col border border-gray-200 dark:border-gray-700">
-                  <button className="absolute top-6 right-6 text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition" onClick={() => setShowCannedPopup(false)}>
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl h-[80vh] overflow-y-auto relative p-8 flex flex-col border border-gray-200">
+                  <button className="absolute top-6 right-6 text-gray-400 hover:text-gray-700 transition" onClick={() => setShowCannedPopup(false)}>
                     <X size={32} />
                   </button>
                   <CannedResponseSearch />
@@ -155,6 +155,8 @@ const Dashboard = () => {
             )}
           </div>
         </main>
+
+
         {/* Floating Call Button with bounce animation */}
         <button
           className={`fixed bottom-10 right-10 z-50 w-16 h-16 rounded-2xl bg-primary-500 shadow-xl text-white text-2xl flex items-center justify-center hover:bg-primary-600 transition ${!isSIPReady ? 'opacity-50 cursor-not-allowed' : ''} animate-bounce`}

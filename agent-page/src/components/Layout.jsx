@@ -12,7 +12,7 @@ const Layout = ({ children }) => {
   const isSIPReady = typeof makeCall === 'function';
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-950 overflow-hidden transition-colors duration-200">
+    <div className="flex h-screen bg-gray-100 overflow-hidden transition-colors duration-200">
       {/* Sidebar */}
       <Sidebar />
 
@@ -27,7 +27,7 @@ const Layout = ({ children }) => {
         />
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+        <main className="flex-1 overflow-y-auto bg-gray-50 transition-colors duration-200">
           {children}
         </main>
       </div>

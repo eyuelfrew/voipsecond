@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { Wifi, LogOut, Pause, Play, WifiOff, RefreshCw, Sun, Moon, Clock, LogIn } from 'lucide-react';
+import { Wifi, LogOut, Pause, Play, WifiOff, RefreshCw, Clock, LogIn, AlertCircle, CheckCircle, Sun, Moon } from 'lucide-react';
 import useStore from '../store/store';
 import PauseModal from './PauseModal';
 import { useSIP } from './SIPProvider';
 import { getApiUrl } from '../config';
 const baseUrl = getApiUrl();
-import { useTheme } from '../contexts/ThemeContext';
 import { useShift } from '../contexts/ShiftContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
     const agent = useStore((state) => state.agent);
@@ -18,6 +18,7 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
     const [isPaused, setIsPaused] = useState(false);
     const [pauseReason, setPauseReason] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
+    const [showCertModal, setShowCertModal] = useState(false);
     
     const previousUsernameRef = useRef(null);
 
@@ -183,10 +184,10 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
 
     return (
         <>
-            <nav className="sticky top-0 z-50 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-sm border-b border-gray-100 dark:border-gray-800 px-6 py-4 flex items-center justify-between transition-colors duration-200">
+            <nav className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100 px-6 py-4 flex items-center justify-between transition-colors duration-200">
                 {/* Title */}
                 <div className="flex items-center gap-3">
-                    <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+                    <span className="text-xl font-bold text-gray-900 tracking-tight">
                         FE Call Center
                     </span>
                 </div>
@@ -195,9 +196,9 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
                 <div className="flex items-center gap-4">
                     {/* Shift Timer/Control */}
                     {shiftStatus === 'active' ? (
-                        <div className="flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/30 border-2 border-green-500 rounded-lg">
-                            <Clock className="w-4 h-4 text-green-600 dark:text-green-400 animate-pulse" />
-                            <span className="font-mono text-sm font-bold text-green-700 dark:text-green-400">
+                        <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border-2 border-green-500 rounded-lg">
+                            <Clock className="w-4 h-4 text-green-600 animate-pulse" />
+                            <span className="font-mono text-sm font-bold text-green-700">
                                 {formatTime(shiftTimer)}
                             </span>
                             <button
@@ -211,7 +212,7 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
                     ) : shiftStatus === 'not_started' ? (
                         <button
                             onClick={handleStartShift}
-                            className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white font-semibold rounded-lg transition-all shadow-lg"
+                            className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-all shadow-lg"
                             title="Start Shift"
                         >
                             <LogIn className="w-4 h-4" />
@@ -219,17 +220,63 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
                         </button>
                     ) : null}
 
+                    {/* SIP Registration Toggle (WiFi Icon) */}
+                    <button
+                        onClick={() => {
+                            if (sip?.isRegistering) return;
+                            
+                            if (sip?.registered) {
+                                // Unregister
+                                sip?.manualUnregister();
+                            } else {
+                                // Try to register
+                                sip?.manualRegister();
+                                
+                                // Check for certificate error after a delay
+                                setTimeout(() => {
+                                    if (sip?.registrationError && sip.registrationError.includes('certificate')) {
+                                        setShowCertModal(true);
+                                    }
+                                }, 2000);
+                            }
+                        }}
+                        disabled={sip?.isRegistering}
+                        className={`flex items-center justify-center w-10 h-10 rounded-lg font-medium transition-all duration-200 shadow-sm border-2 ${
+                            sip?.registered
+                                ? 'border-green-500 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50'
+                                : 'border-red-500 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50'
+                        } ${sip?.isRegistering ? 'opacity-60 cursor-not-allowed' : ''}`}
+                        title={
+                            sip?.isRegistering 
+                                ? 'Registering...' 
+                                : sip?.registered 
+                                    ? 'SIP Registered - Click to Unregister' 
+                                    : 'SIP Unregistered - Click to Register'
+                        }
+                    >
+                        {sip?.isRegistering ? (
+                            <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                        ) : sip?.registered ? (
+                            <Wifi className="w-5 h-5 text-green-600 dark:text-green-400" />
+                        ) : (
+                            <WifiOff className="w-5 h-5 text-red-600 dark:text-red-400" />
+                        )}
+                    </button>
+
                     {/* Theme Toggle */}
                     <button
-                        onClick={toggleTheme}
-                        className="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200"
+                        onClick={() => {
+                            console.log('Theme toggle clicked, current theme:', theme);
+                            toggleTheme();
+                        }}
+                        className="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 border-2 border-transparent hover:border-yellow-500"
                         title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
                         aria-label="Toggle theme"
                     >
                         {theme === 'light' ? (
-                            <Moon className="w-5 h-5 text-gray-700" />
+                            <Moon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
                         ) : (
-                            <Sun className="w-5 h-5 text-yellow-400" />
+                            <Sun className="w-5 h-5 text-yellow-500" />
                         )}
                     </button>
 
@@ -246,8 +293,8 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
                         }}
                         disabled={!isSIPReady || isProcessing}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-sm border-2 ${isPaused
-                            ? 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/50'
-                            : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                            ? 'border-green-500 bg-green-50 text-green-700 hover:bg-green-100'
+                            : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                             } ${!isSIPReady || isProcessing ? 'opacity-60 cursor-not-allowed' : ''}`}
                         title={isPaused ? 'Click to Resume Work' : 'Click to Pause Work'}
                     >
@@ -272,8 +319,8 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
                     {/* Active Status Indicator */}
                     <div
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-sm border-2 ${isSIPReady
-                            ? 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                            : 'border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                            ? 'border-green-500 bg-green-50 text-green-700'
+                            : 'border-gray-300 bg-gray-50 text-gray-600'
                             }`}
                         title={isSIPReady ? 'SIP Connected - Agent Active' : 'SIP Disconnected'}
                     >
@@ -287,25 +334,25 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
                     {agent && (
                         <div className="relative">
                             <button
-                                className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
+                                className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-100 shadow-sm hover:bg-gray-100 transition-all duration-200"
                                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                                 aria-label="Toggle profile menu"
                                 aria-expanded={isDropdownOpen}
                             >
-                                <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-700 dark:text-gray-300 font-semibold text-sm">
+                                <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 font-semibold text-sm">
                                     {getInitials(agent.name)}
                                 </div>
                                 <div className="flex flex-col items-start">
-                                    <span className="text-sm font-medium text-gray-900 dark:text-white">{agent.name}</span>
-                                    <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">{agent.email}</span>
+                                    <span className="text-sm font-medium text-gray-900">{agent.name}</span>
+                                    <span className="text-xs text-gray-500 hidden sm:block">{agent.email}</span>
                                 </div>
                             </button>
 
                             {/* Dropdown Menu */}
                             {isDropdownOpen && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-lg z-50">
+                                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-lg shadow-lg z-50">
                                     <button
-                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                                         onClick={() => {
                                             setIsDropdownOpen(false);
                                             // Placeholder for shift report action
@@ -315,7 +362,7 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
                                         <span>Shift Report</span>
                                     </button>
                                     <button
-                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                                         onClick={() => {
                                             setIsDropdownOpen(false);
                                             onLogout();
@@ -340,6 +387,57 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
                     isPaused={isPaused}
                     currentPauseReason={pauseReason}
                 />
+
+                {/* Certificate Acceptance Modal */}
+                {showCertModal && (
+                    <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 border border-gray-200 dark:border-gray-700">
+                            <div className="flex items-start gap-4 mb-4">
+                                <div className="flex-shrink-0 w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center">
+                                    <AlertCircle className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                                        Certificate Error Detected
+                                    </h3>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                        The SIP server is using a self-signed certificate. You need to accept it in your browser before registration can succeed.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+                                <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">
+                                    Steps to Accept Certificate:
+                                </h4>
+                                <ol className="text-sm text-blue-800 dark:text-blue-400 space-y-1 list-decimal list-inside">
+                                    <li>Click "Open Certificate Page" below</li>
+                                    <li>Accept the security warning in the new tab</li>
+                                    <li>Close that tab and return here</li>
+                                    <li>Click the WiFi icon again to retry registration</li>
+                                </ol>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => {
+                                        sip?.openCertificateAcceptance();
+                                    }}
+                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all"
+                                >
+                                    <CheckCircle className="w-5 h-5" />
+                                    Open Certificate Page
+                                </button>
+                                <button
+                                    onClick={() => setShowCertModal(false)}
+                                    className="px-4 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-semibold transition-all"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </nav>
 
             {/* Network Error Banner */}

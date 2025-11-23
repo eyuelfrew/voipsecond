@@ -420,7 +420,7 @@ const CallPopup = ({
 
                                 {/* Calling Info */}
                                 <div className="text-center space-y-3">
-                                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+                                    <h2 className="text-3xl font-bold text-gray-900">
                                         {remoteNumber || 'Unknown'}
                                     </h2>
                                     <div className="flex items-center justify-center space-x-2">
@@ -429,15 +429,15 @@ const CallPopup = ({
                                             <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                                             <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                                         </div>
-                                        <p className="text-xl text-blue-600 dark:text-blue-400 font-medium">
+                                        <p className="text-xl text-blue-600 font-medium">
                                             {status || 'Calling...'}
                                         </p>
                                     </div>
                                 </div>
 
                                 {/* Connection Status */}
-                                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl px-6 py-3">
-                                    <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
+                                <div className="bg-blue-50 border border-blue-200 rounded-xl px-6 py-3">
+                                    <p className="text-sm text-blue-700 font-medium">
                                         Connecting to {remoteNumber}...
                                     </p>
                                 </div>

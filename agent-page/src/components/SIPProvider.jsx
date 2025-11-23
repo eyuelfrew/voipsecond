@@ -29,6 +29,9 @@ export const SIPProvider = ({ children }) => {
   const callStartTimeRef = useRef(null); // Track call start time
   const callDirectionRef = useRef(null); // Track call direction (incoming/outgoing)
   const remoteIdentityRef = useRef(null); // Track remote identity
+  const registererRef = useRef(null); // Store registerer for manual control
+  const [isRegistering, setIsRegistering] = useState(false); // Track registration process
+  const [registrationError, setRegistrationError] = useState(null); // Track registration errors
 
   // Fetch SIP password
   useEffect(() => {
@@ -106,15 +109,18 @@ export const SIPProvider = ({ children }) => {
 
       // Create Registerer
       const registerer = new SIP.Registerer(ua);
+      registererRef.current = registerer;
 
       // Listen for registration state changes
       registerer.stateChange.addListener((newState) => {
         console.log("📡 Registration state:", newState);
+        setIsRegistering(false);
         switch (newState) {
           case SIP.RegistererState.Registered:
             setRegistered(true);
             setStatus("Registered & Idle");
             setConnectionFailed(false);
+            setRegistrationError(null);
             console.log("✅ Successfully registered");
             break;
           case SIP.RegistererState.Unregistered:
@@ -151,10 +157,13 @@ export const SIPProvider = ({ children }) => {
         setStatus("Connecting...");
 
         // Register
+        setIsRegistering(true);
         registerer.register().catch((error) => {
           console.error("❌ Registration failed:", error);
           setStatus("Registration Failed");
           setConnectionFailed(true);
+          setIsRegistering(false);
+          setRegistrationError(error.message || "Registration failed");
         });
       }).catch((error) => {
         console.error("❌ Failed to start User Agent:", error);
@@ -679,6 +688,61 @@ export const SIPProvider = ({ children }) => {
     // The useEffect will handle reconnection when sipPassword is available
   };
 
+  // Manual register
+  const manualRegister = async () => {
+    if (!registererRef.current || isRegistering) {
+      console.warn("⚠️ Cannot register: No registerer or already registering");
+      return;
+    }
+
+    try {
+      console.log("📡 Manual registration initiated...");
+      setIsRegistering(true);
+      setRegistrationError(null);
+      setConnectionFailed(false);
+      await registererRef.current.register();
+    } catch (error) {
+      console.error("❌ Manual registration failed:", error);
+      setStatus("Registration Failed");
+      setConnectionFailed(true);
+      setIsRegistering(false);
+      setRegistrationError(error.message || "Registration failed");
+      
+      // Check if it's a certificate error
+      if (error.message && (error.message.includes('certificate') || error.message.includes('SSL') || error.message.includes('TLS'))) {
+        setRegistrationError("Certificate error detected. Please accept the certificate and try again.");
+      }
+    }
+  };
+
+  // Manual unregister
+  const manualUnregister = async () => {
+    if (!registererRef.current) {
+      console.warn("⚠️ Cannot unregister: No registerer");
+      return;
+    }
+
+    try {
+      console.log("📡 Manual unregistration initiated...");
+      setIsRegistering(true);
+      await registererRef.current.unregister();
+      setRegistered(false);
+      setStatus("Unregistered");
+      setIsRegistering(false);
+    } catch (error) {
+      console.error("❌ Manual unregistration failed:", error);
+      setIsRegistering(false);
+    }
+  };
+
+  // Open certificate acceptance page
+  const openCertificateAcceptance = () => {
+    const SIP_SERVER = getSipServer();
+    const SIP_PORT = getSipPort();
+    const certUrl = `https://${SIP_SERVER}:${SIP_PORT}`;
+    window.open(certUrl, '_blank', 'width=800,height=600');
+  };
+
   const value = {
     status,
     registered,
@@ -700,6 +764,11 @@ export const SIPProvider = ({ children }) => {
     remoteAudioRef,
     connectionFailed,
     retryConnection,
+    manualRegister,
+    manualUnregister,
+    isRegistering,
+    registrationError,
+    openCertificateAcceptance,
   };
 
   return (

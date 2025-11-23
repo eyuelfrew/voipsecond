@@ -57,11 +57,11 @@ const CallHistory = () => {
 
   const getStatusColor = (status) => {
     const styles = {
-      answered: 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30',
-      missed: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30',
-      cancelled: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30',
-      transferred: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30',
-      default: 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/30'
+      answered: 'bg-green-500/10 text-green-600 border-green-500/30',
+      missed: 'bg-red-500/10 text-red-600 border-red-500/30',
+      cancelled: 'bg-orange-500/10 text-orange-600 border-orange-500/30',
+      transferred: 'bg-blue-500/10 text-blue-600 border-blue-500/30',
+      default: 'bg-gray-500/10 text-gray-600 border-gray-500/30'
     };
     return styles[status?.toLowerCase()] || styles.default;
   };
@@ -107,11 +107,11 @@ const CallHistory = () => {
         <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 to-orange-500 mb-2">
           Call History
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">Your recent call activity</p>
+        <p className="text-gray-600">Your recent call activity</p>
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 mb-6 border border-gray-200 dark:border-gray-700 shadow-xl backdrop-blur-sm">
+      <div className="bg-white rounded-2xl p-6 mb-6 border border-gray-200 shadow-xl backdrop-blur-sm">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Search */}
           <div className="relative">
@@ -121,7 +121,7 @@ const CallHistory = () => {
               placeholder="Search by number..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-yellow-500 transition-all"
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:border-yellow-500 transition-all"
             />
           </div>
 
@@ -131,7 +131,7 @@ const CallHistory = () => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:border-yellow-500 transition-all appearance-none cursor-pointer"
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:border-yellow-500 transition-all appearance-none cursor-pointer"
             >
               <option value="all">All Calls</option>
               <option value="answered">Answered</option>
@@ -148,37 +148,37 @@ const CallHistory = () => {
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-yellow-400 border-t-transparent"></div>
         </div>
       ) : filteredCalls.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 text-center border border-gray-200 dark:border-gray-700 shadow-xl">
-          <Phone className="w-20 h-20 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No Calls Yet</h3>
-          <p className="text-gray-600 dark:text-gray-400">Your call history will appear here</p>
+        <div className="bg-white rounded-2xl p-12 text-center border border-gray-200 shadow-xl">
+          <Phone className="w-20 h-20 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">No Calls Yet</h3>
+          <p className="text-gray-600 text-gray-500">Your call history will appear here</p>
         </div>
       ) : (
         <div className="space-y-3">
           {filteredCalls.map((call, index) => (
             <div
               key={call.id || index}
-              className="group bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer"
+              className="group bg-white rounded-2xl p-5 border border-gray-200 shadow-lg hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer"
             >
               <div className="flex items-center justify-between">
                 {/* Left: Icon and Info */}
                 <div className="flex items-center space-x-4 flex-1">
                   {/* Icon */}
-                  <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center group-hover:scale-110 transition-transform">
                     {getStatusIcon(call.status, call.direction)}
                   </div>
 
                   {/* Call Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-3 mb-1">
-                      <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">
+                      <h3 className="text-lg font-bold text-gray-900 truncate">
                         {call.remoteIdentity || 'Unknown'}
                       </h3>
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(call.status)}`}>
                         {call.status}
                       </span>
                     </div>
-                    <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center space-x-4 text-sm text-gray-500">
                       <span className="flex items-center space-x-1 capitalize">
                         <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
                         <span>{call.direction}</span>
@@ -195,10 +195,10 @@ const CallHistory = () => {
 
                 {/* Right: Time */}
                 <div className="flex-shrink-0 text-right ml-4">
-                  <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                  <div className="text-sm font-semibold text-gray-900">
                     {formatDate(call.timestamp)}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                  <div className="text-xs text-gray-500">
                     {formatTime(call.timestamp)}
                   </div>
                 </div>

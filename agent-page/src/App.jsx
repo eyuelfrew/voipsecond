@@ -7,7 +7,6 @@ import Layout from './components/Layout';
 import { SIPProvider } from './components/SIPProvider';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ShiftProvider } from './contexts/ShiftContext';
-import CallHistory from './pages/CallHistory';
 import Analytics from './pages/Analytics';
 import PhoneNumbers from './pages/PhoneNumbers';
 import Settings from './pages/Settings';
@@ -49,16 +48,6 @@ function AppContent() {
                 <RequireAuth>
                   <Layout>
                     <Dashboard />
-                  </Layout>
-                </RequireAuth>
-              } 
-            />
-            <Route 
-              path="/call-history" 
-              element={
-                <RequireAuth>
-                  <Layout>
-                    <CallHistory />
                   </Layout>
                 </RequireAuth>
               } 
