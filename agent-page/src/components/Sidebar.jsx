@@ -1,8 +1,6 @@
-import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-    LayoutDashboard, Phone, BarChart3, Users, Hash, Settings,
-    TrendingUp, Clock, User as UserIcon, Award, MessageSquare
+    LayoutDashboard, Phone, BarChart3, Clock, User as UserIcon, Hash
 } from 'lucide-react';
 
 function Sidebar() {
@@ -14,30 +12,22 @@ function Sidebar() {
         { name: "Shift Management", path: "/shift-management", icon: Clock },
         { name: "Analytics", path: "/analytics", icon: BarChart3 },
         { name: "Customer Timeline", path: "/customer-timeline", icon: UserIcon },
-        { name: "Quality Monitoring", path: "/quality-monitoring", icon: Award },
-        { name: "Team Collaboration", path: "/team-collaboration", icon: MessageSquare },
         { name: "Phone Numbers", path: "/phone-numbers", icon: Hash },
     ];
 
     const isActive = (path) => location.pathname === path;
 
     return (
-        <aside className="w-64 bg-gradient-to-b from-gray-100 to-gray-200 border-r border-gray-300 flex flex-col min-h-screen transition-colors duration-200">
+        <aside className="w-24 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 border-r border-gray-200 dark:border-gray-800 flex flex-col min-h-screen transition-all duration-300 shadow-xl">
             {/* Logo/Brand */}
-            <div className="p-6 border-b border-yellow-500/20">
-                <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-yellow-500 rounded-xl flex items-center justify-center shadow-lg">
-                        <Phone className="w-6 h-6 text-black" />
-                    </div>
-                    <div>
-                        <h2 className="text-gray-900 font-black text-lg">Agent Portal</h2>
-                        <p className="text-gray-600 text-xs">Call Center</p>
-                    </div>
+            <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex justify-center">
+                <div className="w-14 h-14 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-yellow-500/30 transform hover:scale-110 hover:rotate-3 transition-all duration-300 cursor-pointer">
+                    <Phone className="w-8 h-8 text-black" />
                 </div>
             </div>
 
-            {/* Navigation */}
-            <nav className="flex-1 px-4 py-6 space-y-2">
+            {/* Navigation - Vertically Centered, Icon Only */}
+            <nav className="flex-1 flex flex-col justify-center items-center px-4 py-8 space-y-4">
                 {menuItems.map((item) => {
                     const Icon = item.icon;
                     const active = isActive(item.path);
@@ -46,24 +36,28 @@ function Sidebar() {
                         <button
                             key={item.path}
                             onClick={() => navigate(item.path)}
-                            className={`flex items-center space-x-3 w-full px-4 py-3 rounded-xl font-semibold transition-all transform ${
+                            title={item.name}
+                            className={`group relative flex items-center justify-center w-16 h-16 rounded-2xl transition-all duration-300 transform hover:scale-110 ${
                                 active
-                                    ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/50 scale-105'
-                                    : 'text-gray-700 hover:bg-gray-300 hover:text-gray-900 hover:scale-105'
+                                    ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-black shadow-2xl shadow-yellow-500/50 scale-110'
+                                    : 'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:shadow-xl'
                             }`}
                         >
-                            <Icon className="w-5 h-5" />
-                            <span>{item.name}</span>
+                            <Icon className="w-8 h-8" strokeWidth={2.5} />
+                            
+                            {/* Tooltip on hover */}
+                            <span className="absolute left-full ml-4 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm font-semibold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap shadow-xl z-50">
+                                {item.name}
+                            </span>
                         </button>
                     );
                 })}
             </nav>
 
-            {/* Footer */}
-            <div className="p-4 border-t border-gray-300">
-                <div className="bg-gray-200 rounded-xl p-3 text-center">
-                    <p className="text-gray-600 text-xs">Version 1.0.0</p>
-                    <p className="text-gray-500 text-xs mt-1">© 2024 Agent Portal</p>
+            {/* Footer - Minimal */}
+            <div className="p-4 border-t border-gray-200 dark:border-gray-800 flex justify-center">
+                <div className="text-center">
+                    <p className="text-gray-400 dark:text-gray-600 text-xs font-bold">v1.0</p>
                 </div>
             </div>
         </aside>
@@ -71,3 +65,4 @@ function Sidebar() {
 }
 
 export default Sidebar;
+

@@ -28,6 +28,7 @@ import QueueDetails from "./pages/QueueDetails";
 import AgentShifts from "./pages/AgentShifts";
 import { ShiftProvider } from "./context/ShiftContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import Contacts from "./pages/Contacts";
 
 // Loading component to display while checking authentication
 const Loading = () => {
@@ -130,6 +131,7 @@ export default function App() {
           <Route path="queue-details/:queueId" element={<QueueDetails />} />
           
           <Route path="agent-shifts" element={<AgentShifts />} />
+          <Route path="contacts" element={<Contacts />} />
           <Route path="advanced-sip-settings" element={<AdvancedSipSettings />} />
         </Route>
 

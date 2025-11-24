@@ -1,21 +1,39 @@
 const express = require('express');
 const router = express.Router();
-const contactController = require('../controllers/contactController');
+const {
+  getContacts,
+  getContact,
+  createContact,
+  updateContact,
+  deleteContact,
+  toggleFavorite,
+  bulkDeleteContacts,
+  getContactStats
+} = require('../controllers/contactController');
 
-const { validateToken } = require('../utils/auth');
-// Create a new contact
-router.post('/', validateToken, contactController.createContact);
+// Middleware to protect routes (assuming you have auth middleware)
+const { protect } = require('../middleware/auth');
 
-// Get all contacts
-router.get('/', validateToken, contactController.getContacts);
+// Apply protect middleware to all routes
+router.use(protect);
 
-// Get a specific contact by ID
-router.get('/:id', validateToken, contactController.getContactById);
+// Contact CRUD routes
+router.route('/')
+  .get(getContacts)
+  .post(createContact);
 
-// Update a contact
-router.put('/:id', validateToken, contactController.updateContact);
+router.route('/stats')
+  .get(getContactStats);
 
-// Delete a contact
-router.delete('/:id', validateToken, contactController.deleteContact);
+router.route('/bulk-delete')
+  .post(bulkDeleteContacts);
+
+router.route('/:id')
+  .get(getContact)
+  .put(updateContact)
+  .delete(deleteContact);
+
+router.route('/:id/favorite')
+  .patch(toggleFavorite);
 
 module.exports = router;

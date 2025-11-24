@@ -11,8 +11,6 @@ import Analytics from './pages/Analytics';
 import PhoneNumbers from './pages/PhoneNumbers';
 import ShiftManagement from './pages/ShiftManagement';
 import CustomerTimeline from './pages/CustomerTimeline';
-import QualityMonitoring from './pages/QualityMonitoring';
-import TeamCollaboration from './pages/TeamCollaboration';
 import { setupAxiosInterceptors } from './utils/axiosInterceptor';
 import useStore from './store/store';
 import './App.css';
@@ -87,26 +85,6 @@ function AppContent() {
                 <RequireAuth>
                   <Layout>
                     <CustomerTimeline />
-                  </Layout>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/quality-monitoring"
-              element={
-                <RequireAuth>
-                  <Layout>
-                    <QualityMonitoring />
-                  </Layout>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/team-collaboration"
-              element={
-                <RequireAuth>
-                  <Layout>
-                    <TeamCollaboration />
                   </Layout>
                 </RequireAuth>
               }
