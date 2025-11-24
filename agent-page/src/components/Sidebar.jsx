@@ -17,7 +17,6 @@ function Sidebar() {
         { name: "Quality Monitoring", path: "/quality-monitoring", icon: Award },
         { name: "Team Collaboration", path: "/team-collaboration", icon: MessageSquare },
         { name: "Phone Numbers", path: "/phone-numbers", icon: Hash },
-        { name: "Settings", path: "/settings", icon: Settings },
     ];
 
     const isActive = (path) => location.pathname === path;

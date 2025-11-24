@@ -1,17 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
-import { Wifi, LogOut, Pause, Play, WifiOff, RefreshCw, Clock, LogIn, AlertCircle, CheckCircle, Sun, Moon } from 'lucide-react';
+import { Wifi, LogOut, Pause, Play, WifiOff, RefreshCw, Clock, LogIn, AlertCircle, CheckCircle } from 'lucide-react';
 import useStore from '../store/store';
 import PauseModal from './PauseModal';
 import { useSIP } from './SIPProvider';
 import { getApiUrl } from '../config';
 const baseUrl = getApiUrl();
 import { useShift } from '../contexts/ShiftContext';
-import { useTheme } from '../contexts/ThemeContext';
 
 const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
     const agent = useStore((state) => state.agent);
     const sip = useSIP();
-    const { theme, toggleTheme } = useTheme();
     const { shiftStatus, shiftTimer, clockIn, clockOut, formatTime } = useShift();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isPauseModalOpen, setIsPauseModalOpen] = useState(false);
@@ -243,8 +241,8 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
                         disabled={sip?.isRegistering}
                         className={`flex items-center justify-center w-10 h-10 rounded-lg font-medium transition-all duration-200 shadow-sm border-2 ${
                             sip?.registered
-                                ? 'border-green-500 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50'
-                                : 'border-red-500 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50'
+                                ? 'border-green-500 bg-green-50 hover:bg-green-100'
+                                : 'border-red-500 bg-red-50 hover:bg-red-100'
                         } ${sip?.isRegistering ? 'opacity-60 cursor-not-allowed' : ''}`}
                         title={
                             sip?.isRegistering 
@@ -257,28 +255,12 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
                         {sip?.isRegistering ? (
                             <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
                         ) : sip?.registered ? (
-                            <Wifi className="w-5 h-5 text-green-600 dark:text-green-400" />
+                            <Wifi className="w-5 h-5 text-green-600" />
                         ) : (
-                            <WifiOff className="w-5 h-5 text-red-600 dark:text-red-400" />
+                            <WifiOff className="w-5 h-5 text-red-600" />
                         )}
                     </button>
 
-                    {/* Theme Toggle */}
-                    <button
-                        onClick={() => {
-                            console.log('Theme toggle clicked, current theme:', theme);
-                            toggleTheme();
-                        }}
-                        className="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 border-2 border-transparent hover:border-yellow-500"
-                        title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-                        aria-label="Toggle theme"
-                    >
-                        {theme === 'light' ? (
-                            <Moon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                        ) : (
-                            <Sun className="w-5 h-5 text-yellow-500" />
-                        )}
-                    </button>
 
                     {/* Pause/Resume Button */}
                     <button
@@ -391,26 +373,26 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
                 {/* Certificate Acceptance Modal */}
                 {showCertModal && (
                     <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center">
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 border border-gray-200 dark:border-gray-700">
+                        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 border border-gray-200">
                             <div className="flex items-start gap-4 mb-4">
-                                <div className="flex-shrink-0 w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center">
-                                    <AlertCircle className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                                <div className="flex-shrink-0 w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                                    <AlertCircle className="w-6 h-6 text-yellow-600" />
                                 </div>
                                 <div className="flex-1">
-                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                                    <h3 className="text-lg font-bold text-gray-900 mb-2">
                                         Certificate Error Detected
                                     </h3>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                    <p className="text-sm text-gray-600 mb-4">
                                         The SIP server is using a self-signed certificate. You need to accept it in your browser before registration can succeed.
                                     </p>
                                 </div>
                             </div>
 
-                            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
-                                <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                                <h4 className="text-sm font-semibold text-blue-900 mb-2">
                                     Steps to Accept Certificate:
                                 </h4>
-                                <ol className="text-sm text-blue-800 dark:text-blue-400 space-y-1 list-decimal list-inside">
+                                <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
                                     <li>Click "Open Certificate Page" below</li>
                                     <li>Accept the security warning in the new tab</li>
                                     <li>Close that tab and return here</li>
@@ -430,7 +412,7 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
                                 </button>
                                 <button
                                     onClick={() => setShowCertModal(false)}
-                                    className="px-4 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-semibold transition-all"
+                                    className="px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold transition-all"
                                 >
                                     Close
                                 </button>
@@ -442,18 +424,18 @@ const NavBar = ({ onLogout, isSIPReady, agentStatus, setAgentStatus }) => {
 
             {/* Network Error Banner */}
             {sip?.connectionFailed && (
-                <div className="bg-red-50 dark:bg-red-900/20 border-b-2 border-red-200 dark:border-red-800 px-6 py-3">
+                <div className="bg-red-50 border-b-2 border-red-200 px-6 py-3">
                     <div className="flex items-center justify-between max-w-7xl mx-auto">
                         <div className="flex items-center gap-3">
-                            <WifiOff className="text-red-600 dark:text-red-400" size={24} />
+                            <WifiOff className="text-red-600" size={24} />
                             <div>
-                                <p className="text-red-900 dark:text-red-200 font-semibold">Phone System Connection Failed</p>
-                                <p className="text-red-700 dark:text-red-300 text-sm">Unable to connect to the phone system. Please check your network connection.</p>
+                                <p className="text-red-900 font-semibold">Phone System Connection Failed</p>
+                                <p className="text-red-700 text-sm">Unable to connect to the phone system. Please check your network connection.</p>
                             </div>
                         </div>
                         <button
                             onClick={() => sip?.retryConnection()}
-                            className="flex items-center gap-2 px-4 py-2 bg-red-600 dark:bg-red-700 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition-colors font-medium"
+                            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
                         >
                             <RefreshCw size={18} />
                             Retry Connection

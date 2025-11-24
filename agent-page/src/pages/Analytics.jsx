@@ -159,42 +159,42 @@ const Analytics = () => {
   ];
 
   const StatCard = ({ icon: Icon, title, value, subtitle, color }) => (
-    <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-6 border border-yellow-500/20 hover:border-yellow-500/40 transition-all transform hover:scale-105">
+    <div className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-gray-300 transition-all transform hover:scale-105 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-${color}-500/20`}>
-          <Icon className={`w-6 h-6 text-${color}-400`} />
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-${color}-100`}>
+          <Icon className={`w-6 h-6 text-${color}-600`} />
         </div>
-        <TrendingUp className="w-5 h-5 text-green-400" />
+        <TrendingUp className="w-5 h-5 text-green-500" />
       </div>
-      <h3 className="text-gray-400 text-sm font-semibold mb-1">{title}</h3>
-      <p className="text-3xl font-black text-white mb-1">{value}</p>
+      <h3 className="text-gray-600 text-sm font-semibold mb-1">{title}</h3>
+      <p className="text-3xl font-black text-gray-900 mb-1">{value}</p>
       <p className="text-sm text-gray-500">{subtitle}</p>
     </div>
   );
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-yellow-400 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-white text-xl">Loading Analytics...</p>
+          <p className="text-gray-900 text-xl">Loading Analytics...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black p-6">
+    <div className="min-h-screen bg-gray-50 p-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-black text-white mb-2">Analytics Dashboard</h1>
-        <p className="text-gray-400">Track your performance and call metrics</p>
+        <h1 className="text-4xl font-black text-gray-900">Analytics Dashboard</h1>
+        <p className="text-gray-600">Track your performance and call metrics</p>
       </div>
 
       {/* Time Range Filter */}
-      <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-4 mb-6 border border-yellow-500/20">
+      <div className="bg-white rounded-2xl p-4 mb-6 border border-gray-200">
         <div className="flex items-center space-x-4">
-          <Filter className="w-5 h-5 text-gray-400" />
+          <Filter className="w-5 h-5 text-gray-500" />
           <div className="flex space-x-2">
             {['today', 'week', 'month', 'year'].map((range) => (
               <button
@@ -202,7 +202,7 @@ const Analytics = () => {
                 onClick={() => setTimeRange(range)}
                 className={`px-4 py-2 rounded-lg font-semibold transition-all ${timeRange === range
                     ? 'bg-yellow-500 text-black'
-                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
               >
                 {range.charAt(0).toUpperCase() + range.slice(1)}
@@ -213,11 +213,11 @@ const Analytics = () => {
       </div>
 
       {/* Daily Stats Section (Moved from Dashboard) */}
-      <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-2xl shadow-lg p-6 mb-8 border border-yellow-500/20">
+      <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-gray-200">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-white">Today's Overview</h2>
-            <p className="text-gray-400">Real-time daily statistics</p>
+            <h2 className="text-2xl font-bold text-gray-900">Today's Overview</h2>
+            <p className="text-gray-600">Real-time daily statistics</p>
           </div>
           <div className="flex items-center space-x-4">
             {lastUpdated && (
@@ -228,75 +228,75 @@ const Analytics = () => {
             <button
               onClick={() => fetchDailyStats(true)}
               disabled={refreshing}
-              className="flex items-center space-x-2 bg-gray-700 hover:bg-gray-600 rounded-lg px-4 py-2 transition-all disabled:opacity-50"
+              className="flex items-center space-x-2 bg-gray-200 hover:bg-gray-300 rounded-lg px-4 py-2 transition-all disabled:opacity-50"
             >
-              <RefreshCw className={`w-4 h-4 text-yellow-400 ${refreshing ? 'animate-spin' : ''}`} />
-              <span className="text-sm font-medium text-white">Refresh</span>
+              <RefreshCw className={`w-4 h-4 text-yellow-600 ${refreshing ? 'animate-spin' : ''}`} />
+              <span className="text-sm font-medium text-gray-700">Refresh</span>
             </button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Total Calls */}
-          <div className="bg-black/40 rounded-xl p-6 border-l-4 border-blue-500">
+          <div className="bg-white rounded-xl p-6 border-l-4 border-blue-500">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-gray-400 text-sm font-medium">Total Calls</h3>
+              <h3 className="text-gray-600 text-sm font-medium">Total Calls</h3>
               <Phone className="text-blue-500" size={24} />
             </div>
-            <p className="text-3xl font-bold text-white">{dailyStats.totalCallsToday}</p>
+            <p className="text-3xl font-bold text-gray-900">{dailyStats.totalCallsToday}</p>
             <p className="text-xs text-gray-500 mt-1">Today's activity</p>
           </div>
 
           {/* Answered Calls */}
-          <div className="bg-black/40 rounded-xl p-6 border-l-4 border-green-500">
+          <div className="bg-white rounded-xl p-6 border-l-4 border-green-500">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-gray-400 text-sm font-medium">Answered</h3>
-              <div className="w-6 h-6 bg-green-900/30 rounded-full flex items-center justify-center">
-                <span className="text-green-400 text-lg">✓</span>
+              <h3 className="text-gray-600 text-sm font-medium">Answered</h3>
+              <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                <span className="text-green-600 text-lg">✓</span>
               </div>
             </div>
-            <p className="text-3xl font-bold text-white">{dailyStats.answeredCallsToday}</p>
-            <p className="text-xs text-green-400 mt-1 font-semibold">{answerRate}% answer rate</p>
+            <p className="text-3xl font-bold text-gray-900">{dailyStats.answeredCallsToday}</p>
+            <p className="text-xs text-green-600 mt-1 font-semibold">{answerRate}% answer rate</p>
           </div>
 
           {/* Missed Calls */}
-          <div className="bg-black/40 rounded-xl p-6 border-l-4 border-red-500">
+          <div className="bg-white rounded-xl p-6 border-l-4 border-red-500">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-gray-400 text-sm font-medium">Missed</h3>
-              <div className="w-6 h-6 bg-red-900/30 rounded-full flex items-center justify-center">
-                <span className="text-red-400 text-lg">✕</span>
+              <h3 className="text-gray-600 text-sm font-medium">Missed</h3>
+              <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
+                <span className="text-red-600 text-lg">✕</span>
               </div>
             </div>
-            <p className="text-3xl font-bold text-white">{dailyStats.missedCallsToday}</p>
+            <p className="text-3xl font-bold text-gray-900">{dailyStats.missedCallsToday}</p>
             <p className="text-xs text-gray-500 mt-1">Needs attention</p>
           </div>
 
           {/* Avg Talk Time */}
-          <div className="bg-black/40 rounded-xl p-6 border-l-4 border-purple-500">
+          <div className="bg-white rounded-xl p-6 border-l-4 border-purple-500">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-gray-400 text-sm font-medium">Avg Talk Time</h3>
-              <div className="w-6 h-6 bg-purple-900/30 rounded-full flex items-center justify-center">
-                <span className="text-purple-400 text-sm">⏱</span>
+              <h3 className="text-gray-600 text-sm font-medium">Avg Talk Time</h3>
+              <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
+                <span className="text-purple-600 text-sm">⏱</span>
               </div>
             </div>
-            <p className="text-3xl font-bold text-white">{formatTime(dailyStats.averageTalkTimeToday)}</p>
+            <p className="text-3xl font-bold text-gray-900">{formatTime(dailyStats.averageTalkTimeToday)}</p>
             <p className="text-xs text-gray-500 mt-1">Per call</p>
           </div>
         </div>
 
         {/* Additional Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <div className="bg-black/30 p-4 rounded-lg flex justify-between items-center">
-            <span className="text-gray-400 text-sm">Avg Wrap Time</span>
-            <span className="text-white font-bold">{formatTime(dailyStats.averageWrapTimeToday)}</span>
+          <div className="bg-white p-4 rounded-lg flex justify-between items-center border border-gray-200">
+            <span className="text-gray-600 text-sm">Avg Wrap Time</span>
+            <span className="text-gray-900 font-bold">{formatTime(dailyStats.averageWrapTimeToday)}</span>
           </div>
-          <div className="bg-black/30 p-4 rounded-lg flex justify-between items-center">
-            <span className="text-gray-400 text-sm">Avg Hold Time</span>
-            <span className="text-white font-bold">{formatTime(dailyStats.averageHoldTimeToday)}</span>
+          <div className="bg-white p-4 rounded-lg flex justify-between items-center border border-gray-200">
+            <span className="text-gray-600 text-sm">Avg Hold Time</span>
+            <span className="text-gray-900 font-bold">{formatTime(dailyStats.averageHoldTimeToday)}</span>
           </div>
-          <div className="bg-black/30 p-4 rounded-lg flex justify-between items-center">
-            <span className="text-gray-400 text-sm">Longest Idle</span>
-            <span className="text-white font-bold">{formatTime(dailyStats.longestIdleTimeToday)}</span>
+          <div className="bg-white p-4 rounded-lg flex justify-between items-center border border-gray-200">
+            <span className="text-gray-600 text-sm">Longest Idle</span>
+            <span className="text-gray-900 font-bold">{formatTime(dailyStats.longestIdleTimeToday)}</span>
           </div>
         </div>
       </div>
@@ -336,22 +336,22 @@ const Analytics = () => {
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Call Volume Chart */}
-        <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-6 border border-yellow-500/20">
-          <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-            <Calendar className="w-5 h-5 mr-2 text-yellow-400" />
+        <div className="bg-white rounded-2xl p-6 border border-gray-200">
+          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+            <Calendar className="w-5 h-5 mr-2 text-yellow-500" />
             Call Volume by Hour
           </h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={callVolumeData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="hour" stroke="#9ca3af" />
-              <YAxis stroke="#9ca3af" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
+              <XAxis dataKey="hour" stroke="#6b7280" />
+              <YAxis stroke="#6b7280" />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#1f2937',
-                  border: '1px solid #374151',
+                  backgroundColor: '#fff',
+                  border: '1px solid #e5e7eb',
                   borderRadius: '8px',
-                  color: '#fff'
+                  color: '#374151'
                 }}
               />
               <Bar dataKey="calls" fill="#eab308" radius={[8, 8, 0, 0]} />
@@ -360,9 +360,9 @@ const Analytics = () => {
         </div>
 
         {/* Call Outcomes Pie Chart */}
-        <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-6 border border-yellow-500/20">
-          <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-            <Phone className="w-5 h-5 mr-2 text-yellow-400" />
+        <div className="bg-white rounded-2xl p-6 border border-gray-200">
+          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+            <Phone className="w-5 h-5 mr-2 text-yellow-500" />
             Call Outcomes
           </h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -382,16 +382,16 @@ const Analytics = () => {
               </Pie>
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#1f2937',
-                  border: '1px solid #374151',
+                  backgroundColor: '#fff',
+                  border: '1px solid #e5e7eb',
                   borderRadius: '8px',
-                  color: '#fff'
+                  color: '#374151'
                 }}
               />
               <Legend
-                wrapperStyle={{ color: '#fff' }}
+                wrapperStyle={{ color: '#374151' }}
                 formatter={(value, entry) => (
-                  <span style={{ color: '#fff' }}>{value}: {entry.payload.value}</span>
+                  <span style={{ color: '#374151' }}>{value}: {entry.payload.value}</span>
                 )}
               />
             </PieChart>
@@ -400,26 +400,26 @@ const Analytics = () => {
       </div>
 
       {/* Performance Trend */}
-      <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-6 border border-yellow-500/20">
-        <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-          <TrendingUp className="w-5 h-5 mr-2 text-yellow-400" />
+      <div className="bg-white rounded-2xl p-6 border border-gray-200">
+        <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+          <TrendingUp className="w-5 h-5 mr-2 text-yellow-500" />
           Weekly Performance Trend
         </h3>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={performanceData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis dataKey="day" stroke="#9ca3af" />
-            <YAxis yAxisId="left" stroke="#9ca3af" />
-            <YAxis yAxisId="right" orientation="right" stroke="#9ca3af" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
+            <XAxis dataKey="day" stroke="#6b7280" />
+            <YAxis yAxisId="left" stroke="#6b7280" />
+            <YAxis yAxisId="right" orientation="right" stroke="#6b7280" />
             <Tooltip
               contentStyle={{
-                backgroundColor: '#1f2937',
-                border: '1px solid #374151',
+                backgroundColor: '#fff',
+                border: '1px solid #e5e7eb',
                 borderRadius: '8px',
-                color: '#fff'
+                color: '#374151'
               }}
             />
-            <Legend wrapperStyle={{ color: '#fff' }} />
+            <Legend wrapperStyle={{ color: '#374151' }} />
             <Line
               yAxisId="left"
               type="monotone"
