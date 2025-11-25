@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { UseSocket } from "../context/SocketContext";
-import { Users, Filter, Phone, UserCheck, UserX, Clock, Headphones, PhoneCall } from "lucide-react";
+import { Users, Filter, UserX, Headphones, PhoneCall } from "lucide-react";
 
 interface QueueMemberType {
   Queue: string;
@@ -101,61 +101,6 @@ export default function QueueMembersDashboard() {
     };
   }, [socket]);
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "1":
-        return (
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-green-500/20 text-green-400">
-            <UserCheck className="w-3 h-3" />
-            Idle
-          </span>
-        );
-      case "2":
-      case "3":
-        return (
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-500/20 text-blue-400">
-            <Phone className="w-3 h-3" />
-            In Use
-          </span>
-        );
-      case "4":
-        return (
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-red-500/20 text-red-400">
-            <UserX className="w-3 h-3" />
-            Busy
-          </span>
-        );
-      case "5":
-        return (
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-gray-500/20 text-gray-400">
-            <UserX className="w-3 h-3" />
-            Unavailable
-          </span>
-        );
-      case "6":
-        return (
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-yellow-500/20 text-yellow-400 animate-pulse shadow-lg shadow-yellow-500/50">
-            <Phone className="w-3 h-3 animate-bounce" />
-            🔔 Ringing
-          </span>
-        );
-      case "8":
-        return (
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-orange-500/20 text-orange-400">
-            <Clock className="w-3 h-3" />
-            On Hold
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-gray-500/20 text-gray-400">
-            <UserX className="w-3 h-3" />
-            Unknown
-          </span>
-        );
-    }
-  };
-
   // Get a unique list of queue names for the filter dropdown
   const uniqueQueues = [...new Set(queueMembers.map(member => member.queueName || member.Queue))];
 
@@ -207,8 +152,8 @@ export default function QueueMembersDashboard() {
             <tr className="text-left cc-bg-surface-variant">
               <th className="px-6 py-4 cc-text-accent font-bold text-sm tracking-wide">Queue</th>
               <th className="px-6 py-4 cc-text-accent font-bold text-sm tracking-wide">Agent</th>
-              <th className="px-6 py-4 cc-text-accent font-bold text-sm tracking-wide">Status</th>
               <th className="px-6 py-4 text-center cc-text-accent font-bold text-sm tracking-wide">Paused</th>
+              <th className="px-6 py-4 text-center cc-text-accent font-bold text-sm tracking-wide">Pause Reason</th>
               <th className="px-6 py-4 text-center cc-text-accent font-bold text-sm tracking-wide">In Call</th>
               <th className="px-6 py-4 text-center cc-text-accent font-bold text-sm tracking-wide">Calls Taken</th>
               <th className="px-6 py-4 text-center cc-text-accent font-bold text-sm tracking-wide">Joined At</th>
@@ -244,21 +189,18 @@ export default function QueueMembersDashboard() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-5">{getStatusLabel(agent.Status)}</td>
                   <td className="px-6 py-5 text-center">
                     {agent.Paused === "1" ? (
-                      <div className="flex flex-col items-center">
-                        <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-red-500/20 text-red-400">
-                          <UserX className="w-3 h-3" />
-                          Paused
-                        </span>
-                        {agent.PausedReason && (
-                          <span className="text-xs cc-text-secondary mt-1">{agent.PausedReason}</span>
-                        )}
-                      </div>
+                      <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-red-500/20 text-red-400">
+                        <UserX className="w-3 h-3" />
+                        Paused
+                      </span>
                     ) : (
                       <span className="cc-text-secondary text-sm">-</span>
                     )}
+                  </td>
+                  <td className="px-6 py-5 text-center">
+                    <span className="cc-text-secondary text-sm">{agent.Paused === "1" && agent.PausedReason ? agent.PausedReason : '-'}</span>
                   </td>
                   <td className="px-6 py-5 text-center">
                     {agent.InCall === "1" ? (
