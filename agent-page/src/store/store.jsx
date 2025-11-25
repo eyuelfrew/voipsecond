@@ -21,6 +21,14 @@ const useStore = create((set, get) => ({
   call: null,
   selectedTicket: null,
 
+  // Knowledge Base state
+  kbArticles: [],
+  kbCategories: [],
+  selectedKBArticle: null,
+  kbPanelOpen: false,
+  kbSearchQuery: '',
+  kbFilterCategory: 'all',
+
   // Auth actions
   setAuth: ({ agent, token }) => {
     if (!isWeb && typeof localStorage !== 'undefined') {
@@ -59,12 +67,12 @@ const useStore = create((set, get) => ({
         credentials: 'include',
         timeout: 5000,
       });
-      
+
       // Always clear client-side state regardless of server response
       localStorage.clear();
       sessionStorage.clear();
       set({ agent: null, token: null, shift: null, call: null });
-      
+
       if (!res.ok) {
         console.error('Logout request failed, but client state cleared');
       }
@@ -165,10 +173,10 @@ const useStore = create((set, get) => ({
           'Content-Type': 'application/json',
         },
       });
-      
+
       if (res.ok) {
         const data = await res.json();
-        
+
         // Validate response structure
         if (data && data.agent) {
           // Attach SIP credentials if present
@@ -195,6 +203,163 @@ const useStore = create((set, get) => ({
       set({ agent: null });
       return false;
     }
+  },
+
+  // Knowledge Base actions
+  fetchKBArticles: async (params = {}) => {
+    try {
+      const token = get().token;
+      const config = isWeb
+        ? { withCredentials: true }
+        : { headers: token ? { Authorization: `Bearer ${token}` } : {} };
+
+      const queryParams = new URLSearchParams();
+      if (params.search) queryParams.append('search', params.search);
+      if (params.category && params.category !== 'all') queryParams.append('category', params.category);
+      if (params.tags) queryParams.append('tags', params.tags);
+      if (params.favorites) queryParams.append('favorites', 'true');
+
+      const { data } = await axios.get(`${baseUrl}/kb?${queryParams.toString()}`, config);
+      set({ kbArticles: data.articles || [] });
+
+      // Also fetch categories
+      const categoriesRes = await axios.get(`${baseUrl}/kb/categories`, config);
+      set({ kbCategories: categoriesRes.data.categories || [] });
+    } catch (error) {
+      console.error('Error fetching KB articles:', error);
+      set({ kbArticles: [] });
+    }
+  },
+
+  createKBArticle: async (articleData) => {
+    try {
+      const token = get().token;
+      const config = isWeb
+        ? { withCredentials: true }
+        : { headers: token ? { Authorization: `Bearer ${token}` } : {} };
+
+      const { data } = await axios.post(`${baseUrl}/kb`, articleData, config);
+
+      if (data.success) {
+        const currentArticles = get().kbArticles;
+        set({ kbArticles: [data.article, ...currentArticles] });
+        return data.article;
+      }
+    } catch (error) {
+      console.error('Error creating KB article:', error);
+      throw error;
+    }
+  },
+
+  updateKBArticle: async (id, articleData) => {
+    try {
+      const token = get().token;
+      const config = isWeb
+        ? { withCredentials: true }
+        : { headers: token ? { Authorization: `Bearer ${token}` } : {} };
+
+      const { data } = await axios.put(`${baseUrl}/kb/${id}`, articleData, config);
+
+      if (data.success) {
+        const currentArticles = get().kbArticles;
+        const updatedArticles = currentArticles.map(a =>
+          a._id === id ? data.article : a
+        );
+        set({ kbArticles: updatedArticles });
+
+        // Update selected article if it's the one being edited
+        if (get().selectedKBArticle?._id === id) {
+          set({ selectedKBArticle: data.article });
+        }
+
+        return data.article;
+      }
+    } catch (error) {
+      console.error('Error updating KB article:', error);
+      throw error;
+    }
+  },
+
+  deleteKBArticle: async (id) => {
+    try {
+      const token = get().token;
+      const config = isWeb
+        ? { withCredentials: true }
+        : { headers: token ? { Authorization: `Bearer ${token}` } : {} };
+
+      await axios.delete(`${baseUrl}/kb/${id}`, config);
+
+      const currentArticles = get().kbArticles;
+      set({ kbArticles: currentArticles.filter(a => a._id !== id) });
+
+      // Clear selected article if it's the one being deleted
+      if (get().selectedKBArticle?._id === id) {
+        set({ selectedKBArticle: null });
+      }
+    } catch (error) {
+      console.error('Error deleting KB article:', error);
+      throw error;
+    }
+  },
+
+  toggleKBFavorite: async (id) => {
+    try {
+      const token = get().token;
+      const config = isWeb
+        ? { withCredentials: true }
+        : { headers: token ? { Authorization: `Bearer ${token}` } : {} };
+
+      const { data } = await axios.patch(`${baseUrl}/kb/${id}/favorite`, {}, config);
+
+      if (data.success) {
+        const currentArticles = get().kbArticles;
+        const updatedArticles = currentArticles.map(a =>
+          a._id === id ? data.article : a
+        );
+        set({ kbArticles: updatedArticles });
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
+  },
+
+  incrementKBUsage: async (id) => {
+    try {
+      const token = get().token;
+      const config = isWeb
+        ? { withCredentials: true }
+        : { headers: token ? { Authorization: `Bearer ${token}` } : {} };
+
+      await axios.post(`${baseUrl}/kb/${id}/use`, {}, config);
+
+      // Optionally update local state
+      const currentArticles = get().kbArticles;
+      const updatedArticles = currentArticles.map(a => {
+        if (a._id === id) {
+          return {
+            ...a,
+            usageCount: (a.usageCount || 0) + 1,
+            lastUsed: new Date()
+          };
+        }
+        return a;
+      });
+      set({ kbArticles: updatedArticles });
+    } catch (error) {
+      console.error('Error incrementing usage:', error);
+    }
+  },
+
+  toggleKBPanel: () => {
+    set({ kbPanelOpen: !get().kbPanelOpen });
+  },
+
+  setKBPanelOpen: (isOpen) => {
+    set({ kbPanelOpen: isOpen });
+  },
+
+  setSelectedKBArticle: (article) => {
+    set({ selectedKBArticle: article });
   },
 }));
 

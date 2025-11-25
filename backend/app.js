@@ -109,11 +109,10 @@ app.use('/api/queue-statistics', queueStatisticsRoutes);
 // Ticket Routes
 app.use('/api/tickets', ticketRoutes);
 
-// Customer Routes
+// CRM & Knowledge Base routes
 app.use('/api/customers', customerRoutes);
+app.use('/api/kb', require('./routes/knowledgeBaseRoutes')); // New KB system
 
-// Knowledge Base Routes
-app.use('/api/kb', kbRoutes);
 
 // Metrics Routes
 app.use('/api/metrics', metricsRoutes);
