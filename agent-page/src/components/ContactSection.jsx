@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { getApiUrl } from '../config';
-const baseUrl = getApiUrl();
 import { useSIP } from './SIPProvider';
 import useStore from '../store/store';
-import { User, Search, Phone, Trash2, Info, Plus, Save, X, UserPlus } from 'lucide-react';
+import { User, Search, Phone, Trash2, Info, Plus, Save, X, UserPlus, Edit2 } from 'lucide-react';
+
+const baseUrl = getApiUrl();
 
 const ContactSection = () => {
     const [contacts, setContacts] = useState([]);
@@ -12,6 +13,8 @@ const ContactSection = () => {
     const [error, setError] = useState(null);
     const [newContact, setNewContact] = useState({ name: '', email: '', phone: '' });
     const [showAddContactPopup, setShowAddContactPopup] = useState(false);
+    const [editingContact, setEditingContact] = useState(null);
+    const [showEditContactPopup, setShowEditContactPopup] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const sip = useSIP() || {};
     const { makeCall } = sip;
@@ -39,13 +42,34 @@ const ContactSection = () => {
 
     const handleCreateContact = async (contact) => {
         try {
-            const response = await axios.post(`${baseUrl}/contacts`, { ...contact, agentId }, {
+            const response = await axios.post(`${baseUrl}/contacts`, {
+                name: contact.name,
+                email: contact.email,
+                phoneNumber: contact.phone, // Backend expects phoneNumber
+                agentId
+            }, {
                 withCredentials: true,
             });
-            setContacts([...contacts, response.data]);
+            setContacts([...contacts, response.data.contact]); // Backend returns { success, message, contact }
             setNewContact({ name: '', email: '', phone: '' }); // Reset form
+            setShowAddContactPopup(false); // Close the popup
         } catch (err) {
-            setError('Failed to create contact: ' + err.message);
+            setError('Failed to create contact: ' + (err.response?.data?.message || err.message));
+        }
+    };
+
+    const handleUpdateContact = async (contactId, updatedData) => {
+        try {
+            const response = await axios.put(`${baseUrl}/contacts/${contactId}`, updatedData, {
+                withCredentials: true,
+            });
+            setContacts(contacts.map(contact =>
+                contact._id === contactId ? response.data.contact : contact
+            ));
+            setShowEditContactPopup(false);
+            setEditingContact(null);
+        } catch (err) {
+            setError('Failed to update contact: ' + err.message);
         }
     };
 
@@ -58,6 +82,11 @@ const ContactSection = () => {
         } catch (err) {
             setError('Failed to delete contact: ' + err.message);
         }
+    };
+
+    const handleEditClick = (contact) => {
+        setEditingContact({ ...contact, phone: contact.phoneNumber || contact.phone });
+        setShowEditContactPopup(true);
     };
 
     const handleCallContact = (phoneNumber) => {
@@ -122,9 +151,13 @@ const ContactSection = () => {
                                             </div>
                                         </div>
                                         <div className="flex space-x-2">
-                                            <button className="px-4 py-2 bg-green-500 text-white rounded-lg flex items-center space-x-2 hover:bg-green-600 transition" onClick={() => handleCallContact(contact.phone)}>
+                                            <button className="px-4 py-2 bg-green-500 text-white rounded-lg flex items-center space-x-2 hover:bg-green-600 transition" onClick={() => handleCallContact(contact.phoneNumber || contact.phone)}>
                                                 <Phone size={20} />
                                                 <span>Call</span>
+                                            </button>
+                                            <button className="px-4 py-2 bg-blue-500 text-white rounded-lg flex items-center space-x-2 hover:bg-blue-600 transition" onClick={() => handleEditClick(contact)}>
+                                                <Edit2 size={20} />
+                                                <span>Edit</span>
                                             </button>
                                             <button className="px-4 py-2 bg-red-500 text-white rounded-lg flex items-center space-x-2 hover:bg-red-600 transition" onClick={() => handleDeleteContact(contact._id)}>
                                                 <Trash2 size={20} />
@@ -186,6 +219,86 @@ const ContactSection = () => {
                                 <button
                                     className="flex-1 px-4 py-3 bg-gray-300 text-gray-700 rounded-xl flex items-center justify-center space-x-2 hover:bg-gray-400 transition text-lg font-semibold shadow"
                                     onClick={() => setShowAddContactPopup(false)}
+                                >
+                                    <X size={20} />
+                                    <span>Cancel</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {showEditContactPopup && editingContact && (
+                    <div className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn">
+                        <div className="bg-white p-8 rounded-2xl shadow-2xl space-y-6 w-full max-w-md relative">
+                            <button className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition" onClick={() => { setShowEditContactPopup(false); setEditingContact(null); }}>
+                                <X size={28} />
+                            </button>
+                            <h3 className="text-2xl font-bold flex items-center space-x-2 mb-2">
+                                <Edit2 size={28} className="text-blue-500" />
+                                <span>Edit Contact</span>
+                            </h3>
+                            <input
+                                type="text"
+                                placeholder="Name"
+                                value={editingContact.name}
+                                onChange={(e) => setEditingContact({ ...editingContact, name: e.target.value })}
+                                className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                            />
+                            <input
+                                type="email"
+                                placeholder="Email"
+                                value={editingContact.email || ''}
+                                onChange={(e) => setEditingContact({ ...editingContact, email: e.target.value })}
+                                className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                            />
+                            <input
+                                type="text"
+                                placeholder="Phone"
+                                value={editingContact.phone || editingContact.phoneNumber || ''}
+                                onChange={(e) => setEditingContact({ ...editingContact, phone: e.target.value })}
+                                className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                            />
+                            <input
+                                type="text"
+                                placeholder="Company"
+                                value={editingContact.company || ''}
+                                onChange={(e) => setEditingContact({ ...editingContact, company: e.target.value })}
+                                className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                            />
+                            <input
+                                type="text"
+                                placeholder="Job Title"
+                                value={editingContact.jobTitle || ''}
+                                onChange={(e) => setEditingContact({ ...editingContact, jobTitle: e.target.value })}
+                                className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                            />
+                            <textarea
+                                placeholder="Notes"
+                                value={editingContact.notes || ''}
+                                onChange={(e) => setEditingContact({ ...editingContact, notes: e.target.value })}
+                                className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                                rows="3"
+                            />
+                            <div className="flex space-x-4 mt-4">
+                                <button
+                                    className="flex-1 px-4 py-3 bg-blue-500 text-white rounded-xl flex items-center justify-center space-x-2 hover:bg-blue-600 transition text-lg font-semibold shadow"
+                                    onClick={() => {
+                                        handleUpdateContact(editingContact._id, {
+                                            name: editingContact.name,
+                                            email: editingContact.email,
+                                            phoneNumber: editingContact.phone || editingContact.phoneNumber,
+                                            company: editingContact.company,
+                                            jobTitle: editingContact.jobTitle,
+                                            notes: editingContact.notes
+                                        });
+                                    }}
+                                >
+                                    <Save size={20} />
+                                    <span>Update</span>
+                                </button>
+                                <button
+                                    className="flex-1 px-4 py-3 bg-gray-300 text-gray-700 rounded-xl flex items-center justify-center space-x-2 hover:bg-gray-400 transition text-lg font-semibold shadow"
+                                    onClick={() => { setShowEditContactPopup(false); setEditingContact(null); }}
                                 >
                                     <X size={20} />
                                     <span>Cancel</span>

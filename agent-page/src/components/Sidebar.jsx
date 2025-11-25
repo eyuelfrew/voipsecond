@@ -9,10 +9,10 @@ function Sidebar() {
 
     const menuItems = [
         { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+        { name: "Phone Numbers", path: "/phone-numbers", icon: Hash },
         { name: "Shift Management", path: "/shift-management", icon: Clock },
         { name: "Analytics", path: "/analytics", icon: BarChart3 },
         { name: "Customer Timeline", path: "/customer-timeline", icon: UserIcon },
-        { name: "Phone Numbers", path: "/phone-numbers", icon: Hash },
     ];
 
     const isActive = (path) => location.pathname === path;
@@ -31,20 +31,19 @@ function Sidebar() {
                 {menuItems.map((item) => {
                     const Icon = item.icon;
                     const active = isActive(item.path);
-                    
+
                     return (
                         <button
                             key={item.path}
                             onClick={() => navigate(item.path)}
                             title={item.name}
-                            className={`group relative flex items-center justify-center w-16 h-16 rounded-2xl transition-all duration-300 transform hover:scale-110 ${
-                                active
-                                    ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-black shadow-2xl shadow-yellow-500/50 scale-110'
-                                    : 'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:shadow-xl'
-                            }`}
+                            className={`group relative flex items-center justify-center w-16 h-16 rounded-2xl transition-all duration-300 transform hover:scale-110 ${active
+                                ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-black shadow-2xl shadow-yellow-500/50 scale-110'
+                                : 'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:shadow-xl'
+                                }`}
                         >
                             <Icon className="w-8 h-8" strokeWidth={2.5} />
-                            
+
                             {/* Tooltip on hover */}
                             <span className="absolute left-full ml-4 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm font-semibold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap shadow-xl z-50">
                                 {item.name}

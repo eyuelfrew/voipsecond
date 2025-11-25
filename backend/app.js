@@ -127,6 +127,7 @@ app.use('/api/supervisors', supervisorRoutes);
 app.use('/api/call', callRoutes);
 app.use("/api/auth", authRoutes); // Register the new auth route
 app.use('/api/contacts', contactRoutes);
+app.use('/api/activities', require('./routes/activityRoutes')); // CRM: Activity routes
 app.use('/api/canned-responses', cannedResponseRoutes);
 app.use('/api/announcements', announcementRoutes);
 

@@ -1,17 +1,21 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
-import * as SIP from "sip.js";
+import { Web, UserAgent, Registerer, Inviter, RegistererState, SessionState } from "sip.js";
 import useStore from "../store/store";
 import { getApiUrl, getSipServer, getSipPort } from "../config";
+import { playIncomingCallRingtone, stopIncomingCallRingtone, initializeAudio } from "../utils/ringtone";
+import useCallTracking from "../hooks/useCallTracking";
 
 const SIPContext = createContext();
 
 export const useSIP = () => useContext(SIPContext);
 
 export const SIPProvider = ({ children }) => {
+  console.log("🚀 SIPProvider rendering...");
   const agent = useStore((state) => state.agent);
   const SIP_USER = agent?.username || "";
   const [sipPassword, setSipPassword] = useState("");
   const baseUrl = getApiUrl();
+  console.log("🚀 SIPProvider initialized with SIP_USER:", SIP_USER);
 
   // SIP.js state
   const [userAgent, setUserAgent] = useState(null);
@@ -32,6 +36,9 @@ export const SIPProvider = ({ children }) => {
   const registererRef = useRef(null); // Store registerer for manual control
   const [isRegistering, setIsRegistering] = useState(false); // Track registration process
   const [registrationError, setRegistrationError] = useState(null); // Track registration errors
+
+  // Automatically track calls and update contact stats
+  useCallTracking(callSession, callTimer);
 
   // Fetch SIP password
   useEffect(() => {
@@ -76,7 +83,7 @@ export const SIPProvider = ({ children }) => {
 
     try {
       // Create User Agent
-      const uri = SIP.UserAgent.makeURI(`sip:${SIP_USER}@${SIP_SERVER}`);
+      const uri = UserAgent.makeURI(`sip:${SIP_USER}@${SIP_SERVER}`);
 
       const userAgentOptions = {
         uri: uri,
@@ -91,24 +98,24 @@ export const SIPProvider = ({ children }) => {
             video: false,
           },
           peerConnectionConfiguration: {
-            iceServers: [
-              // { urls: 'stun:stun.l.google.com:19302' },
-              // { urls: 'stun:stun1.l.google.com:19302' },
-              // { urls: 'stun:stun2.l.google.com:19302' }
-            ],
+            iceServers: [],
             rtcpMuxPolicy: "require",
             bundlePolicy: "max-bundle",
-            iceCandidatePoolSize: 10
+          },
+        },
+        delegate: {
+          onInvite: (invitation) => {
+            console.log("📞 Incoming call received via delegate");
           },
         },
         logConfiguration: false,
         logLevel: "error",
       };
 
-      const ua = new SIP.UserAgent(userAgentOptions);
+      const ua = new UserAgent(userAgentOptions);
 
       // Create Registerer
-      const registerer = new SIP.Registerer(ua);
+      const registerer = new Registerer(ua);
       registererRef.current = registerer;
 
       // Listen for registration state changes
@@ -116,19 +123,19 @@ export const SIPProvider = ({ children }) => {
         console.log("📡 Registration state:", newState);
         setIsRegistering(false);
         switch (newState) {
-          case SIP.RegistererState.Registered:
+          case RegistererState.Registered:
             setRegistered(true);
             setStatus("Registered & Idle");
             setConnectionFailed(false);
             setRegistrationError(null);
             console.log("✅ Successfully registered");
             break;
-          case SIP.RegistererState.Unregistered:
+          case RegistererState.Unregistered:
             setRegistered(false);
             setStatus("Unregistered");
             console.log("⚠️ Unregistered");
             break;
-          case SIP.RegistererState.Terminated:
+          case RegistererState.Terminated:
             setRegistered(false);
             setStatus("Disconnected");
             console.log("❌ Registration terminated");
@@ -146,6 +153,10 @@ export const SIPProvider = ({ children }) => {
           callDirectionRef.current = 'incoming';
           remoteIdentityRef.current = remoteUser;
           console.log("✅ Call direction set to: incoming, remote:", remoteUser);
+
+          // Play incoming call ringtone
+          playIncomingCallRingtone();
+
           setupSessionHandlers(session);
         },
       };
@@ -195,12 +206,12 @@ export const SIPProvider = ({ children }) => {
     // Handle remote media - will be called when handler is ready
     const setupRemoteMedia = () => {
       try {
-        // Wait a bit for session description handler to be created
+        // Wait for session description handler to be created
         const checkAndSetup = () => {
           const handler = session.sessionDescriptionHandler;
           if (!handler) {
-            console.log("⏳ Waiting for session description handler...");
-            setTimeout(checkAndSetup, 100);
+            // Don't spam console, just wait silently
+            setTimeout(checkAndSetup, 50);
             return;
           }
 
@@ -227,22 +238,37 @@ export const SIPProvider = ({ children }) => {
       }
     };
 
-    // Start setup process
-    setupRemoteMedia();
+    // Listen for sessionDescriptionHandler creation
+    let handlerCheckInterval;
+    const waitForHandler = () => {
+      if (session.sessionDescriptionHandler) {
+        clearInterval(handlerCheckInterval);
+        setupRemoteMedia();
+      }
+    };
+
+    // Check immediately and then periodically
+    if (session.sessionDescriptionHandler) {
+      setupRemoteMedia();
+    } else {
+      handlerCheckInterval = setInterval(waitForHandler, 50);
+      // Clear interval after 5 seconds to prevent memory leak
+      setTimeout(() => clearInterval(handlerCheckInterval), 5000);
+    }
 
     // Handle session state changes
     session.stateChange.addListener((newState) => {
       console.log("📞 Call state changed:", newState);
       switch (newState) {
-        case SIP.SessionState.Initial:
+        case SessionState.Initial:
           console.log("🔵 State: Initial");
           setStatus("Initializing call...");
           break;
-        case SIP.SessionState.Establishing:
+        case SessionState.Establishing:
           console.log("🟡 State: Establishing");
           setStatus("Establishing call...");
           break;
-        case SIP.SessionState.Established:
+        case SessionState.Established:
           console.log("🟢 State: Established - Call is now active!");
           setStatus("In Call");
           setAgentStatus("On Call");
@@ -251,22 +277,28 @@ export const SIPProvider = ({ children }) => {
           callStartTimeRef.current = Date.now(); // Set start time
           startCallTimer();
 
+          // Stop the ringtone when call is established
+          stopIncomingCallRingtone();
+
           // Ensure audio is connected
           setupRemoteMedia();
 
           console.log("✅ Call established - Timer started, modal should close");
           break;
-        case SIP.SessionState.Terminating:
+        case SessionState.Terminating:
           console.log("🟠 State: Terminating");
           setStatus("Ending call...");
           break;
-        case SIP.SessionState.Terminated:
+        case SessionState.Terminated:
           console.log("🔴 State: Terminated");
           console.log("📊 Call data before logging:", {
             startTime: callStartTimeRef.current,
             direction: callDirectionRef.current,
             remoteIdentity: remoteIdentityRef.current
           });
+
+          // Stop the ringtone when call is terminated
+          stopIncomingCallRingtone();
 
           setStatus("Registered & Idle");
           setAgentStatus("Available");
@@ -300,6 +332,10 @@ export const SIPProvider = ({ children }) => {
       onReject: (response) => {
         console.log("❌ Call rejected:", response);
         console.log("📊 Saving rejected call - direction:", callDirectionRef.current);
+
+        // Stop the ringtone when call is rejected
+        stopIncomingCallRingtone();
+
         setStatus("Call Rejected");
         saveCallLog('Missed', 0);
         handleCallEnd();
@@ -391,14 +427,22 @@ export const SIPProvider = ({ children }) => {
 
   // Make outgoing call
   const makeCall = (number) => {
+    console.log("🎯 makeCall function called with number:", number);
+    console.log("🎯 userAgent:", !!userAgent, "registered:", registered);
+    
     if (!userAgent || !registered) {
       console.error("❌ Cannot make call: Not registered");
+      alert("Cannot make call: SIP not registered. Please check your connection.");
       return;
     }
 
     try {
-      const target = SIP.UserAgent.makeURI(`sip:${number}@${getSipServer()}`);
-      const inviter = new SIP.Inviter(userAgent, target, {
+      console.log("📞 Initiating call to:", number);
+      const target = UserAgent.makeURI(`sip:${number}@${getSipServer()}`);
+      console.log("✅ Target URI created:", target);
+
+      // Create inviter with proper session description handler options
+      const inviter = new Inviter(userAgent, target, {
         sessionDescriptionHandlerOptions: {
           constraints: {
             audio: true,
@@ -406,27 +450,46 @@ export const SIPProvider = ({ children }) => {
           },
         },
       });
+      console.log("✅ Inviter created");
 
-      // Set as call session immediately to show outgoing call UI
-      setCallSession(inviter);
-      setStatus("Calling...");
-
+      // Set call direction and remote identity BEFORE setting up handlers
       callDirectionRef.current = 'outgoing';
       remoteIdentityRef.current = number;
-      console.log("📞 Outgoing call initiated to:", number);
       console.log("✅ Call direction set to: outgoing");
 
+      // Set as call session to show outgoing call UI
+      setCallSession(inviter);
+      setStatus("Calling...");
+      console.log("✅ Call session state updated");
+
+      // Setup session handlers BEFORE sending invite
       setupSessionHandlers(inviter);
 
-      inviter.invite().then(() => {
-        console.log("📞 Call initiated to:", number);
+      // Send the INVITE - don't await, let it happen asynchronously
+      console.log("📤 Sending INVITE...");
+      inviter.invite({
+        requestDelegate: {
+          onAccept: (response) => {
+            console.log("✅ Call accepted by remote party");
+          },
+          onReject: (response) => {
+            console.error("❌ Call rejected:", response.message);
+            setStatus("Call Rejected");
+            handleCallEnd();
+          },
+        },
+      }).then(() => {
+        console.log("📤 INVITE sent successfully");
       }).catch((error) => {
-        console.error("❌ Failed to make call:", error);
+        console.error("❌ Failed to send INVITE:", error);
+        console.error("❌ Error details:", error.stack);
         setStatus("Call Failed");
         handleCallEnd();
       });
+
     } catch (error) {
       console.error("❌ Error making call:", error);
+      console.error("❌ Error stack:", error.stack);
       setStatus("Call Failed");
       handleCallEnd();
     }
@@ -449,6 +512,8 @@ export const SIPProvider = ({ children }) => {
 
       incomingCall.accept(options).then(() => {
         console.log("✅ Call answered");
+        // Stop the ringtone when call is answered
+        stopIncomingCallRingtone();
         // The state will be updated by the session state change listener
       }).catch((error) => {
         console.error("❌ Failed to answer call:", error);
@@ -467,9 +532,37 @@ export const SIPProvider = ({ children }) => {
     if (!session) return;
 
     try {
-      session.bye().catch((error) => {
-        console.error("❌ Error hanging up:", error);
-      });
+      // Stop the ringtone when hanging up/rejecting
+      stopIncomingCallRingtone();
+
+      // Check session state to determine if we should reject or bye
+      if (session.state === SessionState.Initial || session.state === SessionState.Establishing) {
+        // For incoming calls that haven't been answered, use reject
+        if (incomingCall && session === incomingCall) {
+          console.log("📞 Rejecting incoming call");
+          session.reject().catch((error) => {
+            console.error("❌ Error rejecting call:", error);
+          });
+        } else {
+          // For outgoing calls that are still connecting, use cancel
+          console.log("📞 Cancelling outgoing call");
+          session.cancel().catch((error) => {
+            console.error("❌ Error cancelling call:", error);
+          });
+        }
+      } else if (session.state === SessionState.Established) {
+        // For established calls, use bye
+        console.log("📞 Ending established call");
+        session.bye().catch((error) => {
+          console.error("❌ Error hanging up:", error);
+        });
+      } else {
+        console.log("📞 Session in state:", session.state, "- attempting bye");
+        session.bye().catch((error) => {
+          console.error("❌ Error hanging up:", error);
+        });
+      }
+
       handleCallEnd();
     } catch (error) {
       console.error("❌ Error in hangup:", error);
@@ -492,7 +585,7 @@ export const SIPProvider = ({ children }) => {
       });
 
       // Check if session is established
-      if (session.state !== SIP.SessionState.Established) {
+      if (session.state !== SessionState.Established) {
         console.error("❌ Cannot hold: Session not established");
         return;
       }
@@ -584,7 +677,7 @@ export const SIPProvider = ({ children }) => {
       });
 
       // Check if session is established
-      if (session.state !== SIP.SessionState.Established) {
+      if (session.state !== SessionState.Established) {
         console.error("❌ Cannot unhold: Session not established");
         return;
       }
@@ -642,9 +735,33 @@ export const SIPProvider = ({ children }) => {
 
   // Mute call
   const muteCall = (session) => {
-    if (!session) return;
+    if (!session) {
+      console.error("❌ No session to mute");
+      return;
+    }
+
     try {
-      session.sessionDescriptionHandler.mute();
+      const handler = session.sessionDescriptionHandler;
+      if (!handler) {
+        console.error("❌ No session description handler");
+        return;
+      }
+
+      const pc = handler.peerConnection;
+      if (!pc) {
+        console.error("❌ No peer connection");
+        return;
+      }
+
+      // Get all audio senders and disable them
+      const senders = pc.getSenders();
+      senders.forEach(sender => {
+        if (sender.track && sender.track.kind === 'audio') {
+          sender.track.enabled = false;
+          console.log("🔇 Audio track muted");
+        }
+      });
+
       console.log("🔇 Call muted");
     } catch (error) {
       console.error("❌ Error muting call:", error);
@@ -653,9 +770,33 @@ export const SIPProvider = ({ children }) => {
 
   // Unmute call
   const unmuteCall = (session) => {
-    if (!session) return;
+    if (!session) {
+      console.error("❌ No session to unmute");
+      return;
+    }
+
     try {
-      session.sessionDescriptionHandler.unmute();
+      const handler = session.sessionDescriptionHandler;
+      if (!handler) {
+        console.error("❌ No session description handler");
+        return;
+      }
+
+      const pc = handler.peerConnection;
+      if (!pc) {
+        console.error("❌ No peer connection");
+        return;
+      }
+
+      // Get all audio senders and enable them
+      const senders = pc.getSenders();
+      senders.forEach(sender => {
+        if (sender.track && sender.track.kind === 'audio') {
+          sender.track.enabled = true;
+          console.log("🔊 Audio track unmuted");
+        }
+      });
+
       console.log("🔊 Call unmuted");
     } catch (error) {
       console.error("❌ Error unmuting call:", error);
@@ -666,7 +807,7 @@ export const SIPProvider = ({ children }) => {
   const transferCall = (target) => {
     if (!callSession) return;
     try {
-      const transferTarget = SIP.UserAgent.makeURI(`sip:${target}@${getSipServer()}`);
+      const transferTarget = UserAgent.makeURI(`sip:${target}@${getSipServer()}`);
       callSession.refer(transferTarget);
       console.log("📞 Call transferred to:", target);
     } catch (error) {
@@ -707,7 +848,7 @@ export const SIPProvider = ({ children }) => {
       setConnectionFailed(true);
       setIsRegistering(false);
       setRegistrationError(error.message || "Registration failed");
-      
+
       // Check if it's a certificate error
       if (error.message && (error.message.includes('certificate') || error.message.includes('SSL') || error.message.includes('TLS'))) {
         setRegistrationError("Certificate error detected. Please accept the certificate and try again.");

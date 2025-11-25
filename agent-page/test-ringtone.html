@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ringtone Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        button {
+            padding: 15px 30px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: #4CAF50;
+            color: white;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .stop {
+            background: #f44336;
+        }
+        .stop:hover {
+            background: #da190b;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ringtone Test</h1>
+    <p>Click the buttons below to test the ringtone functionality:</p>
+    
+    <button onclick="playRingtone()">Play Ringtone</button>
+    <button class="stop" onclick="stopRingtone()">Stop Ringtone</button>
+    
+    <div id="status">
+        <strong>Status:</strong> <span id="statusText">Ready</span>
+    </div>
+
+    <script>
+        let ringtoneAudio = null;
+
+        function updateStatus(message) {
+            document.getElementById('statusText').textContent = message;
+            console.log(message);
+        }
+
+        function playRingtone() {
+            try {
+                if (!ringtoneAudio) {
+                    ringtoneAudio = new Audio('/ringtone/Ringtone_1.mp3');
+                    ringtoneAudio.loop = true;
+                    ringtoneAudio.volume = 0.7;
+                    updateStatus('Audio object created');
+                }
+
+                if (!ringtoneAudio.paused) {
+                    updateStatus('Ringtone already playing');
+                    return;
+                }
+
+                ringtoneAudio.currentTime = 0;
+                updateStatus('Playing ringtone...');
+                
+                ringtoneAudio.play()
+                    .then(() => {
+                        updateStatus('✅ Ringtone playing successfully');
+                    })
+                    .catch(error => {
+                        updateStatus('❌ Error: ' + error.message);
+                    });
+            } catch (error) {
+                updateStatus('❌ Exception: ' + error.message);
+            }
+        }
+
+        function stopRingtone() {
+            if (ringtoneAudio) {
+                ringtoneAudio.pause();
+                ringtoneAudio.currentTime = 0;
+                updateStatus('Ringtone stopped');
+            } else {
+                updateStatus('No ringtone to stop');
+            }
+        }
+    </script>
+</body>
+</html>

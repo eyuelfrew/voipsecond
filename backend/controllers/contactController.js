@@ -9,7 +9,7 @@ exports.getContacts = async (req, res) => {
     const { search, tag, favorite } = req.query;
     
     // Build query - only show contacts created by this agent
-    const query = { createdBy: req.user._id };
+    const query = { createdBy: req.user.id };
     
     // Add search filter
     if (search) {
@@ -57,7 +57,7 @@ exports.getContact = async (req, res) => {
   try {
     const contact = await Contact.findOne({
       _id: req.params.id,
-      createdBy: req.user._id // Ensure agent can only access their own contacts
+      createdBy: req.user.id // Ensure agent can only access their own contacts
     }).populate('createdBy', 'username name email');
     
     if (!contact) {
@@ -99,7 +99,7 @@ exports.createContact = async (req, res) => {
     // Check for duplicate phone number for this agent
     const existingContact = await Contact.findOne({
       phoneNumber,
-      createdBy: req.user._id
+      createdBy: req.user.id
     });
     
     if (existingContact) {
@@ -120,7 +120,7 @@ exports.createContact = async (req, res) => {
       notes,
       alternatePhone,
       tags: tags || [],
-      createdBy: req.user._id,
+      createdBy: req.user.id,
       agentExtension: req.user.username || req.user.userExtension
     });
     
@@ -151,7 +151,7 @@ exports.updateContact = async (req, res) => {
     // Find contact and ensure it belongs to the agent
     let contact = await Contact.findOne({
       _id: req.params.id,
-      createdBy: req.user._id
+      createdBy: req.user.id
     });
     
     if (!contact) {
@@ -165,7 +165,7 @@ exports.updateContact = async (req, res) => {
     if (phoneNumber && phoneNumber !== contact.phoneNumber) {
       const existingContact = await Contact.findOne({
         phoneNumber,
-        createdBy: req.user._id,
+        createdBy: req.user.id,
         _id: { $ne: req.params.id }
       });
       
@@ -215,7 +215,7 @@ exports.deleteContact = async (req, res) => {
   try {
     const contact = await Contact.findOne({
       _id: req.params.id,
-      createdBy: req.user._id
+      createdBy: req.user.id
     });
     
     if (!contact) {
@@ -250,7 +250,7 @@ exports.toggleFavorite = async (req, res) => {
   try {
     const contact = await Contact.findOne({
       _id: req.params.id,
-      createdBy: req.user._id
+      createdBy: req.user.id
     });
     
     if (!contact) {
@@ -294,7 +294,7 @@ exports.bulkDeleteContacts = async (req, res) => {
     
     const result = await Contact.deleteMany({
       _id: { $in: contactIds },
-      createdBy: req.user._id
+      createdBy: req.user.id
     });
     
     console.log(`📇 Bulk delete: ${result.deletedCount} contacts by agent ${req.user.username}`);
@@ -319,12 +319,12 @@ exports.bulkDeleteContacts = async (req, res) => {
 // @access  Private
 exports.getContactStats = async (req, res) => {
   try {
-    const totalContacts = await Contact.countDocuments({ createdBy: req.user._id });
-    const favoriteContacts = await Contact.countDocuments({ createdBy: req.user._id, isFavorite: true });
+    const totalContacts = await Contact.countDocuments({ createdBy: req.user.id });
+    const favoriteContacts = await Contact.countDocuments({ createdBy: req.user.id, isFavorite: true });
     
     // Get all unique tags
     const tagsAggregation = await Contact.aggregate([
-      { $match: { createdBy: req.user._id } },
+      { $match: { createdBy: req.user.id } },
       { $unwind: '$tags' },
       { $group: { _id: '$tags', count: { $sum: 1 } } },
       { $sort: { count: -1 } }

@@ -12,6 +12,8 @@ import PhoneNumbers from './pages/PhoneNumbers';
 import ShiftManagement from './pages/ShiftManagement';
 import CustomerTimeline from './pages/CustomerTimeline';
 import { setupAxiosInterceptors } from './utils/axiosInterceptor';
+import { initializeAudio } from './utils/ringtone';
+import ErrorBoundary from './components/ErrorBoundary';
 import useStore from './store/store';
 import './App.css';
 
@@ -29,72 +31,90 @@ function AppContent() {
         navigate('/login', { replace: true, state: { from: location } });
       }
     };
-    
+
     setupAxiosInterceptors(handleUnauthorized);
+
+    // Initialize audio on first user interaction
+    const initAudio = () => {
+      initializeAudio();
+      // Remove listeners after first interaction
+      document.removeEventListener('click', initAudio);
+      document.removeEventListener('keydown', initAudio);
+    };
+
+    document.addEventListener('click', initAudio);
+    document.addEventListener('keydown', initAudio);
+
+    return () => {
+      document.removeEventListener('click', initAudio);
+      document.removeEventListener('keydown', initAudio);
+    };
   }, [navigate, location]);
 
   return (
-    <SIPProvider>
-      <div className="App">
-          <Routes>
-            <Route path="/" element={<Login />} />
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/dashboard"
-              element={
-                <RequireAuth>
-                  <Layout>
-                    <Dashboard />
-                  </Layout>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/analytics"
-              element={
-                <RequireAuth>
-                  <Layout>
-                    <Analytics />
-                  </Layout>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/phone-numbers"
-              element={
-                <RequireAuth>
-                  <Layout>
-                    <PhoneNumbers />
-                  </Layout>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/shift-management"
-              element={
-                <RequireAuth>
-                  <Layout>
-                    <ShiftManagement />
-                  </Layout>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/customer-timeline"
-              element={
-                <RequireAuth>
-                  <Layout>
-                    <CustomerTimeline />
-                  </Layout>
-                </RequireAuth>
-              }
-            />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </div>
-      </SIPProvider>
-    );
-  }
+    <ErrorBoundary>
+      <SIPProvider>
+        <div className="App">
+        <Routes>
+          <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/dashboard"
+            element={
+              <RequireAuth>
+                <Layout>
+                  <Dashboard />
+                </Layout>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <RequireAuth>
+                <Layout>
+                  <Analytics />
+                </Layout>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/phone-numbers"
+            element={
+              <RequireAuth>
+                <Layout>
+                  <PhoneNumbers />
+                </Layout>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/shift-management"
+            element={
+              <RequireAuth>
+                <Layout>
+                  <ShiftManagement />
+                </Layout>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/customer-timeline"
+            element={
+              <RequireAuth>
+                <Layout>
+                  <CustomerTimeline />
+                </Layout>
+              </RequireAuth>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
+    </SIPProvider>
+  </ErrorBoundary>
+  );
+}
 
 function App() {
   return (

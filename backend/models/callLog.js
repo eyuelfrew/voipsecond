@@ -23,6 +23,13 @@ const callLogSchema = new mongoose.Schema({
     agentExtension: { type: String }, // extension of agent who handled the call
     agentName: { type: String }, // name of agent who handled the call
     transferCount: { type: Number, default: 0 }, // number of times call was transferred
+    // CRM Integration: Link to contact
+    contactId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Contact',
+        default: null,
+        index: true
+    },
     // Absolute path to the call recording on the server (set by AMI when MixMonitor starts)
     recordingPath: { type: String },
     // Reference to call quality metrics

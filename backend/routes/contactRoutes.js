@@ -11,11 +11,15 @@ const {
   getContactStats
 } = require('../controllers/contactController');
 
-// Middleware to protect routes (assuming you have auth middleware)
-const { protect } = require('../middleware/auth');
+const { getContactActivities } = require('../controllers/activityController');
+const { trackCall } = require('../controllers/callTrackingController');
+const { getContactTimeline, getContactCalls, linkCallToContact } = require('../controllers/contactCRMController');
 
-// Apply protect middleware to all routes
-router.use(protect);
+// Use the existing auth middleware
+const { validateToken } = require('../utils/auth');
+
+// Apply validateToken middleware to all routes
+router.use(validateToken);
 
 // Contact CRUD routes
 router.route('/')
@@ -36,4 +40,21 @@ router.route('/:id')
 router.route('/:id/favorite')
   .patch(toggleFavorite);
 
+// CRM Enhancement routes
+router.route('/:id/timeline')
+  .get(getContactTimeline);
+
+router.route('/:id/calls')
+  .get(getContactCalls);
+
+router.route('/:id/link-call')
+  .post(linkCallToContact);
+
+router.route('/:id/activities')
+  .get(getContactActivities);
+
+router.route('/track-call')
+  .post(trackCall);
+
 module.exports = router;
+

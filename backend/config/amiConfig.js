@@ -409,8 +409,15 @@ async function handleHangup(event, io) {
         return; // Don't overwrite answered status
       }
 
+      // Check if call info exists before accessing it
+      if (!existingCall || !existingCall.callInfo) {
+        console.log(`⚠️ Hangup Case 1: No call info found for ${Linkedid}, skipping`);
+        delete state.activeRinging[Linkedid];
+        return;
+      }
+
       console.log(`💔 Missed call ${Linkedid} (Hangup while ringing)`);
-      const callInfo = state.activeRinging[Linkedid].callInfo;
+      const callInfo = existingCall.callInfo;
 
       io.emit("callState", {
         event: "missed",
