@@ -6,8 +6,7 @@ const GlobalSIPSettings: React.FC = () => {
     { ip: '172.20.47.0', mask: '24' },
     { ip: '192.168.137.0', mask: '24' }
   ]);
-  const [iceBlacklist, setIceBlacklist] = useState<string[]>([]);
-  const [iceCandidates, setIceCandidates] = useState<string[]>([]);
+
 
   // Audio Codecs
   const audioCodecs = [

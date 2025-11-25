@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-    LayoutDashboard, Phone, BarChart3, Clock, User as UserIcon, Hash
+    LayoutDashboard, Phone, BarChart3, Clock, User as UserIcon, Hash, BookOpen
 } from 'lucide-react';
 
 function Sidebar() {
@@ -10,7 +10,7 @@ function Sidebar() {
     const menuItems = [
         { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
         { name: "Phone Numbers", path: "/phone-numbers", icon: Hash },
-        { name: "Shift Management", path: "/shift-management", icon: Clock },
+        { name: "Knowledge Base", path: "/knowledge-base", icon: BookOpen },
         { name: "Analytics", path: "/analytics", icon: BarChart3 },
         { name: "Customer Timeline", path: "/customer-timeline", icon: UserIcon },
     ];

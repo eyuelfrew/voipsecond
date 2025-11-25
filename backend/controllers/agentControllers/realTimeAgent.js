@@ -85,7 +85,6 @@ async function incrementAnsweredCalls(
   io
 ) {
   try {
-    console.log(`📞 Incrementing answered calls for agent ${username}`);
 
     const agent = await getOrCreateAgent(username);
 
@@ -95,9 +94,7 @@ async function incrementAnsweredCalls(
     agent.answeredCallsToday += 1;
     agent.answeredCallsOverall += 1;
 
-    console.log(
-      `📊 Agent ${username} stats - Today: ${agent.answeredCallsToday}, Overall: ${agent.answeredCallsOverall}`
-    );
+
 
     // Update timing metrics
     const holdTimeSeconds = parseInt(holdTime) || 0;
@@ -140,14 +137,9 @@ async function incrementAnsweredCalls(
     await saveAgentStats(username);
     await emitAgentStatusOnly(io);
 
-    console.log(
-      `✅ Successfully incremented answered calls for agent ${username}`
-    );
+
   } catch (error) {
-    console.error(
-      `❌ Error incrementing answered calls for agent ${username}:`,
-      error
-    );
+
   }
 }
 
@@ -180,7 +172,6 @@ async function saveAgentStats(username) {
       { upsert: true }
     );
   } catch (error) {
-    console.error(`Error saving agent stats for ${username}:`, error);
   }
 }
 
@@ -206,13 +197,11 @@ async function updateAgentWrapTime(username, wrapTimeSec, io) {
       wrapTimeSec
     );
 
-    console.log(`📊 Updated wrap time for ${username}: Today avg ${agent.averageWrapTimeToday.toFixed(2)}s, Overall avg ${agent.averageWrapTimeOverall.toFixed(2)}s`);
 
     // Save to database and emit updates
     await saveAgentStats(username);
     await emitAgentStatusOnly(io);
   } catch (error) {
-    console.error(`Error updating wrap time for ${username}:`, error);
   }
 }
 
@@ -378,7 +367,6 @@ async function loadAllAgentsWithStatus(ami) {
       }
     }
   } catch (error) {
-    console.error("Error loading all agents:", error);
   }
 }
 
@@ -433,7 +421,6 @@ async function refreshAgentState(io) {
       await emitAgentStatusOnly(io);
     }
   } catch (error) {
-    console.error("Error refreshing agent state:", error);
   }
 }
 
@@ -457,7 +444,6 @@ async function reloadAllAgents(io) {
       await emitAgentStatusOnly(io);
     }
   } catch (error) {
-    console.error("Error reloading all agents:", error);
   }
 }
 
@@ -467,7 +453,6 @@ async function extensionExists(extension) {
     const exists = await Extension.exists({ userExtension: extension });
     return !!exists;
   } catch (error) {
-    console.error(`Error checking if extension ${extension} exists:`, error);
     return false;
   }
 }
@@ -595,7 +580,6 @@ async function refreshAgentStatus(io) {
     // Emit the updated status
     await emitAgentStatusOnly(io);
   } catch (error) {
-    console.error("Error refreshing agent status:", error);
   }
 }
 
@@ -658,9 +642,6 @@ function setupAgentListeners(ami, io) {
       return;
     }
 
-    console.log(
-      `📞 Agent ${exact_username} called for queue ${Queue} - caller: ${CallerIDNum}`
-    );
 
     const agent = await getOrCreateAgent(exact_username);
 
@@ -668,9 +649,6 @@ function setupAgentListeners(ami, io) {
     agent.totalCallsToday += 1;
     agent.totalCallsOverall += 1;
 
-    console.log(
-      `📊 Agent ${exact_username} total calls - Today: ${agent.totalCallsToday}, Overall: ${agent.totalCallsOverall}`
-    );
 
     // Update agent activity
     agent.lastActivity = new Date();
@@ -682,7 +660,6 @@ function setupAgentListeners(ami, io) {
 
   // Listen to AgentConnect events (agent answers queue call) - More accurate than BridgeEnter
   ami.on("AgentConnect", async (event) => {
-    console.log(event);
     const {
       MemberName,
       Interface,
@@ -748,7 +725,6 @@ function setupAgentListeners(ami, io) {
       // Ensure recordings directory exists
       if (!fs.existsSync(recordingsBasePath)) {
         fs.mkdirSync(recordingsBasePath, { recursive: true });
-        console.log(`📁 Created recordings directory: ${recordingsBasePath}`);
       }
 
       // ✅ Safe timestamp and filename (sanitize Linkedid to remove dots)
@@ -759,8 +735,6 @@ function setupAgentListeners(ami, io) {
       const fileName = `call-${safeCaller}-${safeAgent}-${safeLinkedid}-${timestamp}`;
       const filePath = path.join(recordingsBasePath, fileName);
       
-      console.log(`🎙️ Starting MixMonitor for Agent ${exact_username} (Linkedid: ${Linkedid})`);
-      console.log(`📁 Recording will be saved to: ${filePath}.wav`);
 
       // Start MixMonitor with .wav extension to specify format
       ami.action(
@@ -772,17 +746,14 @@ function setupAgentListeners(ami, io) {
         },
         (err) => {
           if (err) {
-            console.error("❌ Failed to start recording:", err);
             delete amiState.recordingByLinkedId[Linkedid];
           } else {
-            console.log(`✅ MixMonitor AMI command sent successfully for ${filePath}.wav`);
           }
         }
       );
 
       // Update call log with recording path (store as URL path)
       const { updateCallLog } = require("../../config/amiConfig");
-      console.log(`✅ AgentConnect: Setting call ${Linkedid} status to ANSWERED`);
       updateCallLog(
         Linkedid,
         {
@@ -987,7 +958,6 @@ function setupAgentListeners(ami, io) {
       // Emit immediately so frontend gets the agents
       await emitAgentStatusOnly(io);
     } catch (error) {
-      console.error("❌ Error loading initial agents:", error);
     }
   }, 3000); // Wait 3 seconds for AMI to be ready
 }

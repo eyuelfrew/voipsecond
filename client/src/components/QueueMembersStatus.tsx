@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { UseSocket } from "../context/SocketContext";
-import { Users, Filter, Phone, UserCheck, UserX, Clock, Headphones } from "lucide-react";
+import { Users, Filter, Phone, UserCheck, UserX, Clock, Headphones, PhoneCall } from "lucide-react";
 
 interface QueueMemberType {
   Queue: string;
@@ -10,11 +10,16 @@ interface QueueMemberType {
   Penalty: string;
   CallsTaken: string;
   LastCall: string;
+  LastPause: string;
+  LoginTime: string;
   InCall: string;
   Status: string;
   Paused: string;
   PausedReason: string;
+  Wrapuptime: string;
   queueName: string;
+  SIPStatus?: string;
+  OriginalStatus?: string;
 }
 
 export default function QueueMembersDashboard() {
@@ -22,6 +27,37 @@ export default function QueueMembersDashboard() {
   const [selectedQueue, setSelectedQueue] = useState("All Queues");
   const [wrapStatus, setWrapStatus] = useState<Record<string, any>>({});
   const { socket } = UseSocket();
+
+  // Format Unix timestamp to readable time
+  const formatTimestamp = (timestamp: string) => {
+    if (!timestamp || timestamp === '0') return '-';
+    const date = new Date(parseInt(timestamp) * 1000);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Format duration from Unix timestamp to now
+  const formatDuration = (timestamp: string) => {
+    if (!timestamp || timestamp === '0') return '-';
+    const date = new Date(parseInt(timestamp) * 1000);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffMins = Math.floor((diffMs % 3600000) / 60000);
+
+    if (diffHours > 0) return `${diffHours}h ${diffMins}m`;
+    return `${diffMins}m`;
+  };
 
   useEffect(() => {
     if (!socket) {
@@ -98,9 +134,9 @@ export default function QueueMembersDashboard() {
         );
       case "6":
         return (
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-yellow-500/20 text-yellow-400 animate-pulse">
-            <Phone className="w-3 h-3 animate-pulse" />
-            Ringing
+          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-yellow-500/20 text-yellow-400 animate-pulse shadow-lg shadow-yellow-500/50">
+            <Phone className="w-3 h-3 animate-bounce" />
+            🔔 Ringing
           </span>
         );
       case "8":
@@ -171,22 +207,28 @@ export default function QueueMembersDashboard() {
             <tr className="text-left cc-bg-surface-variant">
               <th className="px-6 py-4 cc-text-accent font-bold text-sm tracking-wide">Queue</th>
               <th className="px-6 py-4 cc-text-accent font-bold text-sm tracking-wide">Agent</th>
-              <th className="px-6 py-4 cc-text-accent font-bold text-sm tracking-wide">Membership</th>
               <th className="px-6 py-4 cc-text-accent font-bold text-sm tracking-wide">Status</th>
               <th className="px-6 py-4 text-center cc-text-accent font-bold text-sm tracking-wide">Paused</th>
-              <th className="px-6 py-4 text-center cc-text-accent font-bold text-sm tracking-wide">Pause Reason</th>
-              <th className="px-6 py-4 text-center cc-text-accent font-bold text-sm tracking-wide">Wrap-Up</th>
-              <th className="px-6 py-4 text-center cc-text-accent font-bold text-sm tracking-wide">Calls Taken</th>
               <th className="px-6 py-4 text-center cc-text-accent font-bold text-sm tracking-wide">In Call</th>
+              <th className="px-6 py-4 text-center cc-text-accent font-bold text-sm tracking-wide">Calls Taken</th>
+              <th className="px-6 py-4 text-center cc-text-accent font-bold text-sm tracking-wide">Joined At</th>
+              <th className="px-6 py-4 text-center cc-text-accent font-bold text-sm tracking-wide">Last Call</th>
+              <th className="px-6 py-4 text-center cc-text-accent font-bold text-sm tracking-wide">Last Pause</th>
             </tr>
           </thead>
 
           <tbody>
             {filteredMembers.length > 0 ? (
-              filteredMembers.map((agent, index) => (
+              filteredMembers.map((agent, index) => {
+                const isRinging = agent.Status === "6";
+                return (
                 <tr
                   key={`${agent.Name}-${index}`}
-                  className={`cc-border-accent border-t hover:bg-yellow-400/5 cc-transition group ${index % 2 === 0 ? 'bg-transparent' : 'cc-bg-surface-variant/30'}`}
+                  className={`cc-border-accent border-t hover:bg-yellow-400/5 cc-transition group ${
+                    isRinging 
+                      ? 'bg-yellow-500/10 animate-pulse border-l-4 border-l-yellow-500' 
+                      : index % 2 === 0 ? 'bg-transparent' : 'cc-bg-surface-variant/30'
+                  }`}
                 >
                   <td className="px-6 py-5 font-bold cc-text-primary">{agent.queueName || agent.Queue}</td>
                   <td className="px-6 py-5">
@@ -194,61 +236,57 @@ export default function QueueMembersDashboard() {
                       <div className="w-8 h-8 bg-cc-yellow-400 rounded-full flex items-center justify-center">
                         <Headphones className="w-4 h-4 text-black" />
                       </div>
-                      <span className="cc-text-accent font-semibold">{agent.Name}</span>
+                      <div>
+                        <div className="cc-text-accent font-semibold">{agent.Name}</div>
+                        {agent.SIPStatus && agent.SIPStatus !== 'Unknown' && (
+                          <div className="text-xs cc-text-secondary">SIP: {agent.SIPStatus}</div>
+                        )}
+                      </div>
                     </div>
                   </td>
-                  <td className="px-6 py-5 cc-text-secondary capitalize">{agent.Membership}</td>
                   <td className="px-6 py-5">{getStatusLabel(agent.Status)}</td>
                   <td className="px-6 py-5 text-center">
                     {agent.Paused === "1" ? (
-                      <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-red-500/20 text-red-400">
-                        <UserX className="w-3 h-3" />
-                        Paused
-                      </span>
+                      <div className="flex flex-col items-center">
+                        <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-red-500/20 text-red-400">
+                          <UserX className="w-3 h-3" />
+                          Paused
+                        </span>
+                        {agent.PausedReason && (
+                          <span className="text-xs cc-text-secondary mt-1">{agent.PausedReason}</span>
+                        )}
+                      </div>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-green-500/20 text-green-400">
-                        <UserCheck className="w-3 h-3" />
-                        Active
-                      </span>
+                      <span className="cc-text-secondary text-sm">-</span>
                     )}
                   </td>
-                  <td className="px-6 py-5 text-center cc-text-secondary">
-                    {agent.Paused === "1" ? (agent.PausedReason || 'No reason') : "-"}
-                  </td>
                   <td className="px-6 py-5 text-center">
-                    {(() => {
-                      // Extract extension from agent name (e.g., "Local/1003@from-internal" -> "1003")
-                      const extensionMatch = agent.Name.match(/(\d+)/);
-                      const extension = extensionMatch ? extensionMatch[1] : agent.Name;
-                      const isInWrapUp = wrapStatus[extension]?.inWrapUp || wrapStatus[agent.Name]?.inWrapUp;
-                      
-                      return isInWrapUp ? (
-                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-500/20 text-purple-400 animate-pulse">
-                          <Clock className="w-3 h-3 animate-spin" />
-                          In Wrap-Up
-                        </span>
-                      ) : (
-                        <span className="cc-text-secondary text-sm">-</span>
-                      );
-                    })()}
+                    {agent.InCall === "1" ? (
+                      <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-500/20 text-blue-400">
+                        <PhoneCall className="w-4 h-4 animate-pulse" />
+                      </span>
+                    ) : (
+                      <span className="cc-text-secondary text-sm">-</span>
+                    )}
                   </td>
                   <td className="px-6 py-5 text-center">
                     <span className="cc-text-accent font-bold text-lg">{agent.CallsTaken}</span>
                   </td>
                   <td className="px-6 py-5 text-center">
-                    {agent.InCall === "1" ? (
-                      <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-500/20 text-blue-400 animate-pulse">
-                        <Phone className="w-3 h-3 animate-pulse" />
-                        On Call
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-gray-500/20 text-gray-400">
-                        Available
-                      </span>
-                    )}
+                    <div className="flex flex-col items-center">
+                      <span className="cc-text-accent font-semibold text-sm">{formatDuration(agent.LoginTime)}</span>
+                      <span className="text-xs cc-text-secondary">{formatTimestamp(agent.LoginTime)}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-5 text-center">
+                    <span className="cc-text-secondary text-sm">{formatTimestamp(agent.LastCall)}</span>
+                  </td>
+                  <td className="px-6 py-5 text-center">
+                    <span className="cc-text-secondary text-sm">{formatTimestamp(agent.LastPause)}</span>
                   </td>
                 </tr>
-              ))
+              );
+              })
             ) : (
               <tr>
                 <td colSpan={9} className="px-6 py-16 text-center">

@@ -61,6 +61,15 @@ const useStore = create((set, get) => ({
   },
   logout: async () => {
     try {
+      // Preserve call history before clearing localStorage
+      const callHistoryKeys = Object.keys(localStorage).filter(key => 
+        key.startsWith('voip_call_history_')
+      );
+      const callHistoryData = {};
+      callHistoryKeys.forEach(key => {
+        callHistoryData[key] = localStorage.getItem(key);
+      });
+
       const res = await fetch(`${baseUrl}/auth/logout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -68,19 +77,43 @@ const useStore = create((set, get) => ({
         timeout: 5000,
       });
 
-      // Always clear client-side state regardless of server response
+      // Clear client-side state
       localStorage.clear();
       sessionStorage.clear();
+
+      // Restore call history
+      Object.keys(callHistoryData).forEach(key => {
+        localStorage.setItem(key, callHistoryData[key]);
+      });
+
       set({ agent: null, token: null, shift: null, call: null });
 
       if (!res.ok) {
         console.error('Logout request failed, but client state cleared');
       }
+
+      console.log('✅ Logout complete - Call history preserved');
     } catch (error) {
-      // Even if logout fails, clear client-side state
+      // Even if logout fails, clear client-side state but preserve call history
       console.error('Logout error:', error);
+
+      // Preserve call history before clearing
+      const callHistoryKeys = Object.keys(localStorage).filter(key => 
+        key.startsWith('voip_call_history_')
+      );
+      const callHistoryData = {};
+      callHistoryKeys.forEach(key => {
+        callHistoryData[key] = localStorage.getItem(key);
+      });
+
       localStorage.clear();
       sessionStorage.clear();
+
+      // Restore call history
+      Object.keys(callHistoryData).forEach(key => {
+        localStorage.setItem(key, callHistoryData[key]);
+      });
+
       set({ agent: null, token: null, shift: null, call: null });
     }
   },

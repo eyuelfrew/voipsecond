@@ -80,7 +80,7 @@ const generateIvrDialplan = (allIVRs, allRecordings) => {
           ivrConfigSections += `same => n,Dial(PJSIP/${entry.value},30)\n`;
           break;
         case 'queue':
-          ivrConfigSections += `same => n,Queue(${entry.value})\n`;
+          ivrConfigSections += `same => n,Goto(from-internal,${entry.value},1)\n`;
           break;
         case 'ivr':
           ivrConfigSections += `same => n,Goto(ivr_${entry.value},s,1)\n`;

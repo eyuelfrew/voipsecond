@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing, Search, Filter, Clock } from 'lucide-react';
+import { Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing, Search, Filter, Clock, User, UserPlus, Building, Mail } from 'lucide-react';
 import useStore from '../store/store';
+import axios from 'axios';
+import { getApiUrl } from '../config';
+
+const baseUrl = getApiUrl();
 
 const CallHistory = () => {
   const [calls, setCalls] = useState([]);
+  const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [showAddContact, setShowAddContact] = useState(false);
+  const [selectedNumber, setSelectedNumber] = useState('');
   const agent = useStore(state => state.agent);
 
   useEffect(() => {
     loadCalls();
+    loadContacts();
 
     // Listen for real-time updates
     const handleStorageUpdate = () => loadCalls();
@@ -34,6 +42,35 @@ const CallHistory = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadContacts = async () => {
+    try {
+      const response = await axios.get(`${baseUrl}/contacts`, {
+        withCredentials: true
+      });
+      setContacts(response.data.contacts || []);
+    } catch (error) {
+      console.error('Error loading contacts:', error);
+    }
+  };
+
+  // Match phone number with contact
+  const findContact = (phoneNumber) => {
+    if (!phoneNumber) return null;
+    // Clean phone number for comparison (remove spaces, dashes, etc.)
+    const cleanNumber = phoneNumber.replace(/[\s\-\(\)]/g, '');
+    return contacts.find(contact => {
+      const cleanContactNumber = contact.phoneNumber?.replace(/[\s\-\(\)]/g, '');
+      return cleanContactNumber === cleanNumber || 
+             cleanContactNumber?.includes(cleanNumber) ||
+             cleanNumber?.includes(cleanContactNumber);
+    });
+  };
+
+  const handleAddContact = (phoneNumber) => {
+    setSelectedNumber(phoneNumber);
+    setShowAddContact(true);
   };
 
   const getStatusIcon = (status, direction) => {
@@ -155,56 +192,212 @@ const CallHistory = () => {
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredCalls.map((call, index) => (
-            <div
-              key={call.id || index}
-              className="group bg-white rounded-2xl p-5 border border-gray-200 shadow-lg hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer"
-            >
-              <div className="flex items-center justify-between">
-                {/* Left: Icon and Info */}
-                <div className="flex items-center space-x-4 flex-1">
-                  {/* Icon */}
-                  <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    {getStatusIcon(call.status, call.direction)}
-                  </div>
+          {filteredCalls.map((call, index) => {
+            const contact = findContact(call.remoteIdentity);
+            const hasContact = !!contact;
 
-                  {/* Call Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-3 mb-1">
-                      <h3 className="text-lg font-bold text-gray-900 truncate">
-                        {call.remoteIdentity || 'Unknown'}
-                      </h3>
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(call.status)}`}>
-                        {call.status}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-4 text-sm text-gray-500">
-                      <span className="flex items-center space-x-1 capitalize">
-                        <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
-                        <span>{call.direction}</span>
-                      </span>
-                      {call.duration > 0 && (
-                        <span className="flex items-center space-x-1">
-                          <Clock className="w-3 h-3" />
-                          <span>{formatDuration(call.duration)}</span>
-                        </span>
+            return (
+              <div
+                key={call.id || index}
+                className="group bg-white rounded-2xl p-5 border border-gray-200 shadow-lg hover:shadow-2xl hover:scale-[1.02] transition-all duration-300"
+              >
+                <div className="flex items-center justify-between">
+                  {/* Left: Icon and Info */}
+                  <div className="flex items-center space-x-4 flex-1">
+                    {/* Icon/Avatar */}
+                    <div className={`flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform ${
+                      hasContact 
+                        ? 'bg-gradient-to-br from-yellow-400 to-yellow-500' 
+                        : 'bg-gradient-to-br from-gray-100 to-gray-200'
+                    }`}>
+                      {hasContact ? (
+                        <User className="w-7 h-7 text-black" />
+                      ) : (
+                        getStatusIcon(call.status, call.direction)
                       )}
                     </div>
-                  </div>
-                </div>
 
-                {/* Right: Time */}
-                <div className="flex-shrink-0 text-right ml-4">
-                  <div className="text-sm font-semibold text-gray-900">
-                    {formatDate(call.timestamp)}
+                    {/* Call Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-3 mb-1 flex-wrap gap-2">
+                        {hasContact ? (
+                          <>
+                            <h3 className="text-lg font-bold text-gray-900">
+                              {contact.name}
+                            </h3>
+                            <span className="text-sm text-gray-500">
+                              {call.remoteIdentity}
+                            </span>
+                          </>
+                        ) : (
+                          <h3 className="text-lg font-bold text-gray-900">
+                            {call.remoteIdentity || 'Unknown'}
+                          </h3>
+                        )}
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(call.status)}`}>
+                          {call.status}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center space-x-4 text-sm text-gray-500 flex-wrap gap-2">
+                        <span className="flex items-center space-x-1 capitalize">
+                          <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+                          <span>{call.direction}</span>
+                        </span>
+                        {call.duration > 0 && (
+                          <span className="flex items-center space-x-1">
+                            <Clock className="w-3 h-3" />
+                            <span>{formatDuration(call.duration)}</span>
+                          </span>
+                        )}
+                        {hasContact && contact.company && (
+                          <span className="flex items-center space-x-1">
+                            <Building className="w-3 h-3" />
+                            <span>{contact.company}</span>
+                          </span>
+                        )}
+                        {hasContact && contact.email && (
+                          <span className="flex items-center space-x-1">
+                            <Mail className="w-3 h-3" />
+                            <span className="truncate max-w-[200px]">{contact.email}</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {formatTime(call.timestamp)}
+
+                  {/* Right: Time and Action */}
+                  <div className="flex-shrink-0 flex flex-col items-end space-y-2 ml-4">
+                    <div className="text-right">
+                      <div className="text-sm font-semibold text-gray-900">
+                        {formatDate(call.timestamp)}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {formatTime(call.timestamp)}
+                      </div>
+                    </div>
+                    
+                    {!hasContact && call.remoteIdentity && (
+                      <button
+                        onClick={() => handleAddContact(call.remoteIdentity)}
+                        className="flex items-center space-x-1 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded-lg transition-all shadow-sm hover:shadow-md"
+                      >
+                        <UserPlus className="w-3 h-3" />
+                        <span>Add Contact</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Quick Add Contact Modal */}
+      {showAddContact && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative p-6 border border-gray-200 m-4">
+            <button 
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition" 
+              onClick={() => {
+                setShowAddContact(false);
+                setSelectedNumber('');
+              }}
+            >
+              <span className="text-2xl">×</span>
+            </button>
+
+            <div className="mb-6">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-500 rounded-lg flex items-center justify-center">
+                  <UserPlus className="w-5 h-5 text-white" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900">Add to Contacts</h2>
+              </div>
+              <p className="text-gray-600 text-sm">Save this number: <span className="font-semibold">{selectedNumber}</span></p>
             </div>
-          ))}
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.target);
+              
+              try {
+                await axios.post(`${baseUrl}/contacts`, {
+                  name: formData.get('name'),
+                  phoneNumber: selectedNumber,
+                  email: formData.get('email'),
+                  company: formData.get('company')
+                }, {
+                  withCredentials: true
+                });
+
+                alert('Contact added successfully!');
+                setShowAddContact(false);
+                setSelectedNumber('');
+                loadContacts(); // Reload contacts
+              } catch (error) {
+                console.error('Error adding contact:', error);
+                alert(error.response?.data?.message || 'Failed to add contact');
+              }
+            }} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-transparent text-gray-900"
+                  placeholder="John Doe"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-transparent text-gray-900"
+                  placeholder="john@example.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Company
+                </label>
+                <input
+                  type="text"
+                  name="company"
+                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-transparent text-gray-900"
+                  placeholder="Acme Corp"
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddContact(false);
+                    setSelectedNumber('');
+                  }}
+                  className="flex-1 px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg transition-all font-semibold"
+                >
+                  Save Contact
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

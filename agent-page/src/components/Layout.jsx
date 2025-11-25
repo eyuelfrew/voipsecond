@@ -1,18 +1,80 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import NavBar from './NavBar';
 import Sidebar from './Sidebar';
 import CallPopup from './CallPopup';
 import { useSIP } from './SIPProvider';
+import useStore from '../store/store';
 import { Phone } from 'lucide-react';
 
 const Layout = ({ children }) => {
   const [showKeypad, setShowKeypad] = React.useState(false);
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+  const navigate = useNavigate();
+  const logout = useStore((state) => state.logout);
   const sip = useSIP() || {};
   const { makeCall, agentStatus, setAgentStatus } = sip;
   const isSIPReady = typeof makeCall === 'function';
 
+  const handleLogout = async () => {
+    // Confirm logout
+    const confirmed = window.confirm(
+      'Are you sure you want to logout?\n\n' +
+      'This will:\n' +
+      '• End your current session\n' +
+      '• Disconnect from the phone system\n' +
+      '• Clear your local data'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsLoggingOut(true);
+
+    try {
+      console.log('🚪 Logging out...');
+      
+      // Call the store logout function which handles backend logout
+      await logout();
+      
+      console.log('✅ Logout successful, redirecting to login...');
+      
+      // Small delay to show the logout state
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Navigate to login page
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error('❌ Logout error:', error);
+      
+      // Even if logout fails, clear local state and redirect
+      console.log('⚠️ Forcing logout despite error...');
+      
+      // Small delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      navigate('/login', { replace: true });
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden transition-colors duration-200">
+      {/* Logout Overlay */}
+      {isLoggingOut && (
+        <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center space-y-4">
+            <div className="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin"></div>
+            <div className="text-center">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Logging Out...</h3>
+              <p className="text-gray-600">Please wait while we securely end your session</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar */}
       <Sidebar />
 
@@ -20,7 +82,7 @@ const Layout = ({ children }) => {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Navbar */}
         <NavBar
-          onLogout={() => {}}
+          onLogout={handleLogout}
           isSIPReady={isSIPReady}
           agentStatus={agentStatus}
           setAgentStatus={setAgentStatus}

@@ -6,11 +6,10 @@ import Login from './components/Login';
 import Layout from './components/Layout';
 import { SIPProvider } from './components/SIPProvider';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { ShiftProvider } from './contexts/ShiftContext';
 import Analytics from './pages/Analytics';
 import PhoneNumbers from './pages/PhoneNumbers';
-import ShiftManagement from './pages/ShiftManagement';
 import CustomerTimeline from './pages/CustomerTimeline';
+import KnowledgeBase from './pages/KnowledgeBase';
 import { setupAxiosInterceptors } from './utils/axiosInterceptor';
 import { initializeAudio } from './utils/ringtone';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -89,21 +88,21 @@ function AppContent() {
             }
           />
           <Route
-            path="/shift-management"
-            element={
-              <RequireAuth>
-                <Layout>
-                  <ShiftManagement />
-                </Layout>
-              </RequireAuth>
-            }
-          />
-          <Route
             path="/customer-timeline"
             element={
               <RequireAuth>
                 <Layout>
                   <CustomerTimeline />
+                </Layout>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/knowledge-base"
+            element={
+              <RequireAuth>
+                <Layout>
+                  <KnowledgeBase />
                 </Layout>
               </RequireAuth>
             }
@@ -119,11 +118,9 @@ function AppContent() {
 function App() {
   return (
     <ThemeProvider>
-      <ShiftProvider>
-        <Router>
-          <AppContent />
-        </Router>
-      </ShiftProvider>
+      <Router>
+        <AppContent />
+      </Router>
     </ThemeProvider>
   );
 }

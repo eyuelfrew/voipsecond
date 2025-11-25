@@ -71,6 +71,7 @@ const state = {
   pendingWrap: {}, // Track wrap-up time: { "queueId:agentExtension": { callEndTime, linkedId, queue, agent, ... } }
   agentWrapStatus: {}, // Track current wrap status per agent: { "agentExtension": { inWrapUp: true, wrapStartTime, ... } }
   wrapUpTimers: {}, // Track auto-unpause timers: { "queueId:agentExtension": timerId }
+  sipPeers: {}, // Track SIP peer registration status: { "extension": { Status: "Registered/Unregistered", ... } }
 };
 
 // On startup, load all ongoing shifts and pending ends into memory
@@ -96,107 +97,8 @@ async function syncAgentShiftsFromDB() {
   });
   // console.log("Agent shifts synced from DB.");
 }
-// --- AGENT SHIFT TRACKING ---
 
-// Use extension number for shift monitoring
-async function startAgentShiftByExtension(extensionNumber) {
-  try {
-    // Always check DB for any ongoing shift (no endTime)
-    // If a shift is already active in memory, resume
-    if (state.agentShifts[extensionNumber]) {
-      // Resume logic: check for pending end in DB
-      const agent = await Agent.findOne({ username: extensionNumber });
-      if (!agent)
-        throw new Error(`Agent not found for username: ${extensionNumber}`);
-      let ongoingShift = await Shift.findOne({
-        agentId: agent._id,
-        endTime: null,
-      });
-      if (
-        ongoingShift &&
-        ongoingShift.pendingEndUntil &&
-        new Date(ongoingShift.pendingEndUntil) > new Date()
-      ) {
-        // Cancel pending end
-        ongoingShift.pendingEndUntil = null;
-        await ongoingShift.save();
-        if (ongoingShift._pendingEnd) {
-          clearTimeout(ongoingShift._pendingEnd);
-          delete ongoingShift._pendingEnd;
-        }
-      }
-      return;
-    }
-    // Find agent by username (which is the extension number)
-    const agent = await Agent.findOne({ username: extensionNumber });
-    if (!agent)
-      throw new Error(`Agent not found for username: ${extensionNumber}`);
-    // Check for any ongoing shift in DB (no endTime)
-    let ongoingShift = await Shift.findOne({
-      agentId: agent._id,
-      endTime: null,
-    });
-    if (ongoingShift) {
-      // Resume the ongoing shift
-      state.agentShifts[extensionNumber] = ongoingShift._id;
-      if (
-        ongoingShift.pendingEndUntil &&
-        new Date(ongoingShift.pendingEndUntil) > new Date()
-      ) {
-        // Cancel pending end
-        ongoingShift.pendingEndUntil = null;
-        await ongoingShift.save();
-        if (ongoingShift._pendingEnd) {
-          clearTimeout(ongoingShift._pendingEnd);
-          delete ongoingShift._pendingEnd;
-        }
-      } else {
-        console.log(
-          `Resumed ongoing shift for agent username ${extensionNumber}: ${ongoingShift._id}`
-        );
-      }
-      return;
-    }
-    // Otherwise, start a new shift
-    const shift = new Shift({ agentId: agent._id, startTime: new Date() });
-    const createdShift = await shift.save();
-    state.agentShifts[extensionNumber] = createdShift._id;
-  } catch (err) {
-    console.error("Error starting agent shift:", err.message);
-  }
-}
 
-// End agent shift and record reason
-async function endAgentShiftByExtension(extensionNumber, reason = "unknown") {
-  try {
-    const shiftId = state.agentShifts[extensionNumber];
-    if (shiftId) {
-      const shift = await Shift.findById(shiftId);
-      if (shift && !shift.endTime) {
-        // Instead of ending immediately, set a timer for 5 min
-        const pendingEndUntil = new Date(Date.now() + 5 * 60 * 1000);
-        shift.pendingEndUntil = pendingEndUntil;
-        await shift.save();
-        shift._pendingEnd = setTimeout(async () => {
-          shift.endTime = new Date();
-          shift.duration = (shift.endTime - shift.startTime) / 1000;
-          shift.reason = reason;
-          shift.pendingEndUntil = null;
-          await shift.save();
-
-          delete state.agentShifts[extensionNumber];
-        }, 5 * 60 * 1000); // 5 minutes
-        console.log(
-          `Shift for agent extension ${extensionNumber} will end in 5 min unless agent returns.`
-        );
-      } else {
-        delete state.agentShifts[extensionNumber];
-      }
-    }
-  } catch (err) {
-    console.error("Error ending agent shift:", err.message);
-  }
-}
 
 // --- HELPER FUNCTIONS ---
 
@@ -238,16 +140,80 @@ function emitQueueCallersStatus(io) {
 }
 
 /**
+ * Handle SIP Peer Status events to track registration
+ * @param {object} event - The PeerStatus event
+ * @param {object} io - Socket.IO instance
+ */
+function handlePeerStatus(event, io) {
+  const { Peer, PeerStatus, ChannelType } = event;
+  
+  // Only track SIP/PJSIP peers
+  if (ChannelType === 'SIP' || ChannelType === 'PJSIP') {
+    // Extract extension number from peer name (e.g., "SIP/1003" -> "1003")
+    const extensionMatch = Peer?.match(/(\d+)/);
+    if (extensionMatch) {
+      const extension = extensionMatch[1];
+      state.sipPeers[extension] = {
+        Status: PeerStatus,
+        Peer: Peer,
+        LastUpdate: new Date()
+      };
+      
+      console.log(`📞 SIP Peer ${extension}: ${PeerStatus}`);
+      
+      // Re-emit queue members with updated status
+      emitQueueMembersStatus(io);
+    }
+  }
+}
+
+/**
  * Emits the current queue members to all clients.
  * Flattens the queue members data structure for frontend consumption.
  * @param {object} io - The Socket.IO server instance.
  */
-function emitQueueMembersStatus(io) {
+async function emitQueueMembersStatus(io) {
   const flattenedMembers = [];
+  
+  // Get SIP peer statuses
+  const sipPeerStatuses = {};
+  try {
+    // Request SIP peer status for all members
+    for (const queueId of Object.keys(state.queueMembers)) {
+      for (const member of state.queueMembers[queueId]) {
+        // Extract extension from member name (e.g., "Local/1003@from-internal" -> "1003")
+        const extensionMatch = member.Name.match(/(\d+)/);
+        if (extensionMatch) {
+          const extension = extensionMatch[1];
+          if (!sipPeerStatuses[extension]) {
+            // Check if we have this peer's status in state
+            sipPeerStatuses[extension] = state.sipPeers?.[extension]?.Status || 'Unknown';
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error getting SIP peer statuses:', error);
+  }
+
   Object.keys(state.queueMembers).forEach((queueId) => {
     state.queueMembers[queueId].forEach((member) => {
+      // Extract extension to check registration
+      const extensionMatch = member.Name.match(/(\d+)/);
+      const extension = extensionMatch ? extensionMatch[1] : null;
+      const sipStatus = extension ? sipPeerStatuses[extension] : 'Unknown';
+      
+      // If SIP peer is not registered/reachable, override status to show as unavailable
+      let effectiveStatus = member.Status;
+      if (sipStatus === 'Unregistered' || sipStatus === 'UNREACHABLE' || sipStatus === 'UNKNOWN') {
+        effectiveStatus = '5'; // Unavailable
+      }
+      
       flattenedMembers.push({
         ...member,
+        Status: effectiveStatus,
+        OriginalStatus: member.Status,
+        SIPStatus: sipStatus,
         queueName: queueNameMap[queueId] || queueId,
       });
     });
@@ -556,10 +522,10 @@ function handleQueueMember(event) {
  * @param {object} event - The AMI event object containing member status information.
  */
 function handleQueueMemberStatus(event) {
-  // console.log("QueueMemberStatus Event Data:", event);
+  console.log("QueueMemberStatus Event Data:", event);
 }
 
-function handleQueueStatusComplete(io) {
+function handleQueueStatusComplete(io,event) {
   io.emit("queueUpdate", state.queueData);
   emitQueueMembersStatus(io);
 }
@@ -621,6 +587,7 @@ function handleQueueCallerLeave(event, io) {
   state.queueCallers = state.queueCallers.filter((c) => c.id !== Uniqueid);
   emitQueueCallersStatus(io);
 }
+
 
 async function handleQueueCallerAbandon(event, io) {
   const { Uniqueid, Linkedid, Queue: queueId } = event;
@@ -813,6 +780,7 @@ async function handleAgentRingNoAnswer(event) {
  * @param {object} io - Socket.IO instance
  */
 async function handleAgentDump(event, io) {
+  console.log(event)
   const { MemberName, Interface, Queue, CallerIDNum, CallerIDName, Linkedid } = event;
 
   // Extract extension from Interface
@@ -951,6 +919,7 @@ async function handleAgentComplete(event, io) {
  * @param {object} event - The AMI event object containing RTP statistics
  */
 async function handleRTPStat(event) {
+  console.log(event)
   try {
     if (!event) {
       console.error('❌ Invalid RTPStat event: event is null or undefined');
@@ -959,10 +928,6 @@ async function handleRTPStat(event) {
 
     const {
       Channel,
-      LocalAddress,
-      LocalPort,
-      RemoteAddress,
-      RemotePort,
       LocalLoss,
       RemoteLoss,
       LocalJitter,
@@ -971,13 +936,7 @@ async function handleRTPStat(event) {
       RemotePackets,
       LocalRTT,
       RemoteRTT,
-      DroppedFrames,
-      OOOFrames,
-      RxJitter,
-      TxJitter,
-      LocalCount,
-      RemoteCount,
-      Accountcode,
+
       Linkedid
     } = event;
 
@@ -1375,11 +1334,10 @@ async function setupAmiEventListeners(ami, io) {
   ami.on("QueueMember", handleQueueMember);
   ami.on("QueueMemberStatus", handleQueueMemberStatus);
   ami.on("QueueStatus", handleQueueStatus);
-  ami.on("QueueStatusComplete", () => handleQueueStatusComplete(io));
+  ami.on("QueueStatusComplete", (event) => handleQueueStatusComplete(io,event));
   ami.on("QueueCallerJoin", (event) => handleQueueCallerJoin(event, io));
   ami.on("QueueCallerLeave", (event) => handleQueueCallerLeave(event, io));
   ami.on("QueueCallerAbandon", async (event) => await handleQueueCallerAbandon(event, io));
-  ami.on("RTPStat", (event) => handleRTPStat(event));
   ami.on("AgentDump", (event) => handleAgentDump(event, io))
   // Wrap-up time tracking events
   ami.on("QueueMemberPause", (event) => {
@@ -1397,6 +1355,7 @@ async function setupAmiEventListeners(ami, io) {
     handleEndpointListComplete(event, io)
   );
   ami.on("ContactStatus", (event) => handleContactStatus(event, io));
+  ami.on("PeerStatus", (event) => handlePeerStatus(event, io));
 
   // NOTE: The generic ami.on('event', ...) listener has been REMOVED for performance.
   // Its logic has been merged into the specific 'Hangup' handler.
