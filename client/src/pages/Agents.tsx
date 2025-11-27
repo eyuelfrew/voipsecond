@@ -7,21 +7,13 @@ import baseUrl from "../util/baseUrl";
 import {
   Activity,
   User,
-  BellRing,
-  Pause,
-  Users,
-  CircleCheck,
   CircleX,
-  Clock,
   Trash,
   PlusCircle,
-  Phone,
-  PhoneOff,
-  Timer,
-  TrendingUp,
-  BarChart3,
   Calendar,
   Globe,
+  RotateCcw,
+  AlertTriangle,
 } from "lucide-react";
 
 // Agent interface matching your backend response
@@ -41,6 +33,7 @@ interface Agent {
   lastActivity: string;
   contacts: string;
   transport: string;
+  loginTime?: string; // When agent logged in
   dailyStats: {
     totalCalls: number;
     answeredCalls: number;
@@ -50,6 +43,13 @@ interface Agent {
     averageHoldTime: number;
     averageRingTime: number;
     longestIdleTime: number;
+    totalTalkTime?: number;
+    totalIdleTime?: number;
+    totalPauseTime?: number;
+    pauseCount?: number;
+    outboundCalls?: number;
+    transferredCalls?: number;
+    conferenceCalls?: number;
   };
   overallStats: {
     totalCalls: number;
@@ -60,6 +60,13 @@ interface Agent {
     averageHoldTime: number;
     averageRingTime: number;
     longestIdleTime: number;
+    totalTalkTime?: number;
+    totalIdleTime?: number;
+    totalPauseTime?: number;
+    pauseCount?: number;
+    outboundCalls?: number;
+    transferredCalls?: number;
+    conferenceCalls?: number;
   };
 }
 
@@ -69,8 +76,12 @@ const Agent: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [agentToReset, setAgentToReset] = useState<Agent | null>(null);
+  const [resetting, setResetting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [sortColumn, setSortColumn] = useState<string>("full_name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [statsView, setStatsView] = useState<"daily" | "overall">("daily");
   const agentsPerPage = 10;
   const { socket } = UseSocket();
@@ -95,34 +106,75 @@ const Agent: React.FC = () => {
     }
   };
 
-  // Helper function to format time in seconds to MM:SS
+  // Helper function to format time in seconds to HH:MM:SS
   const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    // Round to nearest second and ensure it's a positive integer
+    const totalSeconds = Math.max(0, Math.round(seconds));
+    const hours = Math.floor(totalSeconds / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    }
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Helper function to get status icon
-  const getStatusIcon = (status: string, liveStatus: string) => {
-    if (liveStatus === "Ringing") return <BellRing className="w-5 h-5" />;
+  // Calculate calls per hour
+  const calculateCallsPerHour = (totalCalls: number, loginTime?: string): number => {
+    if (!loginTime) return 0;
+    const hoursWorked = (Date.now() - new Date(loginTime).getTime()) / 3600000;
+    return hoursWorked > 0 ? Math.round((totalCalls / hoursWorked) * 10) / 10 : 0;
+  };
 
-    switch (status.toLowerCase()) {
-      case "online":
-        return <CircleCheck className="w-5 h-5 text-green-600" />;
-      case "busy":
-        return <CircleX className="w-5 h-5 text-red-600" />;
-      case "away":
-        return <Clock className="w-5 h-5 text-yellow-600" />;
-      case "offline":
-        return <User className="w-5 h-5 text-gray-600" />;
-      case "ringing":
-        return <BellRing className="w-5 h-5 text-blue-600" />;
-      case "paused":
-        return <Pause className="w-5 h-5 text-purple-600" />;
-      default:
-        return <User className="w-5 h-5 text-gray-600" />;
+  // Calculate average handle time (AHT) = Talk + Hold + Wrap
+  const calculateAHT = (talkTime: number, holdTime: number, wrapTime: number): number => {
+    return Math.round(talkTime + holdTime + wrapTime);
+  };
+
+  // Sorting function
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
     }
   };
+
+  // Sort agents
+  const sortedAgents = React.useMemo(() => {
+    const sorted = [...agents].sort((a, b) => {
+      let aVal: any = a;
+      let bVal: any = b;
+
+      // Handle nested stats
+      if (sortColumn.includes(".")) {
+        const [parent, child] = sortColumn.split(".");
+        const parentObj = a[parent as keyof Agent];
+        const parentObjB = b[parent as keyof Agent];
+        if (typeof parentObj === 'object' && parentObj !== null && typeof parentObjB === 'object' && parentObjB !== null) {
+          aVal = (parentObj as any)[child] ?? 0;
+          bVal = (parentObjB as any)[child] ?? 0;
+        }
+      } else {
+        aVal = a[sortColumn as keyof Agent] ?? "";
+        bVal = b[sortColumn as keyof Agent] ?? "";
+      }
+
+      if (typeof aVal === "string") {
+        return sortDirection === "asc"
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
+      }
+
+      return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
+    });
+
+    return sorted;
+  }, [agents, sortColumn, sortDirection, statsView]);
+
+
 
   const fetchAgents = async () => {
     setLoading(true);
@@ -150,11 +202,50 @@ const Agent: React.FC = () => {
     }
   };
 
-  const handleOpenModal = () => setShowModal(true);
   const handleCloseModal = () => setShowModal(false);
 
-  const totalPages = Math.ceil(agents.length / agentsPerPage);
-  const paginatedAgents = agents.slice(
+  // Handle reset agent stats
+  const handleResetAgent = (agent: Agent) => {
+    setAgentToReset(agent);
+    setShowResetModal(true);
+  };
+
+  const confirmResetAgent = async () => {
+    if (!agentToReset) return;
+
+    setResetting(true);
+    try {
+      const response = await axios.post(
+        `${baseUrl}/api/agent/extension/${agentToReset.extension}/reset-stats`,
+        { statsType: statsView }, // Reset daily or overall stats
+        { withCredentials: true }
+      );
+
+      if (response.data.success) {
+        // Refresh agents data
+        await fetchAgents();
+        setShowResetModal(false);
+        setAgentToReset(null);
+        console.log(`✅ Successfully reset stats for ${agentToReset.full_name}`);
+      } else {
+        console.error("❌ Failed to reset agent stats:", response.data.message);
+        alert("Failed to reset agent stats. Please try again.");
+      }
+    } catch (err) {
+      console.error("❌ Error resetting agent stats:", err);
+      alert("Error resetting agent stats. Please try again.");
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  const cancelResetAgent = () => {
+    setShowResetModal(false);
+    setAgentToReset(null);
+  };
+
+  const totalPages = Math.ceil(sortedAgents.length / agentsPerPage);
+  const paginatedAgents = sortedAgents.slice(
     (currentPage - 1) * agentsPerPage,
     currentPage * agentsPerPage
   );
@@ -207,35 +298,7 @@ const Agent: React.FC = () => {
     };
   }, [socket]);
 
-  // Calculate agent summary based on current agents state
-  const agentSummary = React.useMemo(() => {
-    const summary = {
-      online: 0,
-      busy: 0,
-      away: 0,
-      ringing: 0,
-      paused: 0,
-      offline: 0,
-    };
 
-    agents.forEach((agent) => {
-      const status = agent.status.toLowerCase();
-      const liveStatus = agent.liveStatus.toLowerCase();
-
-      if (status === "online") summary.online++;
-      else if (status === "busy") summary.busy++;
-      else if (status === "offline") summary.offline++;
-      else if (liveStatus === "ringing") summary.ringing++;
-      else if (liveStatus === "paused") summary.paused++;
-      else if (liveStatus === "away") summary.away++;
-      else summary.offline++; // Default unknown to offline
-    });
-
-    return {
-      ...summary,
-      total: agents.length,
-    };
-  }, [agents]);
 
   if (loading) {
     return (
@@ -292,99 +355,20 @@ const Agent: React.FC = () => {
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,0,0.02)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="cc-glass rounded-xl p-8 shadow-2xl">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-cc-yellow-400 rounded-xl flex items-center justify-center animate-pulse">
-                <Users className="w-6 w-6 text-black" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold cc-text-accent">
-                  Agent Dashboard
-                </h1>
-                <p className="cc-text-secondary mt-1">
-                  Monitor agent status and performance in real-time
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={fetchAgents}
-                className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 px-6 py-3 rounded-xl shadow-lg flex items-center font-bold cc-transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-400/50"
-              >
-                <Activity className="mr-2 w-4 h-4" /> Refresh
-              </button>
-              <button
-                onClick={handleOpenModal}
-                className="bg-cc-yellow-400 hover:bg-cc-yellow-500 text-black px-6 py-3 rounded-xl shadow-lg flex items-center font-bold cc-transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
-              >
-                <PlusCircle className="mr-2 w-4 h-4" /> Add Agent
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Agent Status Summary */}
-        <div className="cc-glass rounded-xl p-6 shadow-2xl">
-          <h3 className="text-2xl font-bold cc-text-accent mb-6 flex items-center">
-            <BarChart3 className="w-6 h-6 mr-3 cc-text-accent" />
-            Agent Overview
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {Object.entries(agentSummary).map(
-              ([status, count]) =>
-                status !== "total" && (
-                  <div
-                    key={status}
-                    className="cc-glass cc-glass-hover rounded-xl p-6 text-center cc-transition group cursor-pointer"
-                  >
-                    <div className="flex justify-center mb-3 group-hover:scale-110 cc-transition">
-                      {getStatusIcon(status, status)}
-                    </div>
-                    <p className="text-sm cc-text-secondary capitalize font-medium">{status}</p>
-                    <p className="text-3xl font-bold cc-text-accent group-hover:scale-110 cc-transition">{count}</p>
-                  </div>
-                )
-            )}
-          </div>
-          <div className="mt-8 pt-6 cc-border-accent border-t text-center">
-            <p className="text-xl font-bold cc-text-accent">
-              Total Agents: <span className="text-2xl">{agentSummary.total}</span>
-            </p>
-          </div>
-        </div>
-
-        {/* Controls */}
+      <div className="relative z-10  mx-auto space-y-6">
+        {/* Stats View Controls */}
         <div className="cc-glass rounded-xl p-6 shadow-2xl">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="flex gap-3">
-              <button
-                onClick={() => setViewMode("cards")}
-                className={`px-6 py-3 rounded-xl font-bold cc-transition hover:scale-105 ${viewMode === "cards"
-                  ? "bg-cc-yellow-400 text-black shadow-lg"
-                  : "cc-glass hover:bg-yellow-400/10 cc-text-secondary hover:cc-text-accent"
-                  }`}
-              >
-                Cards View
-              </button>
-              <button
-                onClick={() => setViewMode("table")}
-                className={`px-6 py-3 rounded-xl font-bold cc-transition hover:scale-105 ${viewMode === "table"
-                  ? "bg-cc-yellow-400 text-black shadow-lg"
-                  : "cc-glass hover:bg-yellow-400/10 cc-text-secondary hover:cc-text-accent"
-                  }`}
-              >
-                Table View
-              </button>
+            <div className="flex items-center gap-3">
+              <Activity className="w-5 h-5 cc-text-accent" />
+              <span className="cc-text-primary font-semibold">Viewing:</span>
             </div>
             <div className="flex gap-3">
               <button
                 onClick={() => setStatsView("daily")}
                 className={`px-6 py-3 rounded-xl font-bold cc-transition hover:scale-105 flex items-center ${statsView === "daily"
-                  ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                  : "cc-glass hover:bg-blue-500/10 cc-text-secondary hover:text-blue-400"
+                  ? "bg-cc-yellow-400 text-black shadow-lg"
+                  : "cc-glass hover:bg-yellow-400/10 cc-text-secondary hover:cc-text-accent"
                   }`}
               >
                 <Calendar className="w-4 h-4 mr-2" />
@@ -393,8 +377,8 @@ const Agent: React.FC = () => {
               <button
                 onClick={() => setStatsView("overall")}
                 className={`px-6 py-3 rounded-xl font-bold cc-transition hover:scale-105 flex items-center ${statsView === "overall"
-                  ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                  : "cc-glass hover:bg-blue-500/10 cc-text-secondary hover:text-blue-400"
+                  ? "bg-cc-yellow-400 text-black shadow-lg"
+                  : "cc-glass hover:bg-yellow-400/10 cc-text-secondary hover:cc-text-accent"
                   }`}
               >
                 <Globe className="w-4 h-4 mr-2" />
@@ -404,254 +388,298 @@ const Agent: React.FC = () => {
           </div>
         </div>
 
-        {/* Agent List */}
+        {/* Advanced Agent Statistics Table */}
         <div className="cc-glass rounded-xl p-6 shadow-2xl">
-          <h2 className="text-2xl font-bold cc-text-accent mb-8 flex items-center">
-            <Activity className="w-6 h-6 mr-3 cc-text-accent animate-pulse" />
-            Agent Details ({statsView === "daily" ? "Daily" : "Overall"} Stats)
-          </h2>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold cc-text-accent flex items-center">
+              <Activity className="w-6 h-6 mr-3 cc-text-accent animate-pulse" />
+              Agent Performance ({statsView === "daily" ? "Daily" : "Overall"} Stats)
+            </h2>
+            <div className="cc-text-secondary text-sm">
+              Total Agents: <span className="cc-text-accent font-bold">{agents.length}</span>
+            </div>
+          </div>
 
-          {viewMode === "cards" ? (
-            // Cards View
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {paginatedAgents.map((agent) => {
-                const stats =
-                  statsView === "daily" ? agent.dailyStats : agent.overallStats;
-
-                return (
-                  <div
-                    key={agent.id}
-                    className="cc-glass cc-glass-hover rounded-xl p-6 cc-transition group hover:scale-105"
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead>
+                <tr className="cc-bg-surface-variant">
+                  <th 
+                    onClick={() => handleSort("full_name")}
+                    className="px-3 py-3 text-left text-xs font-bold cc-text-accent uppercase tracking-wide cursor-pointer hover:bg-yellow-400/10 cc-transition sticky left-0 cc-bg-surface-variant z-10"
                   >
-                    {/* Agent Header */}
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-cc-yellow-400 rounded-full flex items-center justify-center group-hover:scale-110 cc-transition">
-                          <User className="w-6 h-6 text-black" />
+                    <div className="flex items-center gap-1">
+                      Agent {sortColumn === "full_name" && (sortDirection === "asc" ? "↑" : "↓")}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort("status")}
+                    className="px-3 py-3 text-left text-xs font-bold cc-text-accent uppercase tracking-wide cursor-pointer hover:bg-yellow-400/10 cc-transition"
+                  >
+                    <div className="flex items-center gap-1">
+                      Status {sortColumn === "status" && (sortDirection === "asc" ? "↑" : "↓")}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort(`${statsView}Stats.totalCalls`)}
+                    className="px-3 py-3 text-center text-xs font-bold cc-text-accent uppercase tracking-wide cursor-pointer hover:bg-yellow-400/10 cc-transition"
+                    title="Total calls offered to agent"
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      Offered {sortColumn.includes("totalCalls") && (sortDirection === "asc" ? "↑" : "↓")}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort(`${statsView}Stats.answeredCalls`)}
+                    className="px-3 py-3 text-center text-xs font-bold cc-text-accent uppercase tracking-wide cursor-pointer hover:bg-yellow-400/10 cc-transition"
+                    title="Calls answered by agent"
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      Answered {sortColumn.includes("answeredCalls") && (sortDirection === "asc" ? "↑" : "↓")}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort(`${statsView}Stats.missedCalls`)}
+                    className="px-3 py-3 text-center text-xs font-bold cc-text-accent uppercase tracking-wide cursor-pointer hover:bg-yellow-400/10 cc-transition"
+                    title="Calls missed/not answered"
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      Lost {sortColumn.includes("missedCalls") && (sortDirection === "asc" ? "↑" : "↓")}
+                    </div>
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-bold cc-text-accent uppercase tracking-wide" title="Answer rate percentage">
+                    Ans %
+                  </th>
+                  <th 
+                    onClick={() => handleSort(`${statsView}Stats.averageTalkTime`)}
+                    className="px-3 py-3 text-center text-xs font-bold cc-text-accent uppercase tracking-wide cursor-pointer hover:bg-yellow-400/10 cc-transition"
+                    title="Average talk time per call"
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      Avg Talk {sortColumn.includes("averageTalkTime") && (sortDirection === "asc" ? "↑" : "↓")}
+                    </div>
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-bold cc-text-accent uppercase tracking-wide" title="Total talk time">
+                    Tot Talk
+                  </th>
+                  <th 
+                    onClick={() => handleSort(`${statsView}Stats.averageHoldTime`)}
+                    className="px-3 py-3 text-center text-xs font-bold cc-text-accent uppercase tracking-wide cursor-pointer hover:bg-yellow-400/10 cc-transition"
+                    title="Average hold time"
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      Avg Hold {sortColumn.includes("averageHoldTime") && (sortDirection === "asc" ? "↑" : "↓")}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort(`${statsView}Stats.averageWrapTime`)}
+                    className="px-3 py-3 text-center text-xs font-bold cc-text-accent uppercase tracking-wide cursor-pointer hover:bg-yellow-400/10 cc-transition"
+                    title="Average wrap-up time"
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      Avg Wrap {sortColumn.includes("averageWrapTime") && (sortDirection === "asc" ? "↑" : "↓")}
+                    </div>
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-bold cc-text-accent uppercase tracking-wide" title="Average Handle Time (Talk + Hold + Wrap)">
+                    AHT
+                  </th>
+                  <th 
+                    onClick={() => handleSort(`${statsView}Stats.longestIdleTime`)}
+                    className="px-3 py-3 text-center text-xs font-bold cc-text-accent uppercase tracking-wide cursor-pointer hover:bg-yellow-400/10 cc-transition"
+                    title="Total idle time"
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      Tot Idle {sortColumn.includes("longestIdleTime") && (sortDirection === "asc" ? "↑" : "↓")}
+                    </div>
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-bold cc-text-accent uppercase tracking-wide" title="Calls per hour">
+                    CPH
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-bold cc-text-accent uppercase tracking-wide" title="Outbound calls">
+                    OC
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-bold cc-text-accent uppercase tracking-wide" title="Transferred calls">
+                    Trans
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-bold cc-text-accent uppercase tracking-wide" title="Conference calls">
+                    Conf
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-bold cc-text-accent uppercase tracking-wide">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedAgents.length === 0 ? (
+                  <tr>
+                    <td colSpan={17} className="px-6 py-16 text-center">
+                      <div className="flex flex-col items-center space-y-4">
+                        <div className="w-16 h-16 bg-yellow-400/10 rounded-full flex items-center justify-center">
+                          <User className="w-8 h-8 cc-text-accent opacity-50" />
                         </div>
                         <div>
-                          <h3 className="font-bold cc-text-primary text-lg">
-                            {agent.full_name}
-                          </h3>
-                          <p className="text-sm cc-text-secondary">
-                            Ext: {agent.extension}
-                          </p>
+                          <p className="cc-text-secondary text-lg font-medium">No agents found</p>
+                          <p className="cc-text-secondary text-sm opacity-70 mt-1">Agents will appear here when registered</p>
                         </div>
                       </div>
-                      <span
-                        className={`px-4 py-2 rounded-xl text-xs font-bold ${getStatusBadge(
-                          agent.status
-                        )}`}
-                      >
-                        {agent.status}
-                      </span>
-                    </div>
-
-                    {/* Live Status */}
-                    <div className="mb-6 p-4 cc-glass rounded-lg">
-                      <p className="text-sm cc-text-secondary">
-                        Live Status:{" "}
-                        <span className="font-bold cc-text-accent">{agent.liveStatus}</span>
-                      </p>
-                      <p className="text-xs cc-text-secondary mt-1">
-                        Device: <span className="font-semibold">{agent.deviceState}</span>
-                      </p>
-                      {agent.contacts && (
-                        <p className="text-xs cc-text-secondary mt-1 truncate">
-                          Contact: <span className="font-semibold">{agent.contacts}</span>
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Stats */}
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center p-3 cc-glass rounded-lg">
-                        <span className="flex items-center text-sm cc-text-secondary font-medium">
-                          <Phone className="w-4 h-4 mr-2" />
-                          Total Calls
-                        </span>
-                        <span className="font-bold text-lg text-green-400">
-                          {stats.totalCalls}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="flex items-center text-sm text-gray-600">
-                          <CircleCheck className="w-4 h-4 mr-1" />
-                          Answered Calls
-                        </span>
-                        <span className="font-semibold text-emerald-600">
-                          {stats.answeredCalls}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="flex items-center text-sm text-gray-600">
-                          <PhoneOff className="w-4 h-4 mr-1" />
-                          Missed Calls
-                        </span>
-                        <span className="font-semibold text-red-600">
-                          {stats.missedCalls}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="flex items-center text-sm text-gray-600">
-                          <Timer className="w-4 h-4 mr-1" />
-                          Avg Talk Time
-                        </span>
-                        <span className="font-semibold text-blue-600">
-                          {formatTime(stats.averageTalkTime)}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="flex items-center text-sm text-gray-600">
-                          <Clock className="w-4 h-4 mr-1" />
-                          Avg Hold Time
-                        </span>
-                        <span className="font-semibold text-orange-600">
-                          {formatTime(stats.averageHoldTime)}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="flex items-center text-sm text-gray-600">
-                          <BellRing className="w-4 h-4 mr-1" />
-                          Avg Ring Time
-                        </span>
-                        <span className="font-semibold text-purple-600">
-                          {formatTime(stats.averageRingTime)}
-                        </span>
-                      </div>
-
-                      {/* Success Rate */}
-                      <div className="pt-2 border-t border-gray-200">
-                        <div className="flex justify-between items-center">
-                          <span className="flex items-center text-sm text-gray-600">
-                            <TrendingUp className="w-4 h-4 mr-1" />
-                            Answer Rate
-                          </span>
-                          <span className="font-semibold text-indigo-600">
-                            {stats.totalCalls > 0
-                              ? `${(
-                                (stats.answeredCalls / stats.totalCalls) *
-                                100
-                              ).toFixed(1)}%`
-                              : "0%"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            // Table View
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Agent
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Total Calls
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Answered
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Missed
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Answer Rate
-                    </th>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {paginatedAgents.map((agent) => {
-                    const stats =
-                      statsView === "daily"
-                        ? agent.dailyStats
-                        : agent.overallStats;
+                ) : (
+                  paginatedAgents.map((agent, index) => {
+                    const stats = statsView === "daily" ? agent.dailyStats : agent.overallStats;
+                    const answerRate = stats.totalCalls > 0 
+                      ? ((stats.answeredCalls / stats.totalCalls) * 100).toFixed(1)
+                      : "0";
+                    const totalTalkTime = stats.answeredCalls * stats.averageTalkTime;
+                    const aht = calculateAHT(stats.averageTalkTime, stats.averageHoldTime, stats.averageWrapTime);
+                    const cph = calculateCallsPerHour(stats.totalCalls, agent.loginTime);
+                    const outboundCalls = stats.outboundCalls || 0;
+                    const transferredCalls = stats.transferredCalls || 0;
+                    const conferenceCalls = stats.conferenceCalls || 0;
 
                     return (
-                      <tr key={agent.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                              <User className="w-5 h-5 text-indigo-600" />
+                      <tr
+                        key={agent.id}
+                        className={`cc-border-accent border-t hover:bg-yellow-400/5 cc-transition group ${
+                          index % 2 === 0 ? "bg-transparent" : "cc-bg-surface-variant/30"
+                        }`}
+                      >
+                        {/* Agent Info - Sticky */}
+                        <td className="px-3 py-3 sticky left-0 cc-bg-surface-variant z-10">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-8 h-8 bg-cc-yellow-400 rounded-full flex items-center justify-center group-hover:scale-110 cc-transition flex-shrink-0">
+                              <User className="w-4 h-4 text-black" />
                             </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">
-                                {agent.full_name}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                Ext: {agent.extension}
-                              </div>
+                            <div className="min-w-0">
+                              <div className="font-bold cc-text-primary text-sm truncate">{agent.full_name}</div>
+                              <div className="text-xs cc-text-secondary">Ext: {agent.extension}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadge(
-                              agent.status
-                            )}`}
+
+                        {/* Status */}
+                        <td className="px-3 py-3">
+                          <div className="space-y-1">
+                            <span className={`inline-flex px-2 py-1 rounded-full text-xs font-bold ${getStatusBadge(agent.status)}`}>
+                              {agent.status}
+                            </span>
+                            {agent.status.toLowerCase() !== "offline" && agent.liveStatus && (
+                              <div className="text-xs cc-text-secondary capitalize">{agent.liveStatus}</div>
+                            )}
+                            {agent.status.toLowerCase() === "offline" && (
+                              <div className="text-xs text-gray-500">Not registered</div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Offered Calls */}
+                        <td className="px-3 py-3 text-center">
+                          <div className="font-bold cc-text-accent">{stats.totalCalls}</div>
+                        </td>
+
+                        {/* Answered Calls */}
+                        <td className="px-3 py-3 text-center">
+                          <div className="font-bold text-green-400">{stats.answeredCalls}</div>
+                        </td>
+
+                        {/* Lost/Missed Calls */}
+                        <td className="px-3 py-3 text-center">
+                          <div className="font-bold text-red-400">{stats.missedCalls}</div>
+                        </td>
+
+                        {/* Answer Rate */}
+                        <td className="px-3 py-3 text-center">
+                          <div className="font-bold cc-text-accent">{answerRate}%</div>
+                        </td>
+
+                        {/* Avg Talk Time */}
+                        <td className="px-3 py-3 text-center">
+                          <div className="font-mono text-sm cc-text-primary font-semibold">
+                            {formatTime(stats.averageTalkTime)}
+                          </div>
+                        </td>
+
+                        {/* Total Talk Time */}
+                        <td className="px-3 py-3 text-center">
+                          <div className="font-mono text-sm text-blue-400 font-semibold">
+                            {formatTime(totalTalkTime)}
+                          </div>
+                        </td>
+
+                        {/* Avg Hold Time */}
+                        <td className="px-3 py-3 text-center">
+                          <div className="font-mono text-sm text-orange-400 font-semibold">
+                            {formatTime(stats.averageHoldTime)}
+                          </div>
+                        </td>
+
+                        {/* Avg Wrap Time */}
+                        <td className="px-3 py-3 text-center">
+                          <div className="font-mono text-sm text-purple-400 font-semibold">
+                            {formatTime(stats.averageWrapTime)}
+                          </div>
+                        </td>
+
+                        {/* AHT (Average Handle Time) */}
+                        <td className="px-3 py-3 text-center">
+                          <div className="font-mono text-sm text-cyan-400 font-bold">
+                            {formatTime(aht)}
+                          </div>
+                        </td>
+
+                        {/* Total Idle Time */}
+                        <td className="px-3 py-3 text-center">
+                          <div className="font-mono text-sm cc-text-secondary font-semibold">
+                            {formatTime(stats.longestIdleTime)}
+                          </div>
+                        </td>
+
+                        {/* CPH (Calls Per Hour) */}
+                        <td className="px-3 py-3 text-center">
+                          <div className="font-bold text-sm text-indigo-400">
+                            {cph > 0 ? cph.toFixed(1) : "-"}
+                          </div>
+                        </td>
+
+                        {/* Outbound Calls */}
+                        <td className="px-3 py-3 text-center">
+                          <div className="font-semibold text-sm cc-text-secondary">
+                            {outboundCalls}
+                          </div>
+                        </td>
+
+                        {/* Transferred Calls */}
+                        <td className="px-3 py-3 text-center">
+                          <div className="font-semibold text-sm cc-text-secondary">
+                            {transferredCalls}
+                          </div>
+                        </td>
+
+                        {/* Conference Calls */}
+                        <td className="px-3 py-3 text-center">
+                          <div className="font-semibold text-sm cc-text-secondary">
+                            {conferenceCalls}
+                          </div>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-3 py-3 text-center">
+                          <button
+                            onClick={() => handleResetAgent(agent)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 hover:border-red-400 cc-transition text-xs font-semibold group"
+                            title={`Reset ${statsView} stats for ${agent.full_name}`}
                           >
-                            {agent.status}
-                          </span>
-                          <div className="text-xs text-gray-500 mt-1">
-                            {agent.liveStatus}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {stats.totalCalls}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-emerald-600 font-medium">
-                          {stats.answeredCalls}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium">
-                          {stats.missedCalls}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="text-sm font-medium text-gray-900">
-                              {stats.totalCalls > 0
-                                ? `${(
-                                  (stats.answeredCalls / stats.totalCalls) *
-                                  100
-                                ).toFixed(1)}%`
-                                : "0%"}
-                            </div>
-                            <div className="ml-2 w-16 bg-gray-200 rounded-full h-2">
-                              <div
-                                className="bg-green-500 h-2 rounded-full"
-                                style={{
-                                  width: `${stats.totalCalls > 0
-                                    ? (
-                                      (stats.answeredCalls /
-                                        stats.totalCalls) *
-                                      100
-                                    ).toFixed(1)
-                                    : 0
-                                    }%`,
-                                }}
-                              ></div>
-                            </div>
-                          </div>
+                            <RotateCcw className="w-3 h-3 group-hover:rotate-180 cc-transition duration-500" />
+                            Reset
+                          </button>
                         </td>
                       </tr>
                     );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
@@ -659,7 +687,7 @@ const Agent: React.FC = () => {
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                className="px-6 py-3 rounded-xl cc-glass hover:bg-yellow-400/10 cc-text-secondary hover:cc-text-accent disabled:opacity-30 disabled:cursor-not-allowed cc-transition font-semibold"
               >
                 Previous
               </button>
@@ -668,10 +696,11 @@ const Agent: React.FC = () => {
                 <button
                   key={i + 1}
                   onClick={() => handlePageChange(i + 1)}
-                  className={`px-4 py-2 rounded-lg transition-all duration-200 ${currentPage === i + 1
-                    ? "bg-indigo-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
+                  className={`px-4 py-3 rounded-xl cc-transition font-bold ${
+                    currentPage === i + 1
+                      ? "bg-cc-yellow-400 text-black shadow-lg"
+                      : "cc-glass hover:bg-yellow-400/10 cc-text-secondary hover:cc-text-accent"
+                  }`}
                 >
                   {i + 1}
                 </button>
@@ -680,7 +709,7 @@ const Agent: React.FC = () => {
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                className="px-6 py-3 rounded-xl cc-glass hover:bg-yellow-400/10 cc-text-secondary hover:cc-text-accent disabled:opacity-30 disabled:cursor-not-allowed cc-transition font-semibold"
               >
                 Next
               </button>
@@ -707,6 +736,74 @@ const Agent: React.FC = () => {
                   <PlusCircle className="w-8 h-8 text-black" />
                 </div>
                 <p>Registration form component goes here</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Reset Agent Stats Confirmation Modal */}
+        {showResetModal && agentToReset && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
+            <div className="relative w-full max-w-md mx-auto cc-glass rounded-2xl shadow-2xl p-8 m-4 border-2 border-red-500/30">
+              {/* Warning Icon */}
+              <div className="flex justify-center mb-6">
+                <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center animate-pulse">
+                  <AlertTriangle className="w-10 h-10 text-red-400" />
+                </div>
+              </div>
+
+              {/* Title */}
+              <h3 className="text-2xl font-bold text-center mb-4 text-red-400">
+                Reset Agent Statistics?
+              </h3>
+
+              {/* Message */}
+              <div className="cc-text-primary text-center space-y-3 mb-8">
+                <p className="text-lg">
+                  Are you sure you want to reset <span className="font-bold cc-text-accent">{statsView}</span> statistics for:
+                </p>
+                <div className="cc-glass rounded-xl p-4 border cc-border-accent">
+                  <div className="flex items-center justify-center space-x-3">
+                    <div className="w-12 h-12 bg-cc-yellow-400 rounded-full flex items-center justify-center">
+                      <User className="w-6 h-6 text-black" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-bold cc-text-accent text-lg">{agentToReset.full_name}</p>
+                      <p className="text-sm cc-text-secondary">Extension: {agentToReset.extension}</p>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm cc-text-secondary">
+                  This will reset all {statsView} call statistics to zero. This action cannot be undone.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-4">
+                <button
+                  onClick={cancelResetAgent}
+                  disabled={resetting}
+                  className="flex-1 px-6 py-3 rounded-xl cc-glass hover:bg-gray-500/10 cc-text-secondary hover:cc-text-accent disabled:opacity-50 disabled:cursor-not-allowed cc-transition font-semibold border cc-border"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmResetAgent}
+                  disabled={resetting}
+                  className="flex-1 px-6 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white disabled:opacity-50 disabled:cursor-not-allowed cc-transition font-bold shadow-lg flex items-center justify-center gap-2"
+                >
+                  {resetting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                      Resetting...
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw className="w-5 h-5" />
+                      Reset Stats
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>

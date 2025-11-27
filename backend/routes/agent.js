@@ -258,4 +258,75 @@ router.get('/stats', getAllAgentsStats);
 const { getAgentWrapUpHistory } = require('../controllers/agentControllers/wrapUpController');
 router.get('/wrapup/:agentExtension', getAgentWrapUpHistory);
 
+// Reset agent statistics
+router.post('/extension/:extension/reset-stats', async (req, res) => {
+  try {
+    const { extension } = req.params;
+    const { statsType } = req.body; // 'daily' or 'overall'
+
+    console.log(`🔄 Resetting ${statsType} stats for extension ${extension}`);
+
+    // Find the extension/agent
+    const Extension = require('../models/extension');
+    const agent = await Extension.findOne({ userExtension: extension });
+
+    if (!agent) {
+      return res.status(404).json({
+        success: false,
+        message: 'Agent not found'
+      });
+    }
+
+    // Reset the appropriate stats
+    const resetStats = {
+      totalCalls: 0,
+      answeredCalls: 0,
+      missedCalls: 0,
+      averageTalkTime: 0,
+      averageWrapTime: 0,
+      averageHoldTime: 0,
+      averageRingTime: 0,
+      longestIdleTime: 0,
+      totalTalkTime: 0,
+      totalIdleTime: 0,
+      totalPauseTime: 0,
+      pauseCount: 0,
+      outboundCalls: 0,
+      transferredCalls: 0,
+      conferenceCalls: 0
+    };
+
+    if (statsType === 'daily') {
+      agent.dailyStats = resetStats;
+    } else if (statsType === 'overall') {
+      agent.overallStats = resetStats;
+    } else {
+      // Reset both if not specified
+      agent.dailyStats = resetStats;
+      agent.overallStats = resetStats;
+    }
+
+    await agent.save();
+
+    console.log(`✅ Successfully reset ${statsType} stats for ${agent.displayName} (${extension})`);
+
+    res.json({
+      success: true,
+      message: `${statsType} statistics reset successfully`,
+      agent: {
+        extension: agent.userExtension,
+        name: agent.displayName
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error resetting agent stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reset agent statistics',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

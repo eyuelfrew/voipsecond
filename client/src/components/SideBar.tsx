@@ -42,7 +42,7 @@ const Sidebar = () => {
       name: "Agents",
       icon: <Users />,
       submenus: [
-        { path: "/extensions", name: "Extension Dashboard", icon: <Users /> },
+        { path: "/extensions", name: "Agent Stats", icon: <BarChart3 /> },
         { path: "/extensions/list", name: "Extension List", icon: <Users /> },
         { path: "/agent-shifts", name: "Agent Shifts", icon: <Clock /> },
       ],
