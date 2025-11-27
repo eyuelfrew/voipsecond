@@ -12,6 +12,25 @@
     animation: gradient-shift 10s ease infinite;
 }
 
+/* Custom scrollbar for caller info */
+.max-h-\[500px\]::-webkit-scrollbar {
+    width: 6px;
+}
+
+.max-h-\[500px\]::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 10px;
+}
+
+.max-h-\[500px\]::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.max-h-\[500px\]::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
 @keyframes spin-slow {
     from {
         transform: rotate(0deg);

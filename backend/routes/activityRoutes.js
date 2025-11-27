@@ -7,7 +7,6 @@ const {
     updateActivity,
     deleteActivity,
     getActivityStats,
-    getContactActivities
 } = require('../controllers/activityController');
 
 // Use the existing auth middleware

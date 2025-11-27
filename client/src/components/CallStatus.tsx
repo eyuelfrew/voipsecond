@@ -26,6 +26,7 @@ interface ActiveCall {
 
 interface CallStatusProps {
   activeCalls: ActiveCall[];
+  isLoading?: boolean;
 }
 
 interface CallMonitorModalProps {
@@ -101,7 +102,7 @@ const CallMonitorModal: React.FC<CallMonitorModalProps> = ({
   );
 };
 
-const CallStatus: React.FC<CallStatusProps> = ({ activeCalls }) => {
+const CallStatus: React.FC<CallStatusProps> = ({ activeCalls, isLoading = false }) => {
   const [, setTimeTick] = useState<number>(0);
   const [activeJsSipSessionsMap, setActiveJsSipSessionsMap] = useState<Map<string, RTCSession>>(new Map());
   const [uaInstance, setUaInstance] = useState<JsSIP.UA | null>(null);
@@ -424,7 +425,21 @@ const CallStatus: React.FC<CallStatusProps> = ({ activeCalls }) => {
             </tr>
           </thead>
           <tbody>
-            {activeCalls.length > 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={7} className="px-6 py-16 text-center">
+                  <div className="flex flex-col items-center space-y-4">
+                    <div className="w-16 h-16 bg-yellow-400/20 rounded-full flex items-center justify-center animate-pulse">
+                      <PhoneCall className="w-8 h-8 cc-text-accent animate-pulse" />
+                    </div>
+                    <div>
+                      <p className="cc-text-secondary text-lg font-medium">Loading active calls...</p>
+                      <p className="cc-text-secondary text-sm opacity-70 mt-1">Please wait</p>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            ) : activeCalls.length > 0 ? (
               activeCalls.map((call, index) => (
                 <tr
                   key={call.id}

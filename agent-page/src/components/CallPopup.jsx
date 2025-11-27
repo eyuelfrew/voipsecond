@@ -304,13 +304,13 @@ const CallPopup = ({
 
     return (
         <>
-            <div className={`fixed ${forceExpanded ? 'inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center' : 'right-6 top-24'} z-50 animate-fade-in`}>
+            <div className={`fixed ${forceExpanded ? 'inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-6' : 'right-6 top-24'} z-50 animate-fade-in`}>
                 {/* Conditional wrapper for CallerInfo and Phone Container */}
                 {activeView === 'incoming' ? (
-                    <div className="flex items-center space-x-6">
+                    <div className="flex items-start space-x-6 max-w-7xl">
                         {console.log('📞 CallPopup: Rendering CallerInfo with phone:', remoteNumber)}
                         <CallerInfo phoneNumber={remoteNumber} />
-                        <div className={`relative ${forceExpanded ? 'w-full max-w-md' : 'w-96'}`}>
+                        <div className="relative w-96 flex-shrink-0">
                             {/* Phone Container - Clean White Design */}
                             <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-200">
                                 {/* Main Content Container */}

@@ -18,14 +18,21 @@ const QueueCallerTable: React.FC = () => {
   const [callers, setCallers] = useState<Caller[]>([]);
   const [queueNameMap, setQueueNameMap] = useState<QueueNameMap>({});
   const [now, setNow] = useState(Date.now());
+  const [isLoading, setIsLoading] = useState(true);
   const { socket } = UseSocket();
 
   useEffect(() => {
     if (!socket) return;
 
+    // Request current queue callers on mount (for page reload)
+    socket.emit("requestQueueCallers");
+    console.log("📞 Requested current queue callers from server");
+
     // Listen for flat caller array
     socket.on("queueStatus", (data: Caller[]) => {
+      console.log("📞 Received queue status update:", data.length, "callers");
       setCallers(data);
+      setIsLoading(false);
     });
 
     // Listen for queue name map
@@ -33,6 +40,21 @@ const QueueCallerTable: React.FC = () => {
       setQueueNameMap(map);
     });
 
+    // Handle connection/reconnection
+    const handleConnect = () => {
+      console.log("🔌 Socket connected, requesting queue callers");
+      socket.emit("requestQueueCallers");
+    };
+
+    const handleReconnect = () => {
+      console.log("🔄 Socket reconnected, requesting queue callers");
+      socket.emit("requestQueueCallers");
+    };
+
+    socket.on("connect", handleConnect);
+    socket.on("reconnect", handleReconnect);
+
+    // Update wait times every second
     const interval = setInterval(() => {
       setNow(Date.now());
     }, 1000);
@@ -40,6 +62,8 @@ const QueueCallerTable: React.FC = () => {
     return () => {
       socket.off("queueStatus");
       socket.off("queueNameMap");
+      socket.off("connect", handleConnect);
+      socket.off("reconnect", handleReconnect);
       clearInterval(interval);
     };
   }, [socket]);
@@ -86,7 +110,21 @@ const QueueCallerTable: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {callers.length === 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={5} className="px-6 py-16 text-center">
+                  <div className="flex flex-col items-center space-y-4">
+                    <div className="w-16 h-16 bg-yellow-400/20 rounded-full flex items-center justify-center animate-pulse">
+                      <PhoneIncoming className="w-8 h-8 cc-text-accent animate-pulse" />
+                    </div>
+                    <div>
+                      <p className="cc-text-secondary text-lg font-medium">Loading incoming calls...</p>
+                      <p className="cc-text-secondary text-sm opacity-70 mt-1">Please wait</p>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            ) : callers.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-6 py-16 text-center">
                   <div className="flex flex-col items-center space-y-4">

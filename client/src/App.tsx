@@ -28,6 +28,7 @@ import QueueDetails from "./pages/QueueDetails";
 import AgentShifts from "./pages/AgentShifts";
 import { ShiftProvider } from "./context/ShiftContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import LiveStatisticsDashboard from "./pages/LiveStatisticsDashboard";
 
 // Loading component to display while checking authentication
 const Loading = () => {
@@ -83,16 +84,16 @@ export default function App() {
     <ShiftProvider>
       <Routes>
         {/* Public route - Login page */}
-        <Route 
-          path="/login" 
+        <Route
+          path="/login"
           element={
             isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />
-          } 
+          }
         />
 
         {/* Protected routes - All require authentication */}
-        <Route 
-          path="/" 
+        <Route
+          path="/"
           element={
             <ProtectedRoute>
               <MainLayout />
@@ -101,13 +102,14 @@ export default function App() {
         >
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<LiveCalls />} />
+          <Route path="statistics" element={<LiveStatisticsDashboard />} />
           <Route path="ivr-menus" element={<IVRMenus />} />
           <Route path="ivr-menu/create" element={<IVRMenuForm />} />
           <Route path="ivr-menu/edit/:id" element={<IVRMenuForm />} />
 
           <Route path="system-recordings" element={<SystemRecordingsList />} />
           <Route path="system-recordings-upload" element={<SystemRecordingUpload />} />
-          
+
           <Route path="announcements" element={<AnnouncementsList />} />
           <Route path="announcements/create" element={<AnnouncementForm />} />
           <Route path="announcements/edit/:id" element={<AnnouncementForm />} />
@@ -128,7 +130,7 @@ export default function App() {
           <Route path="queue/dev" element={<QueuePage />} />
           <Route path="queue-statistics" element={<QueueStatistics />} />
           <Route path="queue-details/:queueId" element={<QueueDetails />} />
-          
+
           <Route path="agent-shifts" element={<AgentShifts />} />
           <Route path="advanced-sip-settings" element={<AdvancedSipSettings />} />
         </Route>

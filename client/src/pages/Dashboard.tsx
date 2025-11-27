@@ -25,15 +25,39 @@ export default function Dashboard() {
   const { socket } = UseSocket();
   const { isDarkMode } = useTheme();
   const [activeCalls, setActiveCalls] = useState<ActiveCall[]>([]);
+  const [isLoadingCalls, setIsLoadingCalls] = useState(true);
 
   useEffect(() => {
-    socket?.on("ongoingCalls", (calls: ActiveCall[]) => {
-      console.log("on going calles", calls)
+    if (!socket) return;
+
+    // Request current active calls on mount (for page reload)
+    socket.emit("requestActiveCalls");
+    console.log("📞 Requested current active calls from server");
+
+    socket.on("ongoingCalls", (calls: ActiveCall[]) => {
+      console.log("📞 Received active calls update:", calls.length, "calls");
       setActiveCalls(calls);
+      setIsLoadingCalls(false);
     });
 
+    // Handle connection/reconnection
+    const handleConnect = () => {
+      console.log("🔌 Socket connected, requesting active calls");
+      socket.emit("requestActiveCalls");
+    };
+
+    const handleReconnect = () => {
+      console.log("🔄 Socket reconnected, requesting active calls");
+      socket.emit("requestActiveCalls");
+    };
+
+    socket.on("connect", handleConnect);
+    socket.on("reconnect", handleReconnect);
+
     return () => {
-      socket?.off("ongoingCalls");
+      socket.off("ongoingCalls");
+      socket.off("connect", handleConnect);
+      socket.off("reconnect", handleReconnect);
     };
   }, [socket]);
 
@@ -79,7 +103,7 @@ export default function Dashboard() {
           <QueueCallerTable />
         </div>
         <div className="cc-glass rounded-xl p-6">
-          <CallStatus activeCalls={activeCalls} />
+          <CallStatus activeCalls={activeCalls} isLoading={isLoadingCalls} />
         </div>
 
 

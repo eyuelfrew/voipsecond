@@ -108,13 +108,26 @@ ami
       emitAllQueueStats(socket);
 
       // Send current ongoing calls to new clients immediately
-      // socket.emit("ongoingCalls", Object.values(state.ongoingCalls));
+      socket.emit("ongoingCalls", Object.values(state.ongoingCalls));
       console.log(`📞 Sent ${Object.keys(state.ongoingCalls).length} ongoing calls to new client ${socket.id}`);
+
+      // Send current queue callers (incoming calls) to new clients immediately
+      const queueCallersWithWaitTime = state.queueCallers.map((caller) => {
+        return {
+          ...caller,
+          waitTime: Math.floor((Date.now() - caller.waitStart) / 1000),
+        };
+      });
+      socket.emit("queueStatus", queueCallersWithWaitTime);
+      console.log(`📞 Sent ${state.queueCallers.length} queue callers to new client ${socket.id}`);
 
       // Handle request for current agent list - now uses enriched data.
       socket.on("on-going-calles", () => {
         io.emit('ongoingCalls', Object.values(state.ongoingCalls))
-        io.emit('queueStatus', Object.values(state.queueCallers))
+        io.emit('queueStatus', state.queueCallers.map((caller) => ({
+          ...caller,
+          waitTime: Math.floor((Date.now() - caller.waitStart) / 1000),
+        })))
       })
       socket.on("requestAgentList", () => {
         try {
@@ -144,6 +157,47 @@ ami
         } catch (error) {
           console.error("Error sending queue stats:", error);
           socket.emit("queueStatsError", { error: error.message });
+        }
+      });
+
+      // Handle request for current queue callers (incoming calls)
+      socket.on("requestQueueCallers", () => {
+        try {
+          if (!global.amiReady) {
+            socket.emit("queueStatusError", { error: "AMI not connected" });
+            return;
+          }
+
+          // Send current queue callers with calculated wait times
+          const queueCallersWithWaitTime = state.queueCallers.map((caller) => {
+            return {
+              ...caller,
+              waitTime: Math.floor((Date.now() - caller.waitStart) / 1000),
+            };
+          });
+          socket.emit("queueStatus", queueCallersWithWaitTime);
+          console.log(`📞 Sent ${state.queueCallers.length} queue callers to client ${socket.id} on request`);
+        } catch (error) {
+          console.error("Error sending queue callers:", error);
+          socket.emit("queueStatusError", { error: error.message });
+        }
+      });
+
+      // Handle request for current active calls (ongoing calls)
+      socket.on("requestActiveCalls", () => {
+        try {
+          if (!global.amiReady) {
+            socket.emit("activeCallsError", { error: "AMI not connected" });
+            return;
+          }
+
+          // Send current ongoing calls
+          const ongoingCallsArray = Object.values(state.ongoingCalls);
+          socket.emit("ongoingCalls", ongoingCallsArray);
+          console.log(`📞 Sent ${ongoingCallsArray.length} active calls to client ${socket.id} on request`);
+        } catch (error) {
+          console.error("Error sending active calls:", error);
+          socket.emit("activeCallsError", { error: error.message });
         }
       });
 
