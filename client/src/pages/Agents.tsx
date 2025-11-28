@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
-import { UseSocket } from "../context/SocketContext";
+
 import { useTheme } from "../context/ThemeContext";
 import baseUrl from "../util/baseUrl";
 // Lucide React Icons
@@ -16,7 +16,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-// Agent interface matching your backend response
+// Agent interface for statistics (no real-time status)
 interface Agent {
   id: string;
   username: string;
@@ -26,14 +26,8 @@ interface Agent {
   full_name: string;
   name: string;
   email: string;
-  queues: string[];
-  deviceState: string;
-  liveStatus: string;
-  status: string;
-  lastActivity: string;
-  contacts: string;
-  transport: string;
-  loginTime?: string; // When agent logged in
+  lastActivity: string | null;
+  loginTime?: string | null; // When agent logged in
   dailyStats: {
     totalCalls: number;
     answeredCalls: number;
@@ -83,28 +77,9 @@ const Agent: React.FC = () => {
   const [sortColumn, setSortColumn] = useState<string>("full_name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [statsView, setStatsView] = useState<"daily" | "overall">("daily");
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const agentsPerPage = 10;
-  const { socket } = UseSocket();
-
-  // Helper function to get status badge styles
-  const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "online":
-        return "bg-green-500/20 text-green-400 border border-green-500/30";
-      case "busy":
-        return "bg-red-500/20 text-red-400 border border-red-500/30";
-      case "away":
-        return "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30";
-      case "offline":
-        return "bg-gray-500/20 text-gray-400 border border-gray-500/30";
-      case "ringing":
-        return "bg-blue-500/20 text-blue-400 border border-blue-500/30 animate-pulse";
-      case "paused":
-        return "bg-purple-500/20 text-purple-400 border border-purple-500/30";
-      default:
-        return "bg-gray-500/20 text-gray-400 border border-gray-500/30";
-    }
-  };
+  const fetchingRef = useRef<boolean>(false);
 
   // Helper function to format time in seconds to HH:MM:SS
   const formatTime = (seconds: number): string => {
@@ -177,29 +152,52 @@ const Agent: React.FC = () => {
 
 
   const fetchAgents = async () => {
+    // Prevent duplicate requests
+    if (fetchingRef.current) {
+      console.log("⏳ Already fetching agents, skipping duplicate request");
+      return;
+    }
+
+    fetchingRef.current = true;
     setLoading(true);
     setError(null);
+
     try {
       const response = await axios.get(
-        `${baseUrl}/api/agent/extension/real-time`
+        `${baseUrl}/api/agent/statistics/all`,
+        { withCredentials: true }
       );
       const data = response.data;
 
-      console.log("📡 Fetched agents from API:", data);
-
       if (data.success && Array.isArray(data.agents)) {
         setAgents(data.agents);
+        setLastUpdated(new Date());
         console.log(`✅ Loaded ${data.agents.length} agents from API`);
       } else {
         console.warn("⚠️ Invalid API response format:", data);
         setAgents([]);
       }
-      setLoading(false);
     } catch (err) {
       console.error("❌ Error fetching agents:", err);
       setError("Failed to fetch agents. Please try again.");
+    } finally {
       setLoading(false);
+      fetchingRef.current = false;
     }
+  };
+
+  // Format last updated time
+  const formatLastUpdated = (): string => {
+    if (!lastUpdated) return "Never";
+    const now = new Date();
+    const diffMs = now.getTime() - lastUpdated.getTime();
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffMs / 60000);
+
+    if (diffSecs < 10) return "Just now";
+    if (diffSecs < 60) return `${diffSecs}s ago`;
+    if (diffMins < 60) return `${diffMins}m ago`;
+    return lastUpdated.toLocaleTimeString();
   };
 
   const handleCloseModal = () => setShowModal(false);
@@ -214,24 +212,61 @@ const Agent: React.FC = () => {
     if (!agentToReset) return;
 
     setResetting(true);
+
+    // Optimistic update - immediately update UI for BOTH daily and overall
+    const resetStats = {
+      totalCalls: 0,
+      answeredCalls: 0,
+      missedCalls: 0,
+      averageTalkTime: 0,
+      averageWrapTime: 0,
+      averageHoldTime: 0,
+      averageRingTime: 0,
+      longestIdleTime: 0,
+      totalTalkTime: 0,
+      totalIdleTime: 0,
+      totalPauseTime: 0,
+      pauseCount: 0,
+      outboundCalls: 0,
+      transferredCalls: 0,
+      conferenceCalls: 0,
+    };
+
+    const previousAgents = [...agents];
+
+    // Optimistically update the UI - reset BOTH daily and overall
+    setAgents(prev =>
+      prev.map(agent =>
+        agent.extension === agentToReset.extension
+          ? {
+              ...agent,
+              dailyStats: resetStats,
+              overallStats: resetStats,
+            }
+          : agent
+      )
+    );
+
     try {
       const response = await axios.post(
         `${baseUrl}/api/agent/extension/${agentToReset.extension}/reset-stats`,
-        { statsType: statsView }, // Reset daily or overall stats
+        { statsType: 'all' }, // Reset both daily and overall
         { withCredentials: true }
       );
 
       if (response.data.success) {
-        // Refresh agents data
-        await fetchAgents();
         setShowResetModal(false);
         setAgentToReset(null);
-        console.log(`✅ Successfully reset stats for ${agentToReset.full_name}`);
+        console.log(`✅ Successfully reset ALL stats (daily + overall) for ${agentToReset.full_name}`);
       } else {
+        // Revert on failure
+        setAgents(previousAgents);
         console.error("❌ Failed to reset agent stats:", response.data.message);
         alert("Failed to reset agent stats. Please try again.");
       }
     } catch (err) {
+      // Revert on error
+      setAgents(previousAgents);
       console.error("❌ Error resetting agent stats:", err);
       alert("Error resetting agent stats. Please try again.");
     } finally {
@@ -255,48 +290,9 @@ const Agent: React.FC = () => {
   };
 
   useEffect(() => {
-    console.log("🚀 Agent component mounted, fetching initial data...");
+    console.log("🚀 Agent Stats component mounted, fetching initial data...");
     fetchAgents();
-
-    if (!socket) {
-      console.warn("⚠️ Socket not available");
-      return;
-    }
-
-    console.log("🔌 Setting up socket listeners...");
-
-    const handleAgentData = (data: Agent[]) => {
-      console.log("📡 Received real-time agent data via socket:", data);
-      console.log(`📊 Received ${data.length} agents via socket`);
-
-      if (Array.isArray(data) && data.length > 0) {
-        setAgents(data);
-        setLoading(false);
-        setError(null);
-        console.log("✅ Updated agents from socket data");
-      } else {
-        console.warn("⚠️ Received empty or invalid socket data:", data);
-      }
-    };
-
-    // Listen to the real-time agent data from your backend
-    socket.on("agentStatusWithStats", handleAgentData);
-
-    // Listen for individual status updates
-    socket.on("agentStatusUpdate", (data) => {
-      console.log("🔄 Individual agent status update:", data);
-    });
-
-    // Request current agent list immediately
-    console.log("📤 Requesting agent list via socket...");
-    socket.emit("requestAgentList");
-
-    return () => {
-      console.log("🧹 Cleaning up socket listeners...");
-      socket.off("agentStatusWithStats", handleAgentData);
-      socket.off("agentStatusUpdate");
-    };
-  }, [socket]);
+  }, []);
 
 
 
@@ -355,7 +351,52 @@ const Agent: React.FC = () => {
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,0,0.02)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
       </div>
 
-      <div className="relative z-10  mx-auto space-y-6">
+      <div className="relative z-10 mx-auto space-y-6">
+        {/* Header */}
+        <div className="cc-glass rounded-xl p-8 shadow-2xl">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-cc-yellow-400 rounded-xl flex items-center justify-center animate-pulse">
+                <Activity className="w-6 h-6 text-black" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold cc-text-accent">
+                  Agent Stats
+                </h1>
+                <div className="flex items-center gap-3 mt-1">
+                  <p className="cc-text-secondary text-sm">
+                    Monitor agent performance and call statistics
+                  </p>
+                  {lastUpdated && (
+                    <span className="text-xs cc-text-secondary bg-gray-500/10 px-3 py-1 rounded-full">
+                      Updated: {formatLastUpdated()}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={fetchAgents}
+                disabled={loading}
+                className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 px-6 py-3 rounded-xl shadow-lg flex items-center font-bold cc-transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-400/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                title="Refresh agent statistics"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-400 border-t-transparent mr-2"></div>
+                    Refreshing...
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="mr-2 w-4 h-4" /> Refresh
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Stats View Controls */}
         <div className="cc-glass rounded-xl p-6 shadow-2xl">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -410,14 +451,6 @@ const Agent: React.FC = () => {
                   >
                     <div className="flex items-center gap-1">
                       Agent {sortColumn === "full_name" && (sortDirection === "asc" ? "↑" : "↓")}
-                    </div>
-                  </th>
-                  <th 
-                    onClick={() => handleSort("status")}
-                    className="px-3 py-3 text-left text-xs font-bold cc-text-accent uppercase tracking-wide cursor-pointer hover:bg-yellow-400/10 cc-transition"
-                  >
-                    <div className="flex items-center gap-1">
-                      Status {sortColumn === "status" && (sortDirection === "asc" ? "↑" : "↓")}
                     </div>
                   </th>
                   <th 
@@ -512,7 +545,7 @@ const Agent: React.FC = () => {
               <tbody>
                 {paginatedAgents.length === 0 ? (
                   <tr>
-                    <td colSpan={17} className="px-6 py-16 text-center">
+                    <td colSpan={16} className="px-6 py-16 text-center">
                       <div className="flex flex-col items-center space-y-4">
                         <div className="w-16 h-16 bg-yellow-400/10 rounded-full flex items-center justify-center">
                           <User className="w-8 h-8 cc-text-accent opacity-50" />
@@ -532,7 +565,7 @@ const Agent: React.FC = () => {
                       : "0";
                     const totalTalkTime = stats.answeredCalls * stats.averageTalkTime;
                     const aht = calculateAHT(stats.averageTalkTime, stats.averageHoldTime, stats.averageWrapTime);
-                    const cph = calculateCallsPerHour(stats.totalCalls, agent.loginTime);
+                    const cph = calculateCallsPerHour(stats.totalCalls, agent.loginTime || undefined);
                     const outboundCalls = stats.outboundCalls || 0;
                     const transferredCalls = stats.transferredCalls || 0;
                     const conferenceCalls = stats.conferenceCalls || 0;
@@ -554,21 +587,6 @@ const Agent: React.FC = () => {
                               <div className="font-bold cc-text-primary text-sm truncate">{agent.full_name}</div>
                               <div className="text-xs cc-text-secondary">Ext: {agent.extension}</div>
                             </div>
-                          </div>
-                        </td>
-
-                        {/* Status */}
-                        <td className="px-3 py-3">
-                          <div className="space-y-1">
-                            <span className={`inline-flex px-2 py-1 rounded-full text-xs font-bold ${getStatusBadge(agent.status)}`}>
-                              {agent.status}
-                            </span>
-                            {agent.status.toLowerCase() !== "offline" && agent.liveStatus && (
-                              <div className="text-xs cc-text-secondary capitalize">{agent.liveStatus}</div>
-                            )}
-                            {agent.status.toLowerCase() === "offline" && (
-                              <div className="text-xs text-gray-500">Not registered</div>
-                            )}
                           </div>
                         </td>
 
@@ -667,10 +685,10 @@ const Agent: React.FC = () => {
                           <button
                             onClick={() => handleResetAgent(agent)}
                             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 hover:border-red-400 cc-transition text-xs font-semibold group"
-                            title={`Reset ${statsView} stats for ${agent.full_name}`}
+                            title={`Reset ALL stats (daily + overall) for ${agent.full_name}`}
                           >
                             <RotateCcw className="w-3 h-3 group-hover:rotate-180 cc-transition duration-500" />
-                            Reset
+                            Reset All
                           </button>
                         </td>
                       </tr>
@@ -760,7 +778,7 @@ const Agent: React.FC = () => {
               {/* Message */}
               <div className="cc-text-primary text-center space-y-3 mb-8">
                 <p className="text-lg">
-                  Are you sure you want to reset <span className="font-bold cc-text-accent">{statsView}</span> statistics for:
+                  Are you sure you want to reset <span className="font-bold text-red-400">ALL statistics (Daily + Overall)</span> for:
                 </p>
                 <div className="cc-glass rounded-xl p-4 border cc-border-accent">
                   <div className="flex items-center justify-center space-x-3">
@@ -774,7 +792,7 @@ const Agent: React.FC = () => {
                   </div>
                 </div>
                 <p className="text-sm cc-text-secondary">
-                  This will reset all {statsView} call statistics to zero. This action cannot be undone.
+                  This will reset <span className="font-bold text-red-400">BOTH daily and overall</span> call statistics to zero. This action cannot be undone.
                 </p>
               </div>
 

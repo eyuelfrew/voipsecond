@@ -700,22 +700,7 @@ async function handleQueueCallerAbandon(event, io) {
 /**
  * Handles the 'AgentCalled' event when an agent receives a call
  * @param {object} event - The AMI event object.
- */
-async function handleAgentCalled(event) {
-  const { MemberName, Interface, Queue, CallerIDNum, CallerIDName } = event;
 
-  // Extract extension from Interface (e.g., "Local/1003@from-internal" -> "1003")
-  const extensionMatch = Interface.match(/Local\/(\d+)@/);
-  const agentExtension = extensionMatch ? extensionMatch[1] : MemberName;
-
-  // Track that agent received a call
-  const { trackAgentCall } = require('../controllers/agentControllers/callStatsController');
-  await trackAgentCall(agentExtension, 'received', {
-    queue: Queue,
-    callerId: CallerIDNum,
-    callerName: CallerIDName
-  });
-}
 
 /**
  * Handles the 'AgentComplete' event when a queue call ends.
@@ -728,6 +713,11 @@ async function handleAgentCalled(event) {
  * @param {object} event - The AMI event object.
  */
 async function handleAgentRingNoAnswer(event) {
+  console.log(event)
+  console.log(event)
+  console.log(event)
+  console.log(event)
+  console.log(event)
   const { MemberName, Interface, Queue, RingTime, CallerIDNum, Linkedid } = event;
 
   // Extract extension from Interface
@@ -1315,12 +1305,11 @@ async function setupAmiEventListeners(ami, io) {
     setupQueueStatsListeners,
   } = require("../controllers/queueControllers/realTimeQueueStats");
   setupQueueStatsListeners(ami, io);
-
+  ami.on('event',(event)=>console.log(event))
   ami.on("BridgeEnter", (event) => handleBridgeEnter(event, io, ami));
   ami.on("BridgeDestroy", handleBridgeDestroy);
 
   // Agent call tracking events
-  ami.on("AgentCalled", handleAgentCalled);
   // AgentConnect is now handled in realTimeAgent.js for better organization
   ami.on("AgentRingNoAnswer", handleAgentRingNoAnswer);
   ami.on("AgentComplete", (event) => handleAgentComplete(event, io));

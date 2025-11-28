@@ -13,19 +13,28 @@ const state = {
 // Helper to initialize agent record if missing
 async function getOrCreateAgent(username) {
   if (!state.agents[username]) {
+    // Check if extension exists first (source of truth)
+    let extensionData = await Extension.findOne({ userExtension: username });
+    
+    // Only create/load agent if extension exists
+    if (!extensionData) {
+      console.warn(`⚠️  Attempted to create agent for non-existent extension: ${username}`);
+      return null;
+    }
+    
     // Try to load from database first
     let dbAgent = await Agent.findOne({ username });
-    let extensionData = await Extension.findOne({ userExtension: username });
 
     if (!dbAgent) {
-      // Create new agent record in database
+      // Create new agent record in database (only if extension exists)
       dbAgent = new Agent({
         username,
-        name: extensionData ? extensionData.displayName : `Agent ${username}`,
+        name: extensionData.displayName || `Agent ${username}`,
         email: extensionData?.email || null,
         queues: [],
       });
       await dbAgent.save();
+      console.log(`✅ Created new agent record for extension ${username}`);
     }
 
     state.agents[username] = {
@@ -87,10 +96,12 @@ async function incrementAnsweredCalls(
   try {
 
     const agent = await getOrCreateAgent(username);
+    if (!agent) {
+      console.warn(`⚠️  Cannot increment answered calls for non-existent extension: ${username}`);
+      return;
+    }
 
-    // Increment call counts
-    agent.totalCallsToday += 1;
-    agent.totalCallsOverall += 1;
+    // Increment answered call counts only (totalCalls already incremented in AgentCalled)
     agent.answeredCallsToday += 1;
     agent.answeredCallsOverall += 1;
 
@@ -184,6 +195,10 @@ async function saveAgentStats(username) {
 async function updateAgentWrapTime(username, wrapTimeSec, io) {
   try {
     const agent = await getOrCreateAgent(username);
+    if (!agent) {
+      console.warn(`⚠️  Cannot update wrap time for non-existent extension: ${username}`);
+      return;
+    }
 
     // Update wrap time averages
     agent.averageWrapTimeToday = updateAverage(
@@ -610,6 +625,7 @@ function setupAgentListeners(ami, io) {
     }
 
     const agent = await getOrCreateAgent(EndpointName);
+    if (!agent) return; // Skip if extension doesn't exist
 
     // Update device state based on contact status
     if (ContactStatus === "Reachable") {
@@ -630,6 +646,10 @@ function setupAgentListeners(ami, io) {
   // Listen to AgentCalled events (agent is notified of incoming call) - Track total calls
   ami.on("AgentCalled", async (event) => {
     const { Interface, Queue, CallerIDNum, CallerIDName, Linkedid } = event;
+    console.log(event)
+    console.log(event)
+    console.log(event)
+    console.log(event)
     // Extract username from Interface (e.g., "PJSIP/1006" -> "1006")
     if (!Interface || !Interface.startsWith("Local/")) return;
     const username = Interface.split("/")[1];
@@ -642,19 +662,20 @@ function setupAgentListeners(ami, io) {
       return;
     }
 
-
     const agent = await getOrCreateAgent(exact_username);
+    if (!agent) return; // Skip if extension doesn't exist
 
-    // Increment total calls when agent is notified
+    // Increment total calls when agent is notified (offered a call)
     agent.totalCallsToday += 1;
     agent.totalCallsOverall += 1;
 
+    console.log(`📞 AgentCalled: ${exact_username} offered call from ${CallerIDNum} (Total today: ${agent.totalCallsToday})`);
 
     // Update agent activity
     agent.lastActivity = new Date();
 
     // Save to database and emit updates
-    await saveAgentStats(username);
+    await saveAgentStats(exact_username);
     await emitAgentStatusOnly(io);
   });
 
@@ -681,6 +702,8 @@ function setupAgentListeners(ami, io) {
     // Skip if extension not in DB
     const exists = await extensionExists(exact_username);
     if (!exists) return;
+
+    console.log(`✅ AgentConnect: ${exact_username} answered call from ${CallerIDNum} in queue ${Queue}`);
 
     // Increment agent stats
     await incrementAnsweredCalls(exact_username, HoldTime, RingTime, io);
@@ -836,7 +859,15 @@ function setupAgentListeners(ami, io) {
       RingTime,
       Linkedid,
     } = event;
-
+    console.log(event)
+    console.log(event)
+    console.log(event)
+    console.log(event)
+    console.log(event)
+    console.log(event)
+    console.log(event)
+    console.log(event)
+    console.log(event)
     // Extract username from Interface (e.g., "PJSIP/1006" -> "1006")
     if (!Interface || !Interface.startsWith("Local/")) return;
     const username = Interface.split("/")[1];
@@ -848,15 +879,40 @@ function setupAgentListeners(ami, io) {
     if (!exists) {
       return;
     }
-
+    console.log(exact_username)
+    console.log(exact_username)
+    console.log(exact_username)
+    console.log(exact_username)
+    console.log(exact_username)
+    console.log(exact_username)
+    console.log(exact_username)
+    console.log(exact_username)
+    console.log(exact_username)
+    console.log(exact_username)
+    console.log(exact_username)
+    console.log(exact_username)
+    console.log(exact_username)
+    console.log(exact_username)
+    console.log(exact_username)
+    console.log(exact_username)
+    console.log(exact_username)
+    console.log(exact_username)
+    console.log(exact_username)
+    console.log(exact_username)
+    console.log(exact_username)
+    console.log(exact_username)
+    console.log(exact_username)
     const agent = await getOrCreateAgent(exact_username);
+    if (!agent) return; // Skip if extension doesn't exist
 
     // Agent missed a queue call - increment missed call counters only
     agent.missedCallsToday += 1;
     agent.missedCallsOverall += 1;
 
-    // Note: We don't increment totalCalls for missed calls
-    // totalCalls should only represent calls that were actually handled/answered
+    console.log(`❌ AgentRingNoAnswer: ${exact_username} missed call from ${CallerIDNum} (Missed today: ${agent.missedCallsToday}, Total today: ${agent.totalCallsToday})`);
+
+    // Note: totalCalls was already incremented in AgentCalled event
+    // So totalCalls = answered + missed (which is correct)
 
     // Track ring time for missed calls (how long phone rang before timeout)
     const ringTimeSeconds = parseInt(RingTime) || 0;
@@ -962,6 +1018,44 @@ function setupAgentListeners(ami, io) {
   }, 3000); // Wait 3 seconds for AMI to be ready
 }
 
+/**
+ * Reset agent statistics to zero (both in-memory and database)
+ * @param {string} username - Agent username/extension
+ */
+async function resetAgentStats(username) {
+  try {
+    const agent = state.agents[username];
+    
+    if (agent) {
+      // Reset in-memory state
+      agent.totalCallsToday = 0;
+      agent.answeredCallsToday = 0;
+      agent.missedCallsToday = 0;
+      agent.averageTalkTimeToday = 0;
+      agent.averageWrapTimeToday = 0;
+      agent.averageHoldTimeToday = 0;
+      agent.averageRingTimeToday = 0;
+      agent.longestIdleTimeToday = 0;
+      
+      agent.totalCallsOverall = 0;
+      agent.answeredCallsOverall = 0;
+      agent.missedCallsOverall = 0;
+      agent.averageTalkTimeOverall = 0;
+      agent.averageWrapTimeOverall = 0;
+      agent.averageHoldTimeOverall = 0;
+      agent.averageRingTimeOverall = 0;
+      agent.longestIdleTimeOverall = 0;
+      
+      console.log(`✅ Reset in-memory stats for agent ${username}`);
+      
+      // Emit updated status to all clients
+      await emitAgentStatusOnly(global.io);
+    }
+  } catch (error) {
+    console.error(`❌ Error resetting in-memory stats for ${username}:`, error);
+  }
+}
+
 module.exports = {
   setupAgentListeners,
   state,
@@ -971,4 +1065,5 @@ module.exports = {
   refreshAgentState,
   reloadAllAgents,
   updateAgentWrapTime,
+  resetAgentStats,
 }

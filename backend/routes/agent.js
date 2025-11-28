@@ -251,6 +251,115 @@ router.get('/status/:agentId', async (req, res) => {
 
 // Get agent call statistics
 const { getAgentStats, getAllAgentsStats } = require('../controllers/agentControllers/callStatsController');
+
+// Get all agents with statistics only (lightweight - no real-time status)
+// IMPORTANT: This must come BEFORE /stats/:agentId to avoid route conflict
+router.get('/statistics/all', async (req, res) => {
+  try {
+    const Agent = require('../models/agent');
+    const Extension = require('../models/extension');
+    
+    // Get all valid extensions first (source of truth)
+    const extensions = await Extension.find({}, {
+      userExtension: 1,
+      displayName: 1,
+      email: 1
+    }).lean();
+    
+    console.log(`📊 Found ${extensions.length} extensions in database`);
+    
+    // Create a map for quick lookup
+    const extensionMap = {};
+    const validExtensions = new Set();
+    extensions.forEach(ext => {
+      extensionMap[ext.userExtension] = ext;
+      validExtensions.add(ext.userExtension);
+    });
+    
+    // Fetch agents ONLY for valid extensions
+    const agents = await Agent.find({
+      username: { $in: Array.from(validExtensions) }
+    }).lean();
+    
+    console.log(`📊 Found ${agents.length} agents matching valid extensions`);
+
+    // Format the response - only include agents with valid extensions
+    const formattedAgents = agents.map(agent => {
+      const extension = extensionMap[agent.username];
+      const displayName = extension?.displayName || agent.name || `Agent ${agent.username}`;
+      const nameParts = displayName.split(' ');
+      
+      return {
+        id: agent._id.toString(),
+        extension: agent.username,
+        username: agent.username,
+        first_name: nameParts[0] || 'Agent',
+        last_name: nameParts.slice(1).join(' ') || agent.username,
+        full_name: displayName,
+        name: displayName,
+        email: extension?.email || agent.email || '',
+        lastActivity: agent.updatedAt || null,
+        loginTime: null,
+        
+        // Daily statistics (from Agent model)
+        dailyStats: {
+          totalCalls: agent.totalCallsToday || 0,
+          answeredCalls: agent.answeredCallsToday || 0,
+          missedCalls: agent.missedCallsToday || 0,
+          averageTalkTime: agent.averageTalkTimeToday || 0,
+          averageWrapTime: agent.averageWrapTimeToday || 0,
+          averageHoldTime: agent.averageHoldTimeToday || 0,
+          averageRingTime: agent.averageRingTimeToday || 0,
+          longestIdleTime: agent.longestIdleTimeToday || 0,
+          totalTalkTime: 0, // Calculated: answeredCalls * averageTalkTime
+          totalIdleTime: 0,
+          totalPauseTime: 0,
+          pauseCount: 0,
+          outboundCalls: 0,
+          transferredCalls: 0,
+          conferenceCalls: 0,
+        },
+        
+        // Overall statistics (from Agent model)
+        overallStats: {
+          totalCalls: agent.totalCallsOverall || 0,
+          answeredCalls: agent.answeredCallsOverall || 0,
+          missedCalls: agent.missedCallsOverall || 0,
+          averageTalkTime: agent.averageTalkTimeOverall || 0,
+          averageWrapTime: agent.averageWrapTimeOverall || 0,
+          averageHoldTime: agent.averageHoldTimeOverall || 0,
+          averageRingTime: agent.averageRingTimeOverall || 0,
+          longestIdleTime: agent.longestIdleTimeOverall || 0,
+          totalTalkTime: 0, // Calculated: answeredCalls * averageTalkTime
+          totalIdleTime: 0,
+          totalPauseTime: 0,
+          pauseCount: 0,
+          outboundCalls: 0,
+          transferredCalls: 0,
+          conferenceCalls: 0,
+        }
+      };
+    });
+
+    console.log(`✅ Fetched statistics for ${formattedAgents.length} agents`);
+
+    res.json({
+      success: true,
+      count: formattedAgents.length,
+      agents: formattedAgents
+    });
+
+  } catch (error) {
+    console.error('❌ Error fetching agent statistics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch agent statistics',
+      error: error.message
+    });
+  }
+});
+
+// Agent stats routes (parameterized routes must come after specific routes)
 router.get('/stats/:agentId', getAgentStats);
 router.get('/stats', getAllAgentsStats);
 
@@ -262,13 +371,13 @@ router.get('/wrapup/:agentExtension', getAgentWrapUpHistory);
 router.post('/extension/:extension/reset-stats', async (req, res) => {
   try {
     const { extension } = req.params;
-    const { statsType } = req.body; // 'daily' or 'overall'
+    const { statsType } = req.body; // 'daily', 'overall', or 'all'
 
-    console.log(`🔄 Resetting ${statsType} stats for extension ${extension}`);
+    console.log(`🔄 Resetting ${statsType || 'all'} stats for extension ${extension}`);
 
-    // Find the extension/agent
-    const Extension = require('../models/extension');
-    const agent = await Extension.findOne({ userExtension: extension });
+    // Find the agent by username (which is the extension)
+    const Agent = require('../models/agent');
+    const agent = await Agent.findOne({ username: extension });
 
     if (!agent) {
       return res.status(404).json({
@@ -277,45 +386,42 @@ router.post('/extension/:extension/reset-stats', async (req, res) => {
       });
     }
 
-    // Reset the appropriate stats
-    const resetStats = {
-      totalCalls: 0,
-      answeredCalls: 0,
-      missedCalls: 0,
-      averageTalkTime: 0,
-      averageWrapTime: 0,
-      averageHoldTime: 0,
-      averageRingTime: 0,
-      longestIdleTime: 0,
-      totalTalkTime: 0,
-      totalIdleTime: 0,
-      totalPauseTime: 0,
-      pauseCount: 0,
-      outboundCalls: 0,
-      transferredCalls: 0,
-      conferenceCalls: 0
-    };
-
-    if (statsType === 'daily') {
-      agent.dailyStats = resetStats;
-    } else if (statsType === 'overall') {
-      agent.overallStats = resetStats;
-    } else {
-      // Reset both if not specified
-      agent.dailyStats = resetStats;
-      agent.overallStats = resetStats;
-    }
+    // ALWAYS reset BOTH daily AND overall stats (ignore statsType parameter)
+    // This ensures complete reset to zero
+    agent.totalCallsToday = 0;
+    agent.answeredCallsToday = 0;
+    agent.missedCallsToday = 0;
+    agent.averageTalkTimeToday = 0;
+    agent.averageWrapTimeToday = 0;
+    agent.averageHoldTimeToday = 0;
+    agent.averageRingTimeToday = 0;
+    agent.longestIdleTimeToday = 0;
+    
+    agent.totalCallsOverall = 0;
+    agent.answeredCallsOverall = 0;
+    agent.missedCallsOverall = 0;
+    agent.averageTalkTimeOverall = 0;
+    agent.averageWrapTimeOverall = 0;
+    agent.averageHoldTimeOverall = 0;
+    agent.averageRingTimeOverall = 0;
+    agent.longestIdleTimeOverall = 0;
 
     await agent.save();
 
-    console.log(`✅ Successfully reset ${statsType} stats for ${agent.displayName} (${extension})`);
+    // Also reset in-memory state in realTimeAgent.js
+    const { resetAgentStats } = require('../controllers/agentControllers/realTimeAgent');
+    if (resetAgentStats) {
+      await resetAgentStats(extension);
+    }
+
+    console.log(`✅ Successfully reset ALL stats (daily + overall) for ${agent.name} (${extension})`);
 
     res.json({
       success: true,
-      message: `${statsType} statistics reset successfully`,
+      message: 'All statistics (daily and overall) reset successfully to zero',
       agent: {
-        extension: agent.userExtension,
-        name: agent.displayName
+        extension: agent.username,
+        name: agent.name
       }
     });
 
